@@ -3,5 +3,5 @@
 ## Install
 
 ```console
-go get github.com/tools/godep
+go dep ensure
 ```
