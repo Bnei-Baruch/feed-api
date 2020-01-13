@@ -1,0 +1,11 @@
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "1.2.1"
+
+[[constraint]]
+  name = "gopkg.in/gin-gonic/gin.v1"
+  version = "1.1.4"
+
+[prune]
+  go-tests = true
+  unused-packages = true
