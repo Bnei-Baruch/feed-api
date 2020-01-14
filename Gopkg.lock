@@ -2,20 +2,6 @@
 
 
 [[projects]]
-  digest = "1:634b0e0c4f6bb3acbc5eeea880a871202d4bcb3c7e86573f6a83d56649ae1a4d"
-  name = "github.com/Bnei-Baruch/archive-backend"
-  packages = [
-    "consts",
-    "mdb",
-    "mdb/models",
-    "migrations",
-    "utils",
-  ]
-  pruneopts = "UT"
-  revision = "0e5600aefbb3cc560965186af49d9c6509a9ffe6"
-  version = "v1.6.8"
-
-[[projects]]
   branch = "master"
   digest = "1:443f6a64ae0976612fc1e3aab894304b945d056b8b4d1091ac4167864a92bf93"
   name = "github.com/Bnei-Baruch/sqlboiler"
@@ -35,14 +21,6 @@
   pruneopts = "UT"
   revision = "839c75faf7f98a33d445d181f3018b5c3409a45e"
   version = "v1.4.2"
-
-[[projects]]
-  digest = "1:56a4dc15a02edea8c66cd7a9a062afa8eea1a0ec8846c271e83e0e8be33d42bc"
-  name = "github.com/abadojack/whatlanggo"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "9a096a12270b527608792719d6e75e68a8bbfb03"
-  version = "v1.0.1"
 
 [[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
@@ -315,14 +293,6 @@
   version = "v1.4.0"
 
 [[projects]]
-  digest = "1:6dbdda95b5aacc0d4da77582c45e351d098f30fc32856058eaa774cde684d28a"
-  name = "github.com/stvp/rollbar"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "b20261800d8cda3be14dcef0d1a8320779bba61a"
-  version = "v0.5.1"
-
-[[projects]]
   digest = "1:f4b32291cad5efac2bfdba89ccde6aa04618b62ce06c1a571da2dc4f3f2677fb"
   name = "github.com/subosito/gotenv"
   packages = ["."]
@@ -355,18 +325,12 @@
   revision = "98c5dad5d1a0e8a73845ecc8897d0bd56586511d"
 
 [[projects]]
-  digest = "1:e718a716df3585046db036f4717f3c6ba9b973b1ab2a19d2377029a25cd80d47"
+  digest = "1:1093f2eb4b344996604f7d8b29a16c5b22ab9e1b25652140d3fede39f640d5cd"
   name = "golang.org/x/text"
   packages = [
-    "internal/format",
     "internal/gen",
-    "internal/language",
-    "internal/language/compact",
-    "internal/tag",
     "internal/triegen",
     "internal/ucd",
-    "language",
-    "language/display",
     "transform",
     "unicode/cldr",
     "unicode/norm",
@@ -374,22 +338,6 @@
   pruneopts = "UT"
   revision = "342b2e1fbaa52c93f31447ad2c6abc048c63e475"
   version = "v0.3.2"
-
-[[projects]]
-  digest = "1:2655728699af00d823b0a68bd7169fd241a30c04252f456b34421908701b9c3f"
-  name = "gopkg.in/gin-gonic/gin.v1"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "d459835d2b077e44f7c9b453505ee29881d5d12d"
-  version = "v1.2"
-
-[[projects]]
-  digest = "1:cbc72c4c4886a918d6ab4b95e347ffe259846260f99ebdd8a198c2331cf2b2e9"
-  name = "gopkg.in/go-playground/validator.v8"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "5f1438d3fca68893a817e4a66806cea46a9e4ebf"
-  version = "v8.18.2"
 
 [[projects]]
   digest = "1:0e49ce3bb641491517ba5035619be50aa07619814665c9761d0decb48f35ea94"
@@ -430,9 +378,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/Bnei-Baruch/archive-backend/mdb",
-    "github.com/Bnei-Baruch/archive-backend/mdb/models",
-    "github.com/Bnei-Baruch/archive-backend/utils",
     "github.com/Bnei-Baruch/sqlboiler/boil",
     "github.com/Bnei-Baruch/sqlboiler/queries",
     "github.com/Bnei-Baruch/sqlboiler/queries/qm",

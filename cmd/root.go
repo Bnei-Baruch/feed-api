@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/Bnei-Baruch/archive-backend/utils"
+	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
 var cfgFile string

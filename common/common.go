@@ -9,8 +9,8 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
 
-	"github.com/Bnei-Baruch/archive-backend/mdb"
-	"github.com/Bnei-Baruch/archive-backend/utils"
+	"github.com/Bnei-Baruch/feed-api/mdb"
+	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
 var (

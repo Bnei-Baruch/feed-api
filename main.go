@@ -1,9 +1,7 @@
 package main
 
-import (
-	"fmt"
-)
+import "github.com/Bnei-Baruch/feed-api/cmd"
 
 func main() {
-	fmt.Println("Feeds API")
+	cmd.Execute()
 }
