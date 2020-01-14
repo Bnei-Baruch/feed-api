@@ -3,5 +3,5 @@
 ## Install
 
 ```console
-go dep ensure
+dep ensure
 ```

@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"gopkg.in/gin-gonic/gin.v1"
+	"github.com/gin-gonic/gin"
 )
 
 // Responds with JSON of given response or aborts the request with the given error.

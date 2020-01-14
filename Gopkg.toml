@@ -3,8 +3,16 @@
   version = "1.2.1"
 
 [[constraint]]
-  name = "gopkg.in/gin-gonic/gin.v1"
+  name = "github.com/gin-contrib/cors"
+  version = "1.1.0"
+
+[[constraint]]
+  name = "github.com/gin-gonic/gin"
   version = "1.1.4"
+
+[[constraint]]
+  name = "github.com/Bnei-Baruch/sqlboiler"
+  branch="master"
 
 [prune]
   go-tests = true
