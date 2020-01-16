@@ -1,6 +1,8 @@
 import React from 'react';
 import './App.css';
 
+import FeedContainer from './FeedContainer.js'
+
 function App() {
   return (
     <div className="App">
@@ -8,6 +10,7 @@ function App() {
         <p>
           Feed Viewer
         </p>
+		<FeedContainer />
       </header>
     </div>
   );
