@@ -1,6 +1,9 @@
 package consts
 
 const (
+	// Collection Types
+	CT_DAILY_LESSON = "DAILY_LESSON"
+
 	// Security levels
 	SEC_PUBLIC    = int16(0)
 	SEC_SENSITIVE = int16(1)

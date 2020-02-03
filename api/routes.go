@@ -5,5 +5,5 @@ import (
 )
 
 func SetupRoutes(router *gin.Engine) {
-	router.GET("/items", ItemsHandler)
+	router.POST("/more", MoreHandler)
 }

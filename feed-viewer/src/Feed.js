@@ -18,9 +18,9 @@ class Feed extends PureComponent {
 	renderItem(item) {
 		console.log(item);
 		return (
-			<SemanticFeed.Event key={item.id}>
+			<SemanticFeed.Event key={item.uid}>
   			  <SemanticFeed.Label>
-  				{item.created_at} - {item.name}
+  				{item.created_at} - {item.uid} - {item.content_type}
   			  </SemanticFeed.Label>
 			</SemanticFeed.Event>
 		);
