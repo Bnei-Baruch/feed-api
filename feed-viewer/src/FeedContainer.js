@@ -35,8 +35,8 @@ class FeedContainer extends Component {
 			'with_derivations': 'true',
 		};
 		const ids = contentUnits.map((contentUnit) => `id=${contentUnit.uid}`).join('&')
-		return fetch(`https://kabbalahmedia.info/backend/content_units?${ids}&${this.paramsToUrl(params)}`).
-			then((results) => results.json());
+		return fetch(`https://kabbalahmedia.info/backend/content_units?${ids}&${this.paramsToUrl(params)}`)
+			.then((results) => results.json());
 	}
 
 	fetchCollections(contentItems) {
@@ -50,8 +50,8 @@ class FeedContainer extends Component {
 			'language': 'he',
 		};
 		const ids = collections.map((collection) => `id=${collection.uid}`).join('&')
-		return fetch(`https://kabbalahmedia.info/backend/collections?${ids}&${this.paramsToUrl(params)}`).
-			then((results) => results.json());
+		return fetch(`https://kabbalahmedia.info/backend/collections?${ids}&${this.paramsToUrl(params)}`)
+			.then((results) => results.json());
 	}
 
 	moreHandler() {
@@ -60,10 +60,8 @@ class FeedContainer extends Component {
         fetch(`http://bbdev6.kbb1.com:9590/more`, {
 			method: 'POST',
 			headers: {'Content-Type': 'application/json'},
-			body: JSON.stringify({more_items: 10, current_feed: feed}),
-		}).
-		then(results => results.json()).
-		then(data => {
+			body: JSON.stringify({more_items: MORE_ITEMS, current_feed: feed}),
+		}).then(results => results.json()).then(data => {
 			const newFeed = data.feed;
 			const newFeedUids = new Set(feed.map((contentItem) => contentItem.uid));
 			const fetchItems = newFeed.filter((contentItem) => !(contentItem.uid in itemsByUid));
@@ -85,7 +83,7 @@ class FeedContainer extends Component {
     render() {
         const {items} = this.state;
         return (
-            <Feed items={items} more={this.moreHandler} />
+            <Feed items={items} more={this.moreHandler}/>
         );
     }
 }
