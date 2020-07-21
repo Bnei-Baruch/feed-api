@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 )
 
 // panic if err != nil
@@ -38,4 +40,40 @@ func ConvertArgsString(args []string) []interface{} {
 		c[i] = args[i]
 	}
 	return c
+}
+
+// Like math.Min for int
+func MinInt(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
+}
+
+func MaxInt(x, y int) int {
+	if x >= y {
+		return x
+	}
+	return y
+}
+
+func StringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
+func InClause(prefix string, list []string) string {
+	inClause := ""
+	if len(list) > 0 {
+		quoted := []string(nil)
+		for _, uid := range list {
+			quoted = append(quoted, fmt.Sprintf("'%s'", uid))
+		}
+		inClause = fmt.Sprintf("%s (%s)", prefix, strings.Join(quoted, ","))
+	}
+	return inClause
 }

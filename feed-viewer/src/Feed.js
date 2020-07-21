@@ -1,16 +1,26 @@
 import React, { PureComponent } from 'react';
 
 import PropTypes from 'prop-types';
-import { Button, Container, Icon, Segment } from 'semantic-ui-react'
+import { Button, Checkbox, Container, Dimmer, Grid, Icon, Loader, Segment } from 'semantic-ui-react'
 
 import './Feed.css';
-import { CT_DAILY_LESSON } from './helpers/consts';
+import { CT_DAILY_LESSON, CT_VIDEO_PROGRAM } from './helpers/consts';
 import { canonicalLink } from './helpers/links';
 
 class Feed extends PureComponent {
+    constructor() {
+        super();
+		this.optionsChange = this.optionsChange.bind(this);
+    }
+
 	static propTypes = {
 		items: PropTypes.arrayOf(PropTypes.shape({})),
+        options: PropTypes.shape({}),
 		more: PropTypes.func,
+		reset: PropTypes.func,
+		updateOptions: PropTypes.func,
+		fetchingSubscribeCollections: PropTypes.bool,
+		subscribeCollections: PropTypes.arrayOf(PropTypes.shape({})),
 	};
 
 	static defaultProps = {
@@ -23,6 +33,7 @@ class Feed extends PureComponent {
 			key={cu.id}
 			href={canonicalLink(cu, "he")}
 			target="_blank"
+            rel="noopener noreferrer"
 		  >
 			<Button basic size="tiny" className="link_to_cu">
 			  {cu.name}
@@ -32,10 +43,10 @@ class Feed extends PureComponent {
 	};
 
 	renderItem(item) {
-		console.log(item);
+		//console.log(item);
 		const {id: mdbUid} = item;
 		const toLink = canonicalLink(item || { id: mdbUid, content_type: item.content_type }, "he");
-		if (item.content_type === CT_DAILY_LESSON) {
+		if ([CT_DAILY_LESSON, CT_VIDEO_PROGRAM].includes(item.content_type)) {
 			return (
 				<Segment key={item.id}>
 				  <Container>
@@ -44,8 +55,11 @@ class Feed extends PureComponent {
 						className="search__link"
 						href={toLink}
 						target="_blank"
+                        rel="noopener noreferrer"
 					  >
-						<span>שיעור בוקר {item.film_date}</span>
+						{ item.content_type === CT_DAILY_LESSON ?
+							<span>שיעור בוקר {item.film_date}</span> :
+							<span>תוכנית {item.name}, פרק אחרון ב-{item.content_units[0].film_date}</span> }
 					  </a>
 					</Container>
 
@@ -64,8 +78,11 @@ class Feed extends PureComponent {
 					<a
 					  href={toLink}
 					  target="_blank"
+                      rel="noopener noreferrer"
+					  style={{'whiteSpace': 'nowrap'}}
 					>
 					  <Icon name="tasks" size="small" />
+					  &nbsp;
 					  {`הראה את כל ${item.content_units.length} החלקים`}
 					</a>
 				  </Container>
@@ -75,20 +92,219 @@ class Feed extends PureComponent {
 			return (
 				<Segment key={item.id}>
 				  <Container>
-					{item.name} - {item.id} - {item.content_type}
+					<h3>{item.film_date}</h3>
+					- {item.name} - {item.id} - {item.content_type}
 				  </Container>
 				</Segment>
 			);
 		}
 	}
 
+    nextCollectionState(contentType, mid, options) {
+        return this.nextOptionState(
+            (options.collections &&
+            contentType in options.collections &&
+            mid in options.collections[contentType] &&
+            options.collections[contentType][mid]) || '');
+    }
+
+    nextContentTypeState(contentType, options) {
+        return this.nextOptionState(
+            (options.content_types &&
+            contentType in options.content_types &&
+            options.content_types[contentType]) || '');
+    }
+
+    nextOptionState(option) {
+        switch (option) {
+            case 'subscribe':
+                return 'unsubscribe';
+            case 'unsubscribe':
+                return 'default';
+            case 'default':
+                return 'subscribe';
+            default:
+                return 'subscribe';
+        }
+    }
+
+	optionsChange(e, elem) {
+        //console.log(elem);
+        const {label} = elem;
+		const {subscribeCollections, updateOptions, options} = this.props;
+        const c = subscribeCollections.find((c) => c.name === label);
+        const update = c ? {
+            collections: {
+                [c.content_type]: {
+                    [c.id]: this.nextCollectionState(c.content_type, c.id, options),
+                },
+            },
+        } : {
+            content_types: {
+                [label]: this.nextContentTypeState(label, options),
+            },
+        };
+        updateOptions(update);
+	}
+
+    subscriptionChecked(value) {
+        switch (value) {
+            case 'subscribe':
+                return true;
+            case 'unsubscribe':
+                return undefined;
+            case 'default':
+                return false;
+            default:
+                return undefined;
+        }
+    }
+
+    subscriptionIndeterminate(value) {
+        switch (value) {
+            case 'subscribe':
+                return false;
+            case 'unsubscribe':
+                return true;
+            case 'default':
+                return false;
+            default:
+                return false;
+        }
+    }
+
+    contentTypeChecked(contentType, options) {
+        if (!('content_types' in options &&
+            contentType in options.content_types)) {
+            return undefined;
+        }
+        return this.subscriptionChecked(options.content_types[contentType]);
+    }
+
+    contentTypeIndeterminate(contentType, options) {
+        if (!('content_types' in options &&
+            contentType in options.content_types)) {
+            return false;
+        }
+        return this.subscriptionIndeterminate(options.content_types[contentType]);
+    }
+
+    collectionChecked(contentType, collectionMid, options) {
+        if (!('collections' in options &&
+            contentType in options.collections &&
+            collectionMid in options.collections[contentType])) {
+            return false;
+        }
+        return this.subscriptionChecked(options.collections[contentType][collectionMid]);
+    }
+
+    collectionIndeterminate(contentType, collectionMid, options) {
+        if (!('collections' in options &&
+            contentType in options.collections &&
+            collectionMid in options.collections[contentType])) {
+            return false;
+        }
+        return this.subscriptionIndeterminate(options.collections[contentType][collectionMid]);
+    }
+
 	render() {
-		const {items, more} = this.props;
+		const {items, options, more, reset, fetchingSubscribeCollections, subscribeCollections} = this.props;
+		//console.log(fetchingSubscribeCollections, subscribeCollections);
+        //console.log('checked:', this.contentTypeChecked('CT_DAILY_LESSON', options),
+        //    'indetermidiate:', this.contentTypeIndeterminate('CT_DAILY_LESSON', options));
 		return (
-			<Container>
-				{items.map((item) => this.renderItem(item))}
-				<Button onClick={more}>More</Button>
-			</Container>
+			<Grid columns={2}>
+				<Grid.Row>
+					<Grid.Column>
+						<Segment style={{'direction': 'ltr'}}>
+							<h3>Subscriptions</h3>
+							<Segment textAlign='left'>
+								<Checkbox label='CT_DAILY_LESSON'
+                                    checked={this.contentTypeChecked('CT_DAILY_LESSON', options)}
+                                    indeterminate={this.contentTypeIndeterminate('CT_DAILY_LESSON', options)}
+                                    onChange={this.optionsChange} />
+							</Segment>
+							<Segment textAlign='left'>
+								<Checkbox label='CT_LECTURE'
+                                    checked={this.contentTypeChecked('CT_LECTURE', options)}
+                                    indeterminate={this.contentTypeIndeterminate('CT_LECTURE', options)}
+                                    onChange={this.optionsChange} /><br />
+								<Checkbox label='CT_VIRTUAL_LESSON'
+                                    checked={this.contentTypeChecked('CT_VIRTUAL_LESSON', options)}
+                                    indeterminate={this.contentTypeIndeterminate('CT_VIRTUAL_LESSON', options)}
+                                    onChange={this.optionsChange} /><br />
+								<Checkbox label='CT_WOMEN_LESSON'
+                                    checked={this.contentTypeChecked('CT_WOMEN_LESSON', options)}
+                                    indeterminate={this.contentTypeIndeterminate('CT_WOMEN_LESSON', options)}
+                                    onChange={this.optionsChange} /><br />
+								<Checkbox label='CT_EVENT_PART'
+                                    checked={this.contentTypeChecked('CT_EVENT_PART', options)}
+                                    indeterminate={this.contentTypeIndeterminate('CT_EVENT_PART', options)}
+                                    onChange={this.optionsChange} />
+							</Segment>
+							<Segment textAlign='left'>
+								<Checkbox label='CT_VIDEO_PROGRAM_CHAPTER'
+                                    checked={this.contentTypeChecked('CT_VIDEO_PROGRAM_CHAPTER', options)}
+                                    indeterminate={this.contentTypeIndeterminate('CT_VIDEO_PROGRAM_CHAPTER', options)}
+                                    onChange={this.optionsChange} />
+                            </Segment>
+                            <Segment textAlign='left'>
+                                <Checkbox label='CT_BLOG_POST'
+                                    checked={this.contentTypeChecked('CT_BLOG_POST', options)}
+                                    indeterminate={this.contentTypeIndeterminate('CT_BLOG_POST', options)}
+                                    onChange={this.optionsChange} /><br />
+                                <Checkbox label='CT_ARTICLE'
+                                    checked={this.contentTypeChecked('CT_ARTICLE', options)}
+                                    indeterminate={this.contentTypeIndeterminate('CT_ARTICLE', options)}
+                                    onChange={this.optionsChange} /><br />
+                                <Checkbox label='CT_PUBLICATION'
+                                    checked={this.contentTypeChecked('CT_PUBLICATION', options)}
+                                    indeterminate={this.contentTypeIndeterminate('CT_PUBLICATION', options)}
+                                    onChange={this.optionsChange} /><br />
+                            </Segment>
+                            <Segment textAlign='left'>
+                                <Checkbox label='CT_FRIENDS_GATHERING'
+                                    checked={this.contentTypeChecked('CT_FRIENDS_GATHERING', options)}
+                                    indeterminate={this.contentTypeIndeterminate('CT_FRIENDS_GATHERING', options)}
+                                    onChange={this.optionsChange} /><br />
+                                <Checkbox label='CT_MEAL'
+                                    checked={this.contentTypeChecked('CT_MEAL', options)}
+                                    indeterminate={this.contentTypeIndeterminate('CT_MEAL', options)}
+                                    onChange={this.optionsChange} />
+                            </Segment>
+                            <Segment textAlign='left'>
+                                <Checkbox label='CT_CLIP'
+                                    checked={this.contentTypeChecked('CT_CLIP', options)}
+                                    indeterminate={this.contentTypeIndeterminate('CT_CLIP', options)}
+                                    onChange={this.optionsChange} />
+                            </Segment>
+                            <h4>Subscribe programs, clips or articles:</h4>
+                            <Segment textAlign='left' style={{overflow: 'auto', maxHeight: 200, minHeight: 50}}>
+                                <Dimmer active={fetchingSubscribeCollections} inverted>
+                                    <Loader inverted/>
+                                </Dimmer>
+                                {subscribeCollections.map(option => {
+                                    return (<Container key={option.id}>
+                                        <Checkbox label={option.name}
+                                            checked={this.collectionChecked(option.content_type, option.id, options)}
+                                            indeterminate={this.collectionIndeterminate(option.content_type, option.id, options)}
+                                            onChange={this.optionsChange} />
+                                    </Container>);
+                                })}
+                            </Segment>
+						</Segment>
+					</Grid.Column>
+					<Grid.Column>
+						<Segment style={{overflow: 'auto', maxHeight: '80vh'}}>
+							{items.map((item) => this.renderItem(item))}
+						</Segment>
+						<Segment>
+							<Button onClick={more}>More</Button>
+							<Button onClick={reset}>Reset</Button>
+						</Segment>
+					</Grid.Column>
+				</Grid.Row>
+			</Grid>
 		);
 	}
 }

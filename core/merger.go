@@ -1,16 +1,18 @@
 package core
 
 import (
-	"sort"
+	//"sort"
+
+	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
-func Merge(currentFeed []ContentItem, suggestions [][]ContentItem) ([]ContentItem, error) {
-	mergedFeed := append([]ContentItem(nil), currentFeed...)
+func Merge(r MoreRequest, suggestions [][]ContentItem) ([]ContentItem, error) {
+	mergedFeed := append([]ContentItem(nil), r.CurrentFeed...)
 	for _, s := range suggestions {
 		mergedFeed = append(mergedFeed, s...)
 	}
-	sort.SliceStable(mergedFeed, func(i, j int) bool {
-		return mergedFeed[i].CreatedAt.Before(mergedFeed[j].CreatedAt)
-	})
-	return mergedFeed, nil
+	//sort.SliceStable(mergedFeed, func(i, j int) bool {
+	//	return mergedFeed[i].CreatedAt.After(mergedFeed[j].CreatedAt)
+	//})
+	return mergedFeed[0:utils.MinInt(len(r.CurrentFeed)+r.MoreItems, len(mergedFeed))], nil
 }

@@ -2,7 +2,47 @@ package consts
 
 const (
 	// Collection Types
-	CT_DAILY_LESSON = "DAILY_LESSON"
+	CT_ARTICLES           = "ARTICLES"
+	CT_BOOKS              = "BOOKS"
+	CT_CHILDREN_LESSONS   = "CHILDREN_LESSONS"
+	CT_CLIPS              = "CLIPS"
+	CT_CONGRESS           = "CONGRESS"
+	CT_DAILY_LESSON       = "DAILY_LESSON"
+	CT_FRIENDS_GATHERINGS = "FRIENDS_GATHERINGS"
+	CT_HOLIDAY            = "HOLIDAY"
+	CT_LECTURE_SERIES     = "LECTURE_SERIES"
+	CT_LESSONS_SERIES     = "LESSONS_SERIES"
+	CT_MEALS              = "MEALS"
+	CT_PICNIC             = "PICNIC"
+	CT_SONGS              = "SONGS"
+	CT_SPECIAL_LESSON     = "SPECIAL_LESSON"
+	CT_UNITY_DAY          = "UNITY_DAY"
+	CT_VIDEO_PROGRAM      = "VIDEO_PROGRAM"
+	CT_VIRTUAL_LESSONS    = "VIRTUAL_LESSONS"
+	CT_WOMEN_LESSONS      = "WOMEN_LESSONS"
+
+	// Content Unit Types
+	CT_ARTICLE               = "ARTICLE"
+	CT_BLOG_POST             = "BLOG_POST"
+	CT_BOOK                  = "BOOK"
+	CT_CHILDREN_LESSON       = "CHILDREN_LESSON"
+	CT_CLIP                  = "CLIP"
+	CT_EVENT_PART            = "EVENT_PART"
+	CT_FRIENDS_GATHERING     = "FRIENDS_GATHERING"
+	CT_FULL_LESSON           = "FULL_LESSON"
+	CT_KITEI_MAKOR           = "KITEI_MAKOR"
+	CT_LECTURE               = "LECTURE"
+	CT_LELO_MIKUD            = "LELO_MIKUD"
+	CT_LESSON_PART           = "LESSON_PART"
+	CT_MEAL                  = "MEAL"
+	CT_PUBLICATION           = "PUBLICATION"
+	CT_RESEARCH_MATERIAL     = "RESEARCH_MATERIAL"
+	CT_SONG                  = "SONG"
+	CT_TRAINING              = "TRAINING"
+	CT_UNKNOWN               = "UNKNOWN"
+	CT_VIDEO_PROGRAM_CHAPTER = "VIDEO_PROGRAM_CHAPTER"
+	CT_VIRTUAL_LESSON        = "VIRTUAL_LESSON"
+	CT_WOMEN_LESSON          = "WOMEN_LESSON"
 
 	// Security levels
 	SEC_PUBLIC    = int16(0)
