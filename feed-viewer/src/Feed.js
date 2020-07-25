@@ -8,10 +8,10 @@ import { CT_DAILY_LESSON, CT_VIDEO_PROGRAM } from './helpers/consts';
 import { canonicalLink } from './helpers/links';
 
 class Feed extends PureComponent {
-    constructor() {
-        super();
-		this.optionsChange = this.optionsChange.bind(this);
-    }
+  constructor() {
+    super();
+    this.optionsChange = this.optionsChange.bind(this);
+  }
 
 	static propTypes = {
 		items: PropTypes.arrayOf(PropTypes.shape({})),

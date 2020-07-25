@@ -5,6 +5,7 @@ import (
 	"sort"
 )
 
+// Sort items by date and then by create at time.
 type SortSuggester struct {
 	suggester Suggester
 }

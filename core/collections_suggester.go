@@ -7,15 +7,9 @@ import (
 	"time"
 
 	"github.com/Bnei-Baruch/sqlboiler/queries"
-	//	"github.com/Bnei-Baruch/sqlboiler/queries/qm"
 
-	//"github.com/Bnei-Baruch/feed-api/consts"
 	"github.com/Bnei-Baruch/feed-api/mdb"
-	//mdbmodels "github.com/Bnei-Baruch/feed-api/mdb/models"
-	//"github.com/Bnei-Baruch/feed-api/utils"
 )
-
-//var SECURE_PUBLISHED_MOD = qm.Where(fmt.Sprintf("secure=%d AND published IS TRUE", consts.SEC_PUBLIC))
 
 type CollectionSuggester struct {
 	db          *sql.DB

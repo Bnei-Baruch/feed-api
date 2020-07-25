@@ -6,4 +6,5 @@ import (
 
 func SetupRoutes(router *gin.Engine) {
 	router.POST("/more", MoreHandler)
+	router.POST("/recommend", RecommendHandler)
 }
