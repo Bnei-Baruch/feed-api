@@ -1,5 +1,10 @@
+.idea/
+
+.env
 *.swp
 *.swo
 *.swn
 config.toml
+
 feed-api
+feed-api-linux
