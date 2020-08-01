@@ -1,0 +1,15 @@
+# this one should just be included in generic archive logrotate file
+/sites/feed-api/logs/nginx-*.log {
+    su nginx archive
+    create 0644 nginx archive
+    size 10M
+    missingok
+    rotate 10
+    compress
+    delaycompress
+    notifempty
+    sharedscripts
+    postrotate
+        [ ! -f /var/run/nginx.pid ] || kill -USR1 `cat /var/run/nginx.pid`
+    endscript
+}

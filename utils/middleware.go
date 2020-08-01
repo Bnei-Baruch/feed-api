@@ -8,10 +8,10 @@ import (
 	"runtime/debug"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // Set MDB in context.
