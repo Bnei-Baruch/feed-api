@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/Bnei-Baruch/sqlboiler/boil"
-	log "github.com/Sirupsen/logrus"
 	_ "github.com/lib/pq"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
 	"github.com/Bnei-Baruch/feed-api/mdb"

@@ -10,7 +10,7 @@ import (
 	"github.com/Bnei-Baruch/sqlboiler/queries/qm"
 	"github.com/pkg/errors"
 
-	"github.com/Bnei-Baruch/feed-api/mdb/models"
+	mdbmodels "github.com/Bnei-Baruch/feed-api/mdb/models"
 )
 
 var (

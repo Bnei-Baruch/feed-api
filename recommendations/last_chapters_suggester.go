@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Bnei-Baruch/sqlboiler/queries"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/Bnei-Baruch/feed-api/core"
 	"github.com/Bnei-Baruch/feed-api/mdb"
