@@ -17,14 +17,16 @@ import './Recommender.css';
 
 const Recommender = (props) => {
   const [items, setItems] = useState([]);
-  const [uid, setUid] = useState('ewJZit1t');
+  const [feed, setFeed] = useState([]);
+  const [uid, setUid] = useState('EPrcYXLv');
   const [itemsByUid, setItemsByUid] = useState({});
   const [error, setError] = useState('');
 
   const recommendClicked = () => {
     setError('');
-    recommend(/*feed=*/[{uid, original_order: [0]}], itemsByUid, /*options=*/{}).then(({items, itemsByUid}) => {
-      setItems(items);  // Fix the filter here!!! should not be!
+    recommend(/*feed=*/[], itemsByUid, /*options=*/{recommend: {uid}}).then(({feed, items, itemsByUid}) => {
+      setFeed(feed);
+      setItems(items);
       setItemsByUid(itemsByUid);
     }).catch((error) => setError(error));
   };
@@ -38,13 +40,13 @@ const Recommender = (props) => {
           <Segment style={{'direction': 'ltr'}}>
             <h3>Context</h3>
             <Segment textAlign='left'>
-              <Input placeholder='UID...' defaultValue='ewJZit1t' onChange={(event, data) => setUid(data.value)} />
+              <Input placeholder='UID...' defaultValue='EPrcYXLv' onChange={(event, data) => setUid(data.value)} />
             </Segment>
           </Segment>
         </Grid.Column>
         <Grid.Column>
           <Segment style={{overflow: 'auto', maxHeight: '80vh'}}>
-            {items.map((item, index) => <Item key={index} item={item} />)}
+            {items.map((item, index) => <Item key={index} item={item} contentItem={feed[index]} />)}
           </Segment>
           <Segment>
             <Button onClick={recommendClicked}>Recommend</Button>

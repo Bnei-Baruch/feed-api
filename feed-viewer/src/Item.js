@@ -12,7 +12,10 @@ import { canonicalLink } from './helpers/links';
 
 const Item = (props) => {
   const {id: mdbUid, content_type: contentType, name, content_units: contentUnits, film_date: filmDate} = props.item;
+  const {suggester} = props.contentItem || {suggester: 'NotDefinedSuggester'};
   const toLink = canonicalLink(props.item || { id: mdbUid, content_type: contentType }, "he");
+  console.log(props.item);
+  console.log(props.contentItem);
 
 	const renderCU = cu => {
 		return (
@@ -73,7 +76,7 @@ const Item = (props) => {
       <Segment key={mdbUid}>
         <Container>
         <h3>{filmDate}</h3>
-        - {name} - {mdbUid} - {contentType}
+        - {name} - {mdbUid} - {contentType} - {suggester}
         </Container>
       </Segment>
     );

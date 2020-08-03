@@ -14,10 +14,11 @@ import (
 type ContentUnitsSuggester struct {
 	db           *sql.DB
 	contentTypes []string
+	name         string
 }
 
 func MakeContentUnitsSuggester(db *sql.DB, contentTypes []string) *ContentUnitsSuggester {
-	return &ContentUnitsSuggester{db: db, contentTypes: contentTypes}
+	return &ContentUnitsSuggester{db: db, contentTypes: contentTypes, name: "ContentUnitsSuggester"}
 }
 
 func (suggester *ContentUnitsSuggester) More(request MoreRequest) ([]ContentItem, error) {
@@ -68,7 +69,7 @@ func (suggester *ContentUnitsSuggester) fetchContentUnits(currentUIDs []string, 
 			return nil, err
 		}
 		contentType := mdb.CONTENT_TYPE_REGISTRY.ByID[type_id].Name
-		ret = append(ret, ContentItem{UID: uid, Date: date, CreatedAt: createdAt, ContentType: contentType})
+		ret = append(ret, ContentItem{UID: uid, Date: date, CreatedAt: createdAt, ContentType: contentType, Suggester: suggester.name})
 	}
 	return ret, nil
 }

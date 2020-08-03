@@ -66,7 +66,7 @@ func (suggester *CollectionSuggester) fetchCollection(currentLessonUIDs []string
 		if err != nil {
 			return nil, err
 		}
-		ret = append(ret, ContentItem{UID: uid, Date: date, CreatedAt: createdAt, ContentType: suggester.contentType})
+		ret = append(ret, ContentItem{UID: uid, Date: date, CreatedAt: createdAt, ContentType: suggester.contentType, Suggester: "CollectionSuggester"})
 	}
 	return ret, nil
 }

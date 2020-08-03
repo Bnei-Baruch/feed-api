@@ -3,41 +3,29 @@ package recommendations
 import (
 	"database/sql"
 	"fmt"
-	"time"
 
-	"github.com/Bnei-Baruch/sqlboiler/queries"
-	log "github.com/sirupsen/logrus"
-
+	"github.com/Bnei-Baruch/feed-api/consts"
 	"github.com/Bnei-Baruch/feed-api/core"
-	"github.com/Bnei-Baruch/feed-api/mdb"
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
-type LastChaptersSuggester struct {
-	db *sql.DB
+type LastContentUnitsSuggester struct {
+	SqlSuggester
 }
 
-func MakeLastChaptersSuggester(db *sql.DB) *LastChaptersSuggester {
-	return &LastChaptersSuggester{db: db}
+func MakeLastContentUnitsSuggester(db *sql.DB) *LastContentUnitsSuggester {
+	return &LastContentUnitsSuggester{SqlSuggester: SqlSuggester{db, LastContentUnitsGenSql, "LastContentUnitsSuggester"}}
 }
 
-func (suggester *LastChaptersSuggester) More(request core.MoreRequest) ([]core.ContentItem, error) {
-	currentUIDs := []string(nil)
-	for _, ci := range request.CurrentFeed {
-		currentUIDs = append(currentUIDs, ci.UID)
+func LastContentUnitsGenSql(request core.MoreRequest) string {
+	if request.Options.Recommend.Uid == "" {
+		return ""
 	}
-	return suggester.fetchLastChapters(currentUIDs, request.MoreItems)
-}
-
-func (suggester *LastChaptersSuggester) fetchLastChapters(currentUIDs []string, moreItems int) ([]core.ContentItem, error) {
-	if len(currentUIDs) == 0 {
-		return []core.ContentItem(nil), nil
-	}
-	log.Infof("uids: %+v", currentUIDs)
+	uids := []string{request.Options.Recommend.Uid}
 	dateField := `coalesce(cu.properties->>'film_date', cu.properties->>'start_date', cu.created_at::text)::date`
-	query := fmt.Sprintf(`
-		select t.type_id, t.uid, t.date, t.created_as from (
-			select cu.type_id, ROW_NUMBER() OVER(PARTITION BY c.uid order by %s desc) as r, cu.uid as uid, %s as date, cu.created_at as created_as
+	return fmt.Sprintf(`
+		select t.type_id, t.uid, t.date, t.created_at from (
+			select cu.type_id, ROW_NUMBER() OVER(PARTITION BY c.uid order by %s desc) as r, cu.uid as uid, %s as date, cu.created_at as created_at
 			from collections as c, content_units as cu, collections_content_units as ccu
 			where c.id = ccu.collection_id and cu.id = ccu.content_unit_id and
 			%s
@@ -51,30 +39,43 @@ func (suggester *LastChaptersSuggester) fetchLastChapters(currentUIDs []string, 
 		`,
 		dateField,
 		dateField,
-		utils.InClause("cu.uid not in", currentUIDs),
-		utils.InClause("cu.uid in", currentUIDs),
-		moreItems,
+		utils.InClause("cu.uid not in", uids),
+		utils.InClause("cu.uid in", uids),
+		request.MoreItems,
 	)
-	log.Infof("Query: %s", query)
-	rows, err := queries.Raw(suggester.db, query).Query()
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+}
 
-	ret := []core.ContentItem(nil)
-	for rows.Next() {
-		var typeId int64
-		var uid string
-		var date time.Time
-		var createdAt time.Time
-		err := rows.Scan(&typeId, &uid, &date, &createdAt)
-		contentType := mdb.CONTENT_TYPE_REGISTRY.ByID[typeId].Name
-		if err != nil {
-			return nil, err
-		}
-		ret = append(ret, core.ContentItem{UID: uid, Date: date, CreatedAt: createdAt, ContentType: contentType})
+type LastClipsSameTagSuggester struct {
+	SqlSuggester
+}
+
+func MakeLastClipsSameTagSuggester(db *sql.DB) *LastClipsSameTagSuggester {
+	return &LastClipsSameTagSuggester{SqlSuggester: SqlSuggester{db, LastClipsSameTag, "LastClipsSameTagSuggester"}}
+}
+
+func LastClipsSameTag(request core.MoreRequest) string {
+	if request.Options.Recommend.Uid == "" {
+		return ""
 	}
-	log.Infof("ret: %+v", ret)
-	return ret, nil
+	uids := []string{request.Options.Recommend.Uid}
+	dateField := `coalesce(cu.properties->>'film_date', cu.properties->>'start_date', cu.created_at::text)::date`
+	return fmt.Sprintf(`
+		select t.type_id, t.uid, t.date, t.created_at from (
+			select cu.type_id as type_id, cu.uid as uid, %s as date, cu.created_at as created_at, ROW_NUMBER() OVER(PARTITION BY cut.tag_id order by %s desc) as r
+			from content_units as cu, content_units_tags as cut
+			where cu.id = cut.content_unit_id and cut.tag_id in (
+				select t.id
+				from content_units as cu, content_units_tags as cut, tags as t
+				where t.id = cut.tag_id and cut.content_unit_id = cu.id %s
+			) %s
+		) as t where t.r <= %d %s
+		order by t.date desc
+		`,
+		dateField,
+		dateField,
+		utils.InClause("and cu.uid in", uids),
+		utils.InClause("and cu.type_id in", core.ContentTypesToContentIds([]string{consts.CT_CLIP})),
+		request.MoreItems,
+		utils.InClause("and t.uid not in", uids),
+	)
 }

@@ -14,10 +14,15 @@ const (
 // SUBSCRIBE, UNSUBSCRIBE, DEFAULT
 type Subscriptions map[string]string
 
+type Recommend struct {
+	Uid string `json:"uid"`
+}
+
 type MoreOptions struct {
 	ContentTypes Subscriptions `json:"content_types" form:"content_type"`
 	// Map from collection content type to Subscriptions.
 	Collections map[string]Subscriptions `json:"collections" form:"collections"`
+	Recommend   Recommend                `json:"recommend" form:"recommend"`
 }
 
 type MoreRequest struct {
@@ -32,6 +37,7 @@ type ContentItem struct {
 	Date          time.Time `json:"date"`
 	CreatedAt     time.Time `json:"created_at"`
 	OriginalOrder []int64   `json:"original_order"`
+	Suggester     string    `json:"suggester"`
 }
 
 type Suggester interface {

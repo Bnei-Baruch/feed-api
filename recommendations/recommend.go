@@ -13,10 +13,10 @@ type Recommender struct {
 
 func MakeRecommender(db *sql.DB) *Recommender {
 	return &Recommender{Suggesters: []core.Suggester{
-		MakeLastChaptersSuggester(db),
-		// Not implemented yet.
-		//MakePrevChapterSuggester(db),
-		// MakeSameTopicSuggester(db),
+		core.MakeRoundRobinSuggester([]core.Suggester{
+			MakeLastClipsSameTagSuggester(db),
+			MakeLastContentUnitsSuggester(db),
+		}),
 	}}
 }
 
