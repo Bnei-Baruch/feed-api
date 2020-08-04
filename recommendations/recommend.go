@@ -16,6 +16,7 @@ func MakeRecommender(db *sql.DB) *Recommender {
 		core.MakeRoundRobinSuggester([]core.Suggester{
 			MakeLastClipsSameTagSuggester(db),
 			MakeLastContentUnitsSuggester(db),
+			MakePrevContentUnitsSuggester(db),
 		}),
 	}}
 }

@@ -15,16 +15,19 @@ import Item from './Item.js'
 
 import './Recommender.css';
 
+const DEFAULT_UID = 'VDtljVgk';
+
 const Recommender = (props) => {
   const [items, setItems] = useState([]);
   const [feed, setFeed] = useState([]);
-  const [uid, setUid] = useState('EPrcYXLv');
+  const [uid, setUid] = useState(DEFAULT_UID);
+  const [numItems, setNumItems] = useState(20);
   const [itemsByUid, setItemsByUid] = useState({});
   const [error, setError] = useState('');
 
   const recommendClicked = () => {
     setError('');
-    recommend(/*feed=*/[], itemsByUid, /*options=*/{recommend: {uid}}).then(({feed, items, itemsByUid}) => {
+    recommend(/*feed=*/[], itemsByUid, /*options=*/{recommend: {uid}}, numItems).then(({feed, items, itemsByUid}) => {
       setFeed(feed);
       setItems(items);
       setItemsByUid(itemsByUid);
@@ -40,7 +43,12 @@ const Recommender = (props) => {
           <Segment style={{'direction': 'ltr'}}>
             <h3>Context</h3>
             <Segment textAlign='left'>
-              <Input placeholder='UID...' defaultValue='EPrcYXLv' onChange={(event, data) => setUid(data.value)} />
+              <div>
+                UID: <Input placeholder='UID...' defaultValue={uid} onChange={(event, data) => setUid(data.value)} />
+              </div>
+              <div>
+                Num Items: <Input placeholder='Num Items to Recommend' defaultValue={numItems} onChange={(event, data) => setNumItems(data.value)} />
+              </div>
             </Segment>
           </Segment>
         </Grid.Column>

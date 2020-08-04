@@ -50,12 +50,12 @@ export const fetchCollections = (contentItems) => {
     .then((results) => results.json());
 };
 
-export const more = (feed, itemsByUid, options) => {
-  return moreOrReccomend(feed, itemsByUid, options, 'more', MORE_ITEMS);
+export const more = (feed, itemsByUid, options, num_items = MORE_ITEMS) => {
+  return moreOrReccomend(feed, itemsByUid, options, 'more', num_items);
 };
 
-export const recommend = (feed, itemsByUid, options) => {
-  return moreOrReccomend(feed, itemsByUid, options, 'recommend', RECOMMEND_ITEMS);
+export const recommend = (feed, itemsByUid, options, num_items = RECOMMEND_ITEMS) => {
+  return moreOrReccomend(feed, itemsByUid, options, 'recommend', num_items);
 };
 
 export const moreOrReccomend = (feed, itemsByUid, options, handler, numItems) => {
