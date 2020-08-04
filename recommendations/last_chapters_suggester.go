@@ -27,12 +27,12 @@ func LastContentUnitsGenSql(request core.MoreRequest) string {
 		select t.type_id, t.uid, t.date, t.created_at from (
 			select cu.type_id, ROW_NUMBER() OVER(PARTITION BY c.uid order by %s desc) as r, cu.uid as uid, %s as date, cu.created_at as created_at
 			from collections as c, content_units as cu, collections_content_units as ccu
-			where c.id = ccu.collection_id and cu.id = ccu.content_unit_id and
+			where c.id = ccu.collection_id and cu.id = ccu.content_unit_id and cu.secure = 0 AND cu.published IS TRUE and
 			%s
 			and c.uid in (
 				select c.uid
 				from collections as c, content_units as cu, collections_content_units as ccu
-				where %s and c.id = ccu.collection_id and cu.id = ccu.content_unit_id
+				where %s and c.id = ccu.collection_id and cu.id = ccu.content_unit_id and cu.secure = 0 AND cu.published IS TRUE
 			) 
 			order by date desc
 		) as t where t.r <= %d;
@@ -66,8 +66,8 @@ func LastClipsSameTag(request core.MoreRequest) string {
 			where cu.id = cut.content_unit_id and cut.tag_id in (
 				select t.id
 				from content_units as cu, content_units_tags as cut, tags as t
-				where t.id = cut.tag_id and cut.content_unit_id = cu.id %s
-			) %s
+				where t.id = cut.tag_id and cut.content_unit_id = cu.id %s and cu.secure = 0 AND cu.published IS TRUE
+			) %s and cu.secure = 0 AND cu.published IS TRUE
 		) as t where t.r <= %d %s
 		order by t.date desc
 		`,

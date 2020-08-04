@@ -11,7 +11,7 @@ import { CT_DAILY_LESSON, CT_VIDEO_PROGRAM } from './helpers/consts';
 import { canonicalLink } from './helpers/links';
 
 const Item = (props) => {
-  const {id: mdbUid, content_type: contentType, name, content_units: contentUnits, film_date: filmDate} = props.item;
+  const {id: mdbUid, content_type: contentType, name, content_units: contentUnits, film_date: filmDate} = props.item || {};
   const {suggester} = props.contentItem || {suggester: 'NotDefinedSuggester'};
   const toLink = canonicalLink(props.item || { id: mdbUid, content_type: contentType }, "he");
   console.log(props.item);

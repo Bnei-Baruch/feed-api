@@ -19,6 +19,7 @@ export const paramsToUrl = (params) => {
 
 export const fetchContentUnits = (contentItems) => {
   const contentUnits = contentItems.filter((contentItem) => CONTENT_UNIT_TYPES_SET.has(contentItem.content_type));
+  console.log('fetchContentUnits', contentItems, contentUnits);
   if (contentUnits.length === 0) {
     return Promise.resolve({content_units: [], total: 0});
   }
@@ -57,7 +58,7 @@ export const recommend = (feed, itemsByUid, options) => {
   return moreOrReccomend(feed, itemsByUid, options, 'recommend', RECOMMEND_ITEMS);
 };
 
-export const moreOrReccomend = (feed, itemsByUid, options, handler,numItems) => {
+export const moreOrReccomend = (feed, itemsByUid, options, handler, numItems) => {
   console.log('moreOrReccomend');
   return fetch(`http://bbdev6.kbb1.com:9590/${handler}`, {
     method: 'POST',
@@ -70,9 +71,11 @@ export const moreOrReccomend = (feed, itemsByUid, options, handler,numItems) => 
     }
     return results.json();
   }).then(data => {
+    console.log('moreOrReccomend', data, feed, itemsByUid, options, handler, numItems);
     const newFeed = data.feed || [];
     const newFeedUids = new Set(newFeed.map((contentItem) => contentItem.uid));
     const fetchItems = newFeed.filter((contentItem) => !(contentItem.uid in itemsByUid));
+    console.log('fetchItems', fetchItems);
     const fetchPromises = [
       // Fetch collections.
       fetchCollections(fetchItems).then((data) => {
@@ -87,6 +90,7 @@ export const moreOrReccomend = (feed, itemsByUid, options, handler,numItems) => 
       }),
       // Fetch content units.
       fetchContentUnits(fetchItems).then((data) => {
+        console.log('data', data);
         data.content_units.forEach((content_unit) => {
           itemsByUid[content_unit.id] = content_unit;
         });
