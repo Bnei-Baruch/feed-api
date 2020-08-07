@@ -25,7 +25,7 @@ func MakeSqlSuggester(db *sql.DB, genSql GenerateSqlFunc, name string) *SqlSugge
 
 func (s *SqlSuggester) More(request core.MoreRequest) ([]core.ContentItem, error) {
 	query := s.genSql(request)
-	log.Infof("Query: [%s]", query)
+	log.Infof("Suggester: %s Query: [%s]", s.name, query)
 	if query == "" {
 		return []core.ContentItem(nil), nil
 	}

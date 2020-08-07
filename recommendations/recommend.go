@@ -17,6 +17,8 @@ func MakeRecommender(db *sql.DB) *Recommender {
 			MakeLastClipsSameTagSuggester(db),
 			MakeLastContentUnitsSuggester(db),
 			MakePrevContentUnitsSuggester(db),
+			MakeLastLessonsSameTagSuggester(db),
+			MakeLastProgramsSameTagSuggester(db),
 		}),
 	}}
 }
@@ -34,9 +36,15 @@ func (f *Recommender) Recommend(r core.MoreRequest) ([]core.ContentItem, error) 
 }
 
 func Merge(r core.MoreRequest, suggestions [][]core.ContentItem) ([]core.ContentItem, error) {
+	uids := make(map[string]bool)
 	mergedFeed := []core.ContentItem(nil)
 	for _, s := range suggestions {
-		mergedFeed = append(mergedFeed, s...)
+		for _, contentItem := range s {
+			if _, ok := uids[contentItem.UID]; !ok {
+				uids[contentItem.UID] = true
+				mergedFeed = append(mergedFeed, contentItem)
+			}
+		}
 	}
 	return mergedFeed[0:utils.MinInt(len(r.CurrentFeed)+r.MoreItems, len(mergedFeed))], nil
 }

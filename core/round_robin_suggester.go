@@ -39,13 +39,31 @@ func (suggester *RoundRobinSuggester) More(request MoreRequest) ([]ContentItem, 
 		}
 	}
 	roundRobin := []ContentItem(nil)
-	// Shift all items to continue from the right place from previous items.
+	// Shift all items to continue from the right suggester from previous items.
+	// This might work wrong if:
+	// a) Data changed from pervious call (which is ok).
+	// b) There were duplicate UIDs in suggesters which make modulo the wrong action here.
 	offset := len(request.CurrentFeed) % len(suggester.suggesters)
 	allItems = append(allItems[offset:len(allItems)], allItems[0:offset]...)
-	for i := 0; i < maxLength; i++ {
-		for _, items := range allItems {
-			if i < len(items) {
-				roundRobin = append(roundRobin, items[i])
+	uids := make(map[string]bool)
+	for _, contentItem := range request.CurrentFeed {
+		uids[contentItem.UID] = true
+	}
+	allItemsIndexes := []int(nil)
+	for range allItems {
+		allItemsIndexes = append(allItemsIndexes, 0)
+	}
+	// Eventually we need no more than request.MoreItems
+	appendLength := utils.MaxInt(maxLength, request.MoreItems)
+	for i := 0; i < appendLength; i++ {
+		for j, items := range allItems {
+			// Find in this suggester the next uid which we don't see in the feed.
+			for ; allItemsIndexes[j] < len(items); allItemsIndexes[j]++ {
+				if _, ok := uids[items[allItemsIndexes[j]].UID]; !ok {
+					uids[items[allItemsIndexes[j]].UID] = true
+					roundRobin = append(roundRobin, items[allItemsIndexes[j]])
+					break
+				}
 			}
 		}
 	}

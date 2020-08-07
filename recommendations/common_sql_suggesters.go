@@ -36,11 +36,13 @@ func LastContentUnitsGenSql(request core.MoreRequest) string {
 				cu.secure = 0 AND cu.published IS TRUE and
 				c.id = d.collection_id and
 				c.id = ccu.collection_id and 
-				cu.id = ccu.content_unit_id
+				cu.id = ccu.content_unit_id and
+				cu.uid != '%s'
 			order by date desc, created_at desc
 			limit %d;
 		`,
 		DATE_FIELD,
+		request.Options.Recommend.Uid,
 		request.Options.Recommend.Uid,
 		request.MoreItems,
 	)
@@ -72,47 +74,73 @@ func PrevContentUnitsGenSql(request core.MoreRequest) string {
 				c.id = d.collection_id and
 				c.id = ccu.collection_id and 
 				cu.id = ccu.content_unit_id and
-				(date < d.date or (date = d.date and cu.created_at < d.created_at))
+				(date < d.date or (date = d.date and cu.created_at < d.created_at)) and
+				cu.uid != '%s'
 			order by date desc, created_at desc
 			limit %d;
 		`,
 		DATE_FIELD,
 		DATE_FIELD,
 		request.Options.Recommend.Uid,
+		request.Options.Recommend.Uid,
 		request.MoreItems,
 	)
 }
 
-type LastClipsSameTagSuggester struct {
+type LastContentTypesSameTagSuggester struct {
 	SqlSuggester
 }
 
-func MakeLastClipsSameTagSuggester(db *sql.DB) *LastClipsSameTagSuggester {
-	return &LastClipsSameTagSuggester{SqlSuggester: SqlSuggester{db, LastClipsSameTag, "LastClipsSameTagSuggester"}}
+func MakeLastClipsSameTagSuggester(db *sql.DB) *LastContentTypesSameTagSuggester {
+	return &LastContentTypesSameTagSuggester{SqlSuggester: SqlSuggester{db, LastContentTypesSameTag([]string{consts.CT_CLIP}), "LastClipsSameTagSuggester"}}
 }
 
-func LastClipsSameTag(request core.MoreRequest) string {
-	if request.Options.Recommend.Uid == "" {
-		return ""
+func MakeLastLessonsSameTagSuggester(db *sql.DB) *LastContentTypesSameTagSuggester {
+	return &LastContentTypesSameTagSuggester{
+		SqlSuggester: SqlSuggester{
+			db,
+			LastContentTypesSameTag([]string{consts.CT_LESSON_PART, consts.CT_VIRTUAL_LESSON, consts.CT_WOMEN_LESSON}),
+			"LastLessonsSameTagSuggester",
+		},
 	}
-	uids := []string{request.Options.Recommend.Uid}
-	return fmt.Sprintf(`
-		select t.type_id, t.uid, t.date, t.created_at from (
-			select cu.type_id as type_id, cu.uid as uid, %s as date, cu.created_at as created_at, ROW_NUMBER() OVER(PARTITION BY cut.tag_id order by %s desc) as r
-			from content_units as cu, content_units_tags as cut
-			where cu.id = cut.content_unit_id and cut.tag_id in (
-				select t.id
-				from content_units as cu, content_units_tags as cut, tags as t
-				where t.id = cut.tag_id and cut.content_unit_id = cu.id %s and cu.secure = 0 AND cu.published IS TRUE
-			) %s and cu.secure = 0 AND cu.published IS TRUE
-		) as t where t.r <= %d %s
-		order by t.date desc, t.created_at desc
-		`,
-		DATE_FIELD,
-		DATE_FIELD,
-		utils.InClause("and cu.uid in", uids),
-		utils.InClause("and cu.type_id in", core.ContentTypesToContentIds([]string{consts.CT_CLIP})),
-		request.MoreItems,
-		utils.InClause("and t.uid not in", uids),
-	)
+}
+
+func MakeLastProgramsSameTagSuggester(db *sql.DB) *LastContentTypesSameTagSuggester {
+	return &LastContentTypesSameTagSuggester{
+		SqlSuggester: SqlSuggester{
+			db,
+			LastContentTypesSameTag([]string{consts.CT_VIDEO_PROGRAM_CHAPTER}),
+			"LastProgramsSameTagSuggester",
+		},
+	}
+}
+
+func LastContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
+	return func(request core.MoreRequest) string {
+		if request.Options.Recommend.Uid == "" {
+			return ""
+		}
+		return fmt.Sprintf(`
+				select cu.type_id, cu.uid as uid, %s as date, cu.created_at as created_at
+				from
+					content_units as cu,
+					content_units_tags as cut,
+					(select t.id as tag_id
+					 from content_units as cu, content_units_tags as cut, tags as t
+					 where t.id = cut.tag_id and cut.content_unit_id = cu.id and cu.uid = '%s') as d
+				where
+					cu.secure = 0 AND cu.published IS TRUE and
+					cu.id = cut.content_unit_id and
+					cut.tag_id = d.tag_id and
+					cu.uid != '%s' %s
+				order by date desc, created_at desc
+				limit %d;
+			`,
+			DATE_FIELD,
+			request.Options.Recommend.Uid,
+			request.Options.Recommend.Uid,
+			utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes)),
+			request.MoreItems,
+		)
+	}
 }
