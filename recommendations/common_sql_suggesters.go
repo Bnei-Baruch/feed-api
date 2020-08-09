@@ -144,3 +144,47 @@ func LastContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
 		)
 	}
 }
+
+func MakeLastCongressSameTagSuggester(db *sql.DB) *LastContentTypesSameTagSuggester {
+	return &LastContentTypesSameTagSuggester{
+		SqlSuggester: SqlSuggester{
+			db,
+			LastCollectionContentTypesSameTag([]string{consts.CT_CONGRESS}),
+			"LastCongressSameTagSuggester",
+		},
+	}
+}
+
+func LastCollectionContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
+	return func(request core.MoreRequest) string {
+		if request.Options.Recommend.Uid == "" {
+			return ""
+		}
+		return fmt.Sprintf(`
+				select cu.type_id, cu.uid as uid, %s as date, cu.created_at as created_at
+				from
+					content_units as cu,
+					content_units_tags as cut,
+					collections as c,
+					collections_content_units ccu,
+					(select t.id as tag_id
+					 from content_units as cu, content_units_tags as cut, tags as t
+					 where t.id = cut.tag_id and cut.content_unit_id = cu.id and cu.uid = '%s') as d
+				where
+					cu.secure = 0 AND cu.published IS TRUE and
+					cu.id = cut.content_unit_id and
+					cut.tag_id = d.tag_id and
+					c.id = ccu.collection_id and
+					cu.id = ccu.content_unit_id and
+					cu.uid != '%s' %s
+				order by date desc, created_at desc
+				limit %d;
+			`,
+			DATE_FIELD,
+			request.Options.Recommend.Uid,
+			request.Options.Recommend.Uid,
+			utils.InClause("and c.type_id in", core.ContentTypesToContentIds(contentTypes)),
+			request.MoreItems,
+		)
+	}
+}

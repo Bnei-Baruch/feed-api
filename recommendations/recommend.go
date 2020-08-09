@@ -19,6 +19,7 @@ func MakeRecommender(db *sql.DB) *Recommender {
 			MakePrevContentUnitsSuggester(db),
 			MakeLastLessonsSameTagSuggester(db),
 			MakeLastProgramsSameTagSuggester(db),
+			MakeLastCongressSameTagSuggester(db),
 		}),
 	}}
 }
