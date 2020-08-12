@@ -37,6 +37,11 @@ func serverFn(cmd *cobra.Command, args []string) {
 	// rollbar.Environment = viper.GetString("server.rollbar-environment")
 	// rollbar.CodeVersion = version.Version
 
+	// cors
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowHeaders = append(corsConfig.AllowHeaders, "Authorization")
+	corsConfig.AllowAllOrigins = true
+
 	// Setup gin
 	gin.SetMode(viper.GetString("server.mode"))
 	router := gin.New()
@@ -44,7 +49,7 @@ func serverFn(cmd *cobra.Command, args []string) {
 		utils.LoggerMiddleware(),
 		utils.DataStoresMiddleware(common.DB),
 		utils.ErrorHandlingMiddleware(),
-		cors.Default(),
+		cors.New(corsConfig),
 		utils.RecoveryMiddleware())
 
 	api.SetupRoutes(router)
