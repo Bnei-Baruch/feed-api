@@ -37,6 +37,7 @@ const Recommender = (props) => {
 
   useEffect(() => {
     recommendClicked();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   console.log(items);
