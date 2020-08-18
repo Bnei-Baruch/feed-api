@@ -1,5 +1,6 @@
 import React, { 
   useState, 
+  useEffect,
 } from 'react';
 
 import { 
@@ -20,7 +21,7 @@ const DEFAULT_UID = 'VDtljVgk';
 const Recommender = (props) => {
   const [items, setItems] = useState([]);
   const [feed, setFeed] = useState([]);
-  const [uid, setUid] = useState(DEFAULT_UID);
+  const [uid, setUid] = useState(new URLSearchParams(window.location.search).get('uid') || DEFAULT_UID);
   const [numItems, setNumItems] = useState(20);
   const [itemsByUid, setItemsByUid] = useState({});
   const [error, setError] = useState('');
@@ -33,6 +34,10 @@ const Recommender = (props) => {
       setItemsByUid(itemsByUid);
     }).catch((error) => setError(error));
   };
+
+  useEffect(() => {
+    recommendClicked();
+  }, []);
 
   console.log(items);
 
