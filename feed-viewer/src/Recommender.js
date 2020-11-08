@@ -35,10 +35,7 @@ const Recommender = (props) => {
     }).catch((error) => setError(error));
   };
 
-  useEffect(() => {
-    recommendClicked();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(recommendClicked, []);
 
   console.log(items);
 

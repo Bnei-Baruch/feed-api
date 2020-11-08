@@ -188,3 +188,40 @@ func LastCollectionContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
 		)
 	}
 }
+
+type RandomContentTypesSuggester struct {
+	SqlSuggester
+}
+
+func MakeRandomContentTypesSuggester(contentTypes []string, db *sql.DB) *RandomContentTypesSuggester {
+	return &RandomContentTypesSuggester{
+		SqlSuggester: SqlSuggester{
+			db,
+			RandomContentTypes(contentTypes),
+			"RandomContentTypes",
+		},
+	}
+}
+
+func RandomContentTypes(contentTypes []string) GenerateSqlFunc {
+	return func(request core.MoreRequest) string {
+		if request.Options.Recommend.Uid == "" {
+			return ""
+		}
+		return fmt.Sprintf(`
+				select cu.type_id, cu.uid as uid, %s as date, cu.created_at as created_at
+				from
+					content_units as cu
+				where
+					cu.secure = 0 AND cu.published IS TRUE and
+					cu.uid != '%s' %s
+				order by random()
+				limit %d;
+			`,
+			DATE_FIELD,
+			request.Options.Recommend.Uid,
+			utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes)),
+			request.MoreItems,
+		)
+	}
+}

@@ -34,7 +34,7 @@ func Unsort(contentItems []ContentItem) []ContentItem {
 	printFeed(currentFeed)
 	// Remove the original order.
 	for i := range currentFeed {
-		currentFeed[i].OriginalOrder = currentFeed[i].OriginalOrder[1:len(currentFeed[i].OriginalOrder)]
+		currentFeed[i].OriginalOrder = currentFeed[i].OriginalOrder[1:]
 	}
 	fmt.Printf("\nOrder removed currentFeed:\n")
 	printFeed(currentFeed)

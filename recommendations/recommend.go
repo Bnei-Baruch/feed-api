@@ -3,16 +3,16 @@ package recommendations
 import (
 	"database/sql"
 
+	"github.com/Bnei-Baruch/feed-api/consts"
 	"github.com/Bnei-Baruch/feed-api/core"
-	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
 type Recommender struct {
-	Suggesters []core.Suggester
+	Suggester core.Suggester
 }
 
 func MakeRecommender(db *sql.DB) *Recommender {
-	return &Recommender{Suggesters: []core.Suggester{
+	return &Recommender{Suggester: core.MakeCompletionSuggester([]core.Suggester{
 		core.MakeRoundRobinSuggester([]core.Suggester{
 			MakeLastClipsSameTagSuggester(db),
 			MakeLastContentUnitsSuggester(db),
@@ -21,31 +21,10 @@ func MakeRecommender(db *sql.DB) *Recommender {
 			MakeLastProgramsSameTagSuggester(db),
 			MakeLastCongressSameTagSuggester(db),
 		}),
-	}}
+		MakeRandomContentTypesSuggester([]string{consts.CT_CLIP, consts.CT_LESSON_PART, consts.CT_VIDEO_PROGRAM_CHAPTER}, db),
+	})}
 }
 
-func (f *Recommender) Recommend(r core.MoreRequest) ([]core.ContentItem, error) {
-	suggestions := [][]core.ContentItem(nil)
-	for _, suggester := range f.Suggesters {
-		if s, err := suggester.More(r); err != nil {
-			return nil, err
-		} else {
-			suggestions = append(suggestions, s)
-		}
-	}
-	return Merge(r, suggestions)
-}
-
-func Merge(r core.MoreRequest, suggestions [][]core.ContentItem) ([]core.ContentItem, error) {
-	uids := make(map[string]bool)
-	mergedFeed := []core.ContentItem(nil)
-	for _, s := range suggestions {
-		for _, contentItem := range s {
-			if _, ok := uids[contentItem.UID]; !ok {
-				uids[contentItem.UID] = true
-				mergedFeed = append(mergedFeed, contentItem)
-			}
-		}
-	}
-	return mergedFeed[0:utils.MinInt(len(r.CurrentFeed)+r.MoreItems, len(mergedFeed))], nil
+func (recommender *Recommender) Recommend(r core.MoreRequest) ([]core.ContentItem, error) {
+	return recommender.Suggester.More(r)
 }
