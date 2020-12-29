@@ -6,10 +6,14 @@ import (
 
 	"github.com/Bnei-Baruch/feed-api/consts"
 	"github.com/Bnei-Baruch/feed-api/core"
+	"github.com/Bnei-Baruch/feed-api/mdb"
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
 const DATE_FIELD = `coalesce(cu.properties->>'film_date', cu.properties->>'start_date', cu.created_at::text)::date`
+
+// Filter out all content units which are lesson preps, e.g., part 0 which is shorter then 20 minutes (1200 seconds).
+const FILTER_LESSON_PREP = `and not(cu.type_id = %d and (cu.properties->>'part')::int = 0 and (cu.properties->>'duration')::int < 1200)`
 
 type LastContentUnitsSuggester struct {
 	SqlSuggester
@@ -38,12 +42,14 @@ func LastContentUnitsGenSql(request core.MoreRequest) string {
 				c.id = ccu.collection_id and 
 				cu.id = ccu.content_unit_id and
 				cu.uid != '%s'
+				%s
 			order by date desc, created_at desc
 			limit %d;
 		`,
 		DATE_FIELD,
 		request.Options.Recommend.Uid,
 		request.Options.Recommend.Uid,
+		fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 		request.MoreItems,
 	)
 }
@@ -76,6 +82,7 @@ func PrevContentUnitsGenSql(request core.MoreRequest) string {
 				cu.id = ccu.content_unit_id and
 				(date < d.date or (date = d.date and cu.created_at < d.created_at)) and
 				cu.uid != '%s'
+				%s
 			order by date desc, created_at desc
 			limit %d;
 		`,
@@ -83,6 +90,7 @@ func PrevContentUnitsGenSql(request core.MoreRequest) string {
 		DATE_FIELD,
 		request.Options.Recommend.Uid,
 		request.Options.Recommend.Uid,
+		fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 		request.MoreItems,
 	)
 }
@@ -133,6 +141,7 @@ func LastContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
 					cu.id = cut.content_unit_id and
 					cut.tag_id = d.tag_id and
 					cu.uid != '%s' %s
+					%s
 				order by date desc, created_at desc
 				limit %d;
 			`,
@@ -140,6 +149,7 @@ func LastContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
 			request.Options.Recommend.Uid,
 			request.Options.Recommend.Uid,
 			utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes)),
+			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 			request.MoreItems,
 		)
 	}
@@ -177,6 +187,7 @@ func LastCollectionContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
 					c.id = ccu.collection_id and
 					cu.id = ccu.content_unit_id and
 					cu.uid != '%s' %s
+					%s
 				order by date desc, created_at desc
 				limit %d;
 			`,
@@ -184,6 +195,7 @@ func LastCollectionContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
 			request.Options.Recommend.Uid,
 			request.Options.Recommend.Uid,
 			utils.InClause("and c.type_id in", core.ContentTypesToContentIds(contentTypes)),
+			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 			request.MoreItems,
 		)
 	}
@@ -215,12 +227,14 @@ func RandomContentTypes(contentTypes []string) GenerateSqlFunc {
 				where
 					cu.secure = 0 AND cu.published IS TRUE and
 					cu.uid != '%s' %s
+					%s
 				order by random()
 				limit %d;
 			`,
 			DATE_FIELD,
 			request.Options.Recommend.Uid,
 			utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes)),
+			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 			request.MoreItems,
 		)
 	}

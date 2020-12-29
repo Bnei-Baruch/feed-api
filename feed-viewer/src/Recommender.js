@@ -50,7 +50,7 @@ const Recommender = (props) => {
                 UID: <Input placeholder='UID...' defaultValue={uid} onChange={(event, data) => setUid(data.value)} />
               </div>
               <div>
-                Num Items: <Input placeholder='Num Items to Recommend' defaultValue={numItems} onChange={(event, data) => setNumItems(data.value)} />
+                Num Items: <Input placeholder='Num Items to Recommend' defaultValue={numItems} onChange={(event, data) => setNumItems(Number(data.value))} />
               </div>
             </Segment>
           </Segment>
