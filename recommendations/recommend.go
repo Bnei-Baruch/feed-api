@@ -14,11 +14,11 @@ type Recommender struct {
 func MakeRecommender(db *sql.DB) *Recommender {
 	return &Recommender{Suggester: core.MakeCompletionSuggester([]core.Suggester{
 		core.MakeRoundRobinSuggester([]core.Suggester{
-			MakeLastClipsSameTagSuggester(db),
-			MakeLastContentUnitsSuggester(db),
-			MakePrevContentUnitsSuggester(db),
-			MakeLastLessonsSameTagSuggester(db),
-			MakeLastProgramsSameTagSuggester(db),
+			core.MakeCompletionSuggester([]core.Suggester{MakeLastClipsSameTagSuggester(db), MakeLastClipsSuggester(db)}),
+			MakeLastContentUnitsSameCollectionSuggester(db),
+			MakePrevContentUnitsSameCollectionSuggester(db),
+			core.MakeCompletionSuggester([]core.Suggester{MakeLastLessonsSameTagSuggester(db), MakeLastLessonsSuggester(db)}),
+			core.MakeCompletionSuggester([]core.Suggester{MakeLastProgramsSameTagSuggester(db), MakeLastProgramsSuggester(db)}),
 			MakeLastCongressSameTagSuggester(db),
 		}),
 		MakeRandomContentTypesSuggester([]string{consts.CT_CLIP, consts.CT_LESSON_PART, consts.CT_VIDEO_PROGRAM_CHAPTER}, db),

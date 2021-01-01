@@ -20,32 +20,106 @@ type LastContentUnitsSuggester struct {
 }
 
 func MakeLastContentUnitsSuggester(db *sql.DB) *LastContentUnitsSuggester {
-	return &LastContentUnitsSuggester{SqlSuggester: SqlSuggester{db, LastContentUnitsGenSql, "LastContentUnitsSuggester"}}
+	return &LastContentUnitsSuggester{SqlSuggester: SqlSuggester{db, LastContentUnitsContentTypesGenSql([]string(nil)), "LastContentUnitsSuggester"}}
 }
 
-func LastContentUnitsGenSql(request core.MoreRequest) string {
+type LastClipsSuggester struct {
+	SqlSuggester
+}
+
+func MakeLastClipsSuggester(db *sql.DB) *LastClipsSuggester {
+	return &LastClipsSuggester{SqlSuggester: SqlSuggester{db, LastContentUnitsContentTypesGenSql([]string{consts.CT_CLIP}), "LastClipsSuggester"}}
+}
+
+type LastLessonsSuggester struct {
+	SqlSuggester
+}
+
+func MakeLastLessonsSuggester(db *sql.DB) *LastLessonsSuggester {
+	return &LastLessonsSuggester{SqlSuggester: SqlSuggester{
+		db,
+		LastContentUnitsContentTypesGenSql([]string{consts.CT_LESSON_PART, consts.CT_VIRTUAL_LESSON, consts.CT_WOMEN_LESSON}),
+		"LastLessonsSuggester",
+	}}
+}
+
+type LastProgramsSuggester struct {
+	SqlSuggester
+}
+
+func MakeLastProgramsSuggester(db *sql.DB) *LastProgramsSuggester {
+	return &LastProgramsSuggester{SqlSuggester: SqlSuggester{
+		db,
+		LastContentUnitsContentTypesGenSql([]string{consts.CT_VIDEO_PROGRAM_CHAPTER}),
+		"LastProgramsSuggester",
+	}}
+}
+
+func LastContentUnitsContentTypesGenSql(contentTypes []string) GenerateSqlFunc {
+	return func(request core.MoreRequest) string {
+		if request.Options.Recommend.Uid == "" {
+			return ""
+		}
+		contentTypesClause := ""
+		if len(contentTypes) != 0 {
+			contentTypesClause = utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes))
+		}
+		return fmt.Sprintf(`
+				select cu.type_id, cu.uid as uid, %s as date, cu.created_at as created_at
+				from
+					content_units as cu
+				where
+					cu.secure = 0 AND cu.published IS TRUE and
+					cu.uid != '%s'
+					%s
+					%s
+				order by date desc, created_at desc
+				limit %d;
+			`,
+			DATE_FIELD,
+			request.Options.Recommend.Uid,
+			contentTypesClause,
+			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
+			request.MoreItems,
+		)
+	}
+}
+
+type LastContentUnitsSameCollectionSuggester struct {
+	SqlSuggester
+}
+
+type PrevContentUnitsSameCollectionSuggester struct {
+	SqlSuggester
+}
+
+func MakeLastContentUnitsSameCollectionSuggester(db *sql.DB) *LastContentUnitsSameCollectionSuggester {
+	return &LastContentUnitsSameCollectionSuggester{SqlSuggester: SqlSuggester{db, LastContentUnitsSameCollectionGenSql, "LastContentUnitsSameCollectionSuggester"}}
+}
+
+func LastContentUnitsSameCollectionGenSql(request core.MoreRequest) string {
 	if request.Options.Recommend.Uid == "" {
 		return ""
 	}
 	return fmt.Sprintf(`
-			select cu.type_id, cu.uid as uid, %s as date, cu.created_at as created_at
-			from
-				collections as c,
-				content_units as cu,
-				collections_content_units as ccu,
-				(select ccu.collection_id as collection_id
-				 from content_units as cu, collections_content_units as ccu
-				 where cu.id = ccu.content_unit_id and cu.uid = '%s') as d
-			where
-				cu.secure = 0 AND cu.published IS TRUE and
-				c.id = d.collection_id and
-				c.id = ccu.collection_id and 
-				cu.id = ccu.content_unit_id and
-				cu.uid != '%s'
-				%s
-			order by date desc, created_at desc
-			limit %d;
-		`,
+      select cu.type_id, cu.uid as uid, %s as date, cu.created_at as created_at
+      from
+        collections as c,
+        content_units as cu,
+        collections_content_units as ccu,
+        (select ccu.collection_id as collection_id
+         from content_units as cu, collections_content_units as ccu
+         where cu.id = ccu.content_unit_id and cu.uid = '%s') as d
+      where
+        cu.secure = 0 AND cu.published IS TRUE and
+        c.id = d.collection_id and
+        c.id = ccu.collection_id and 
+        cu.id = ccu.content_unit_id and
+        cu.uid != '%s'
+        %s
+      order by date desc, created_at desc
+      limit %d;
+    `,
 		DATE_FIELD,
 		request.Options.Recommend.Uid,
 		request.Options.Recommend.Uid,
@@ -54,15 +128,11 @@ func LastContentUnitsGenSql(request core.MoreRequest) string {
 	)
 }
 
-type PrevContentUnitsSuggester struct {
-	SqlSuggester
+func MakePrevContentUnitsSameCollectionSuggester(db *sql.DB) *PrevContentUnitsSameCollectionSuggester {
+	return &PrevContentUnitsSameCollectionSuggester{SqlSuggester: SqlSuggester{db, PrevContentUnitsSameCollectionGenSql, "PrevContentUnitsSameCollectionSuggester"}}
 }
 
-func MakePrevContentUnitsSuggester(db *sql.DB) *PrevContentUnitsSuggester {
-	return &PrevContentUnitsSuggester{SqlSuggester: SqlSuggester{db, PrevContentUnitsGenSql, "PrevContentUnitsSuggester"}}
-}
-
-func PrevContentUnitsGenSql(request core.MoreRequest) string {
+func PrevContentUnitsSameCollectionGenSql(request core.MoreRequest) string {
 	if request.Options.Recommend.Uid == "" {
 		return ""
 	}
