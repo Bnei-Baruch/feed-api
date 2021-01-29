@@ -19,7 +19,7 @@ function App() {
           <p>
             <span style={{textDecorationLine: 'underline'}}>Feed Viewer</span> / <Link to="/recommender">Recommender</Link>
           </p>
-          <div style={{width: '800px'}}>
+          <div style={{width: '1200px'}}>
             <FeedContainer />
           </div>
           </header>
@@ -29,7 +29,7 @@ function App() {
           <p>
             <Link to="/">Feed Viewer</Link> / <span style={{textDecorationLine: 'underline'}}>Recommender</span>
           </p>
-          <div style={{width: '800px'}}>
+          <div style={{width: '1200px'}}>
             <Recommender />
           </div>
           </header>

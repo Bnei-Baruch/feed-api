@@ -1,6 +1,6 @@
 import React, { 
-  useState, 
   useEffect,
+  useState, 
 } from 'react';
 
 import { 
@@ -8,11 +8,13 @@ import {
   Grid,
   Input,
   Segment,
+  TextArea,
 } from 'semantic-ui-react';
 
 import { recommend } from './api'
 
 import Item from './Item.js'
+import SpecTree from './SpecTree.js'
 
 import './Recommender.css';
 
@@ -22,27 +24,52 @@ const Recommender = (props) => {
   const [items, setItems] = useState([]);
   const [feed, setFeed] = useState([]);
   const [uid, setUid] = useState(new URLSearchParams(window.location.search).get('uid') || DEFAULT_UID);
+  const [spec, setSpec] = useState(new URLSearchParams(window.location.search).get('spec') || '');
   const [numItems, setNumItems] = useState(20);
   const [itemsByUid, setItemsByUid] = useState({});
-  const [error, setError] = useState('');
+  const [recommendError, setRecommendError] = useState('');
+  const [specError, setSpecError] = useState('');
+
+  const parseSpec = () => {
+    if (spec) {
+      try {
+        return [JSON.parse(spec), null];
+      } catch(e) {
+        return [null, e];
+      }
+    }
+    return [null, null];
+  }
+
+  const [specObj, specParseErr] = parseSpec(spec);
+  if (!specError && specParseErr) {
+    setSpecError(`Bad Spec: ${specParseErr.message}`);
+  }
+  if (specError && !specParseErr) {
+    setSpecError('');
+  }
 
   const recommendClicked = () => {
-    setError('');
-    recommend(/*feed=*/[], itemsByUid, /*options=*/{recommend: {uid}}, numItems).then(({feed, items, itemsByUid}) => {
+    setRecommendError('');
+    const options = {recommend: {uid}};
+    if (specObj) {
+      options.spec = specObj;
+    }
+    recommend(/*feed=*/[], itemsByUid, options, numItems).then(({feed, items, itemsByUid}) => {
       setFeed(feed);
       setItems(items);
       setItemsByUid(itemsByUid);
-    }).catch((error) => setError(error));
+      setRecommendError('');
+    }).catch((error) => {
+      setRecommendError(error);
+    });
   };
-
   useEffect(recommendClicked, []);
 
-  console.log(items);
-
   return (
-    <Grid columns={2}>
+    <Grid>
       <Grid.Row>
-        <Grid.Column>
+        <Grid.Column width={9}>
           <Segment style={{'direction': 'ltr'}}>
             <h3>Context</h3>
             <Segment textAlign='left'>
@@ -53,16 +80,26 @@ const Recommender = (props) => {
                 Num Items: <Input placeholder='Num Items to Recommend' defaultValue={numItems} onChange={(event, data) => setNumItems(Number(data.value))} />
               </div>
             </Segment>
+            <Segment textAlign='left'>
+              <div>Spec Tree</div>
+              <div><SpecTree spec={specObj} onChange={spec => spec ? setSpec(JSON.stringify(spec, null, 2)) : setSpec('')} /></div>
+            </Segment>
+            <Segment textAlign='left'>
+              <div>Spec JSON:</div>
+              <div>
+                <TextArea placeholder='Spec' rows="10" style={{'width': '100%'}} defaultValue={spec} onChange={(event, data) => setSpec(data.value)} />
+              </div>
+            </Segment>
           </Segment>
         </Grid.Column>
-        <Grid.Column>
+        <Grid.Column width={7}>
           <Segment style={{overflow: 'auto', maxHeight: '80vh'}}>
             {items.map((item, index) => <Item key={index} item={item} contentItem={feed[index]} />)}
           </Segment>
           <Segment>
-            <Button onClick={recommendClicked}>Recommend</Button>
+            <Button disabled={!!specParseErr} onClick={recommendClicked}>Recommend</Button>
             <br />
-            {error !== '' ? <span style={{color: 'red'}}>{error}</span> : null}
+            {(recommendError || specError) && <span style={{color: 'red'}}>{specError || recommendError}</span>}
           </Segment>
         </Grid.Column>
       </Grid.Row>

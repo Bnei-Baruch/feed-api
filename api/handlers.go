@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -53,12 +54,59 @@ func RecommendHandler(c *gin.Context) {
 	}
 
 	resp, err := handleRecommend(c.MustGet("MDB_DB").(*sql.DB), r)
+	log.Infof("Err: %+v", err)
 	concludeRequest(c, resp, err)
 }
 
 func handleRecommend(db *sql.DB, r core.MoreRequest) (*MoreResponse, *HttpError) {
 	log.Infof("r: %+v", r)
-	recommend := recommendations.MakeRecommender(db)
+	log.Infof("Spec: %+v", r.Options.Spec)
+	var recommend *recommendations.Recommender
+	if r.Options.Spec == nil {
+		recommend = recommendations.MakeRecommender(db)
+	} else {
+		if s, err := core.MakeSuggesterFromName(db, r.Options.Spec.Name); err != nil {
+			return nil, NewInternalError(err)
+		} else {
+			if err := s.UnmarshalSpec(db, *r.Options.Spec); err != nil {
+				return nil, NewInternalError(err)
+			} else {
+				recommend = &recommendations.Recommender{s}
+			}
+		}
+	}
+
+	// Uncomment to debug marshaling and unmarshling of specs.
+	// log.Infof("S: %+v", recommend.Suggester)
+	// if spec, err := recommend.Suggester.MarshalSpec(); err != nil {
+	// 	return nil, NewInternalError(err)
+	// } else {
+	// 	if marshaledBytes, err := json.Marshal(spec); err != nil {
+	// 		return nil, NewInternalError(err)
+	// 	} else {
+	// 		log.Infof("Spec as JSON: %s", string(marshaledBytes))
+	// 	}
+	// }
+	//
+	//		if s, err := core.MakeSuggesterFromName(db, spec.Name); err != nil {
+	//			return nil, NewInternalError(err)
+	//		} else {
+	//			if err := s.UnmarshalSpec(db, spec); err != nil {
+	//				return nil, NewInternalError(err)
+	//			} else {
+	//				if sSpec, err := s.MarshalSpec(); err != nil {
+	//					return nil, NewInternalError(err)
+	//				} else {
+	//					if sMarshaledBytes, err := json.MarshalIndent(sSpec, "", "  "); err != nil {
+	//						return nil, NewInternalError(err)
+	//					} else {
+	//						log.Infof("Spec as JSON: %s", string(sMarshaledBytes))
+	//					}
+	//				}
+	//			}
+	//		}
+	//	}
+
 	if cis, err := recommend.Recommend(r); err != nil {
 		return nil, NewInternalError(err)
 	} else {

@@ -1,17 +1,66 @@
 package core
 
 import (
-	//"fmt"
+	"database/sql"
+	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
 type RoundRobinSuggester struct {
-	suggesters []Suggester
+	Name       string
+	Suggesters []Suggester
 }
 
 func MakeRoundRobinSuggester(suggesters []Suggester) *RoundRobinSuggester {
-	return &RoundRobinSuggester{suggesters: suggesters}
+	return &RoundRobinSuggester{
+		Name:       "RoundRobinSuggester",
+		Suggesters: suggesters,
+	}
+}
+
+func init() {
+	RegisterSuggester("RoundRobinSuggester", func(db *sql.DB) Suggester { return MakeRoundRobinSuggester([]Suggester(nil)) })
+}
+
+func (suggester *RoundRobinSuggester) MarshalSpec() (SuggesterSpec, error) {
+	var specs []SuggesterSpec
+	for i := range suggester.Suggesters {
+		if spec, err := suggester.Suggesters[i].MarshalSpec(); err != nil {
+			return SuggesterSpec{}, err
+		} else {
+			specs = append(specs, spec)
+		}
+	}
+	return SuggesterSpec{
+		Name:  suggester.Name,
+		Specs: specs,
+	}, nil
+}
+
+func (suggester *RoundRobinSuggester) UnmarshalSpec(db *sql.DB, spec SuggesterSpec) error {
+	if spec.Name != suggester.Name {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: '%s', got: '%s'.", suggester.Name, spec.Name))
+	}
+	if len(spec.Args) != 0 {
+		return errors.New(fmt.Sprintf("%s expected to have no arguments.", suggester.Name))
+	}
+	if len(spec.Specs) == 0 {
+		return errors.New(fmt.Sprintf("%s expected to have some suggesters, got 0.", suggester.Name))
+	}
+	for i := range spec.Specs {
+		if newSuggester, err := MakeSuggesterFromName(db, spec.Specs[i].Name); err != nil {
+			return err
+		} else {
+			if err := newSuggester.UnmarshalSpec(db, spec.Specs[i]); err != nil {
+				return err
+			}
+			suggester.Suggesters = append(suggester.Suggesters, newSuggester)
+		}
+	}
+	return nil
 }
 
 func SplitContentItems(contentItems []ContentItem, numLists int) [][]ContentItem {
@@ -26,9 +75,9 @@ func SplitContentItems(contentItems []ContentItem, numLists int) [][]ContentItem
 
 func (suggester *RoundRobinSuggester) More(request MoreRequest) ([]ContentItem, error) {
 	allItems := [][]ContentItem(nil)
-	currentFeeds := SplitContentItems(request.CurrentFeed, len(suggester.suggesters))
+	currentFeeds := SplitContentItems(request.CurrentFeed, len(suggester.Suggesters))
 	maxLength := 0
-	for i, s := range suggester.suggesters {
+	for i, s := range suggester.Suggesters {
 		suggesterRequest := request
 		suggesterRequest.CurrentFeed = currentFeeds[i]
 		if items, err := s.More(suggesterRequest); err != nil {
@@ -43,7 +92,7 @@ func (suggester *RoundRobinSuggester) More(request MoreRequest) ([]ContentItem, 
 	// This might work wrong if:
 	// a) Data changed from pervious call (which is ok).
 	// b) There were duplicate UIDs in suggesters which make modulo the wrong action here.
-	offset := len(request.CurrentFeed) % len(suggester.suggesters)
+	offset := len(request.CurrentFeed) % len(suggester.Suggesters)
 	allItems = append(allItems[offset:len(allItems)], allItems[0:offset]...)
 	uids := make(map[string]bool)
 	for _, contentItem := range request.CurrentFeed {

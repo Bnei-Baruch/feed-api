@@ -67,7 +67,9 @@ export const moreOrReccomend = (feed, itemsByUid, options, handler, numItems) =>
   }).then(results => {
     console.log(results);
     if (results.status !== 200) {
-      return Promise.reject(`${results.status}: ${results.statusText}`);
+      return results.text().then((text) => {
+        return Promise.reject(`${results.status}: ${results.statusText}. Error from server: ${text}`);
+      });
     }
     return results.json();
   }).then(data => {

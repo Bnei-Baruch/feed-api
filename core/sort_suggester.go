@@ -1,8 +1,11 @@
 package core
 
 import (
+	"database/sql"
 	"fmt"
 	"sort"
+
+	"github.com/pkg/errors"
 )
 
 // Sort items by date and then by create at time.
@@ -11,7 +14,45 @@ type SortSuggester struct {
 }
 
 func MakeSortSuggester(suggester Suggester) *SortSuggester {
-	return &SortSuggester{suggester: suggester}
+	return &SortSuggester{
+		suggester: suggester,
+	}
+}
+
+func init() {
+	RegisterSuggester("SortSuggester", func(db *sql.DB) Suggester { return MakeSortSuggester(nil) })
+}
+
+func (suggester *SortSuggester) MarshalSpec() (SuggesterSpec, error) {
+	if spec, err := suggester.suggester.MarshalSpec(); err != nil {
+		return SuggesterSpec{}, err
+	} else {
+		return SuggesterSpec{
+			Name:  "SortSuggester",
+			Specs: []SuggesterSpec{spec},
+		}, nil
+	}
+}
+
+func (suggester *SortSuggester) UnmarshalSpec(db *sql.DB, spec SuggesterSpec) error {
+	if spec.Name != "SortSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'SortSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) != 0 {
+		return errors.New("SortSuggester expected to have no arguments.")
+	}
+	if len(spec.Specs) == 1 {
+		return errors.New(fmt.Sprintf("SortSuggester expected to have 1 suggesters, got %d.", len(spec.Specs)))
+	}
+	if newSuggester, err := MakeSuggesterFromName(db, spec.Specs[0].Name); err != nil {
+		return err
+	} else {
+		suggester.suggester = newSuggester
+		if err := suggester.suggester.UnmarshalSpec(db, spec.Specs[0]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func printFeed(contentItems []ContentItem) {

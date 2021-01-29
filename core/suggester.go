@@ -1,7 +1,11 @@
 package core
 
 import (
+	"database/sql"
+	"fmt"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -18,11 +22,18 @@ type Recommend struct {
 	Uid string `json:"uid"`
 }
 
+type SuggesterSpec struct {
+	Name  string          `json:"name,omitempty" form:"name,omitempty"`
+	Args  []string        `json:"args,omitempty" form:"args,omitempty"`
+	Specs []SuggesterSpec `json:"specs,omitempty" form:"specs,omitempty"`
+}
+
 type MoreOptions struct {
 	ContentTypes Subscriptions `json:"content_types" form:"content_type"`
 	// Map from collection content type to Subscriptions.
 	Collections map[string]Subscriptions `json:"collections" form:"collections"`
 	Recommend   Recommend                `json:"recommend" form:"recommend"`
+	Spec        *SuggesterSpec           `json:"spec,omitempty" form:"spec,omitempty"`
 }
 
 type MoreRequest struct {
@@ -42,4 +53,23 @@ type ContentItem struct {
 
 type Suggester interface {
 	More(request MoreRequest) ([]ContentItem, error)
+
+	MarshalSpec() (SuggesterSpec, error)
+	UnmarshalSpec(db *sql.DB, spec SuggesterSpec) error
+}
+
+type MakeSuggesterFunc func(db *sql.DB) Suggester
+
+var Suggesters = map[string]MakeSuggesterFunc{}
+
+func RegisterSuggester(name string, makeFunc MakeSuggesterFunc) {
+	Suggesters[name] = makeFunc
+}
+
+func MakeSuggesterFromName(db *sql.DB, name string) (Suggester, error) {
+	if makeSuggesterFunc, ok := Suggesters[name]; !ok {
+		return nil, errors.New(fmt.Sprintf("Did not find suggester %s in registry.", name))
+	} else {
+		return makeSuggesterFunc(db), nil
+	}
 }

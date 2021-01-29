@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Bnei-Baruch/sqlboiler/queries"
+	"github.com/pkg/errors"
 
 	"github.com/Bnei-Baruch/feed-api/mdb"
 )
@@ -17,7 +18,35 @@ type CollectionSuggester struct {
 }
 
 func MakeCollectionSuggester(db *sql.DB, contentType string) *CollectionSuggester {
-	return &CollectionSuggester{db: db, contentType: contentType}
+	return &CollectionSuggester{
+		db:          db,
+		contentType: contentType,
+	}
+}
+
+func init() {
+	RegisterSuggester("CollectionSuggester", func(db *sql.DB) Suggester { return MakeCollectionSuggester(db, "") })
+}
+
+func (suggester *CollectionSuggester) MarshalSpec() (SuggesterSpec, error) {
+	return SuggesterSpec{
+		Name: "CollectionSuggester",
+		Args: []string{suggester.contentType},
+	}, nil
+}
+
+func (suggester *CollectionSuggester) UnmarshalSpec(db *sql.DB, spec SuggesterSpec) error {
+	if spec.Name != "CollectionSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'CollectionSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) != 1 {
+		return errors.New("CollectionSuggester expected to have only one argument.")
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("CollectionSuggester expected to have 0 specs got %d.", len(spec.Specs)))
+	}
+	suggester.contentType = spec.Args[0]
+	return nil
 }
 
 func (suggester *CollectionSuggester) More(request MoreRequest) ([]ContentItem, error) {

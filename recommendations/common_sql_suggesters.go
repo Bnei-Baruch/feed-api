@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	"github.com/Bnei-Baruch/feed-api/consts"
 	"github.com/Bnei-Baruch/feed-api/core"
 	"github.com/Bnei-Baruch/feed-api/mdb"
@@ -24,12 +26,46 @@ func MakeLastContentUnitsSuggester(db *sql.DB) *LastContentUnitsSuggester {
 	return &LastContentUnitsSuggester{SqlSuggester: SqlSuggester{db, LastContentUnitsContentTypesGenSql([]string(nil)), "LastContentUnitsSuggester"}}
 }
 
+func (suggester *LastContentUnitsSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name}, nil
+}
+
+func (suggester *LastContentUnitsSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "LastContentUnitsSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastContentUnitsSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) != 0 {
+		return errors.New("LastContentUnitsSuggester expected to have some arguments.")
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("LastContentUnitsSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	return nil
+}
+
 type LastClipsSuggester struct {
 	SqlSuggester
 }
 
 func MakeLastClipsSuggester(db *sql.DB) *LastClipsSuggester {
 	return &LastClipsSuggester{SqlSuggester: SqlSuggester{db, LastContentUnitsContentTypesGenSql([]string{consts.CT_CLIP}), "LastClipsSuggester"}}
+}
+
+func (suggester *LastClipsSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name}, nil
+}
+
+func (suggester *LastClipsSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "LastClipsSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastClipsSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) != 0 {
+		return errors.New("LastClipsSuggester expected to have some arguments.")
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("LastClipsSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	return nil
 }
 
 type LastLessonsSuggester struct {
@@ -44,6 +80,23 @@ func MakeLastLessonsSuggester(db *sql.DB) *LastLessonsSuggester {
 	}}
 }
 
+func (suggester *LastLessonsSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name}, nil
+}
+
+func (suggester *LastLessonsSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "LastLessonsSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastLessonsSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) != 0 {
+		return errors.New("LastLessonsSuggester expected to have some arguments.")
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("LastLessonsSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	return nil
+}
+
 type LastProgramsSuggester struct {
 	SqlSuggester
 }
@@ -54,6 +107,23 @@ func MakeLastProgramsSuggester(db *sql.DB) *LastProgramsSuggester {
 		LastContentUnitsContentTypesGenSql([]string{consts.CT_VIDEO_PROGRAM_CHAPTER}),
 		"LastProgramsSuggester",
 	}}
+}
+
+func (suggester *LastProgramsSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name}, nil
+}
+
+func (suggester *LastProgramsSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "LastProgramsSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastProgramsSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) != 0 {
+		return errors.New("LastProgramsSuggester expected to have some arguments.")
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("LastProgramsSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	return nil
 }
 
 func LastContentUnitsContentTypesGenSql(contentTypes []string) GenerateSqlFunc {
@@ -94,6 +164,23 @@ func MakeLastContentUnitsSameCollectionSuggester(db *sql.DB) *LastContentUnitsSa
 	return &LastContentUnitsSameCollectionSuggester{SqlSuggester: SqlSuggester{db, LastContentUnitsSameCollectionGenSql, "LastContentUnitsSameCollectionSuggester"}}
 }
 
+func (suggester *LastContentUnitsSameCollectionSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name}, nil
+}
+
+func (suggester *LastContentUnitsSameCollectionSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "LastContentUnitsSameCollectionSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastContentUnitsSameCollectionSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) != 0 {
+		return errors.New("LastContentUnitsSameCollectionSuggester expected to have some arguments.")
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("LastContentUnitsSameCollectionSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	return nil
+}
+
 func LastContentUnitsSameCollectionGenSql(request core.MoreRequest) string {
 	if request.Options.Recommend.Uid == "" {
 		return ""
@@ -127,10 +214,33 @@ func LastContentUnitsSameCollectionGenSql(request core.MoreRequest) string {
 
 type NextContentUnitsSameSourceSuggester struct {
 	SqlSuggester
+	contentTypes []string
 }
 
-func MakeNextContentUnitsSameSourceSuggester(contentTypes []string, db *sql.DB) *NextContentUnitsSameSourceSuggester {
-	return &NextContentUnitsSameSourceSuggester{SqlSuggester: SqlSuggester{db, NextContentUnitsSameSourceGenSql(contentTypes), "NextContentUnitsSameSourceSuggester"}}
+func MakeNextContentUnitsSameSourceSuggester(db *sql.DB, contentTypes []string) *NextContentUnitsSameSourceSuggester {
+	return &NextContentUnitsSameSourceSuggester{
+		SqlSuggester: SqlSuggester{db, NextContentUnitsSameSourceGenSql(contentTypes), "NextContentUnitsSameSourceSuggester"},
+		contentTypes: contentTypes,
+	}
+}
+
+func (suggester *NextContentUnitsSameSourceSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes}, nil
+}
+
+func (suggester *NextContentUnitsSameSourceSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "NextContentUnitsSameSourceSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'NextContentUnitsSameSourceSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) == 0 {
+		return errors.New("NextContentUnitsSameSourceSuggester expected to have some arguments.")
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("NextContentUnitsSameSourceSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	suggester.contentTypes = spec.Args
+	suggester.SqlSuggester.genSql = NextContentUnitsSameSourceGenSql(suggester.contentTypes)
+	return nil
 }
 
 func NextContentUnitsSameSourceGenSql(contentTypes []string) GenerateSqlFunc {
@@ -170,10 +280,33 @@ func NextContentUnitsSameSourceGenSql(contentTypes []string) GenerateSqlFunc {
 
 type PrevContentUnitsSameSourceSuggester struct {
 	SqlSuggester
+	contentTypes []string
 }
 
-func MakePrevContentUnitsSameSourceSuggester(contentTypes []string, db *sql.DB) *PrevContentUnitsSameSourceSuggester {
-	return &PrevContentUnitsSameSourceSuggester{SqlSuggester: SqlSuggester{db, PrevContentUnitsSameSourceGenSql(contentTypes), "PrevContentUnitsSameSourceSuggester"}}
+func MakePrevContentUnitsSameSourceSuggester(db *sql.DB, contentTypes []string) *PrevContentUnitsSameSourceSuggester {
+	return &PrevContentUnitsSameSourceSuggester{
+		SqlSuggester: SqlSuggester{db, PrevContentUnitsSameSourceGenSql(contentTypes), "PrevContentUnitsSameSourceSuggester"},
+		contentTypes: contentTypes,
+	}
+}
+
+func (suggester *PrevContentUnitsSameSourceSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes}, nil
+}
+
+func (suggester *PrevContentUnitsSameSourceSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "PrevContentUnitsSameSourceSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'PrevContentUnitsSameSourceSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) == 0 {
+		return errors.New("PrevContentUnitsSameSourceSuggester expected to have some arguments.")
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("PrevContentUnitsSameSourceSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	suggester.contentTypes = spec.Args
+	suggester.SqlSuggester.genSql = PrevContentUnitsSameSourceGenSql(suggester.contentTypes)
+	return nil
 }
 
 func PrevContentUnitsSameSourceGenSql(contentTypes []string) GenerateSqlFunc {
@@ -219,6 +352,23 @@ func MakePrevContentUnitsSameCollectionSuggester(db *sql.DB) *PrevContentUnitsSa
 	return &PrevContentUnitsSameCollectionSuggester{SqlSuggester: SqlSuggester{db, PrevContentUnitsSameCollectionGenSql, "PrevContentUnitsSameCollectionSuggester"}}
 }
 
+func (suggester *PrevContentUnitsSameCollectionSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name}, nil
+}
+
+func (suggester *PrevContentUnitsSameCollectionSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "PrevContentUnitsSameCollectionSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'PrevContentUnitsSameCollectionSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) != 0 {
+		return errors.New("PrevContentUnitsSameCollectionSuggester expected to have some arguments.")
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("PrevContentUnitsSameCollectionSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	return nil
+}
+
 func PrevContentUnitsSameCollectionGenSql(request core.MoreRequest) string {
 	if request.Options.Recommend.Uid == "" {
 		return ""
@@ -254,14 +404,53 @@ func PrevContentUnitsSameCollectionGenSql(request core.MoreRequest) string {
 
 type LastContentTypesSameTagSuggester struct {
 	SqlSuggester
+	contentTypes []string
+}
+
+func MakeLastContentTypesSameTagSuggester(db *sql.DB, contentTypes []string) *LastContentTypesSameTagSuggester {
+	return &LastContentTypesSameTagSuggester{
+		SqlSuggester: SqlSuggester{db, LastContentTypesSameTag(contentTypes), "LastContentTypesSameTagSuggester"},
+		contentTypes: contentTypes,
+	}
+}
+
+func (suggester *LastContentTypesSameTagSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes}, nil
+}
+
+func (suggester *LastContentTypesSameTagSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != suggester.SqlSuggester.Name {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: '%s', got: '%s'.", suggester.Name, spec.Name))
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("%s expected to have no suggesters, got %d.", suggester.Name, len(spec.Specs)))
+	}
+	if suggester.Name == "LastContentTypesSameTagSuggester" {
+		if len(spec.Args) == 0 {
+			return errors.New("LastContentTypesSameTagSuggester expected to have some arguments.")
+		}
+		suggester.contentTypes = spec.Args
+		suggester.SqlSuggester.genSql = LastContentTypesSameTag(suggester.contentTypes)
+	} else {
+		if len(spec.Args) != 0 {
+			return errors.New(fmt.Sprintf("%s expected to have some arguments.", suggester.Name))
+		}
+	}
+	return nil
 }
 
 func MakeLastClipsSameTagSuggester(db *sql.DB) *LastContentTypesSameTagSuggester {
-	return &LastContentTypesSameTagSuggester{SqlSuggester: SqlSuggester{db, LastContentTypesSameTag([]string{consts.CT_CLIP}), "LastClipsSameTagSuggester"}}
+	return &LastContentTypesSameTagSuggester{
+		SqlSuggester: SqlSuggester{db, LastContentTypesSameTag([]string{consts.CT_CLIP}), "LastClipsSameTagSuggester"},
+	}
 }
 
-func MakeLastLessonsSameTagSuggester(db *sql.DB) *core.RoundRobinSuggester {
-	return core.MakeRoundRobinSuggester([]core.Suggester{
+type LastLessonsSameTagSuggester struct {
+	core.RoundRobinSuggester
+}
+
+func MakeLastLessonsSameTagSuggester(db *sql.DB) *LastLessonsSameTagSuggester {
+	return &LastLessonsSameTagSuggester{*core.MakeRoundRobinSuggester([]core.Suggester{
 		&LastContentTypesSameTagSuggester{
 			SqlSuggester: SqlSuggester{
 				db,
@@ -290,7 +479,24 @@ func MakeLastLessonsSameTagSuggester(db *sql.DB) *core.RoundRobinSuggester {
 				"LastLectureSameTagSuggester",
 			},
 		},
-	})
+	})}
+}
+
+func (suggester *LastLessonsSameTagSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: "LastLessonsSameTagSuggester"}, nil
+}
+
+func (suggester *LastLessonsSameTagSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "LastLessonsSameTagSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastLessonsSameTagSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) != 0 {
+		return errors.New("LastLessonsSameTagSuggester expected to have 0 arguments.")
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("LastLessonsSameTagSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	return nil
 }
 
 func MakeLastProgramsSameTagSuggester(db *sql.DB) *LastContentTypesSameTagSuggester {
@@ -337,16 +543,37 @@ func LastContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
 
 type LastCollectionSameSourceSuggester struct {
 	SqlSuggester
+	contentTypes []string
 }
 
-func MakeLastCollectionSameSourceSuggester(contentTypes []string, db *sql.DB) *LastCollectionSameSourceSuggester {
+func MakeLastCollectionSameSourceSuggester(db *sql.DB, contentTypes []string) *LastCollectionSameSourceSuggester {
 	return &LastCollectionSameSourceSuggester{
 		SqlSuggester: SqlSuggester{
 			db,
 			LastCollectionSameSource(contentTypes),
 			"LastCollectionSameSourceSuggester",
 		},
+		contentTypes: contentTypes,
 	}
+}
+
+func (suggester *LastCollectionSameSourceSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes}, nil
+}
+
+func (suggester *LastCollectionSameSourceSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "LastCollectionSameSourceSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastCollectionSameSourceSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) == 0 {
+		return errors.New("LastCollectionSameSourceSuggester expected to have some arguments.")
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("LastCollectionSameSourceSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	suggester.contentTypes = spec.Args
+	suggester.SqlSuggester.genSql = LastCollectionSameSource(suggester.contentTypes)
+	return nil
 }
 
 func LastCollectionSameSource(contentTypes []string) GenerateSqlFunc {
@@ -427,16 +654,37 @@ func LastCollectionContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
 
 type RandomContentTypesSuggester struct {
 	SqlSuggester
+	contentTypes []string
 }
 
-func MakeRandomContentTypesSuggester(contentTypes []string, db *sql.DB) *RandomContentTypesSuggester {
+func MakeRandomContentTypesSuggester(db *sql.DB, contentTypes []string) *RandomContentTypesSuggester {
 	return &RandomContentTypesSuggester{
 		SqlSuggester: SqlSuggester{
 			db,
 			RandomContentTypes(contentTypes),
-			"RandomContentTypes",
+			"RandomContentTypesSuggester",
 		},
+		contentTypes: contentTypes,
 	}
+}
+
+func (suggester *RandomContentTypesSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes}, nil
+}
+
+func (suggester *RandomContentTypesSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "RandomContentTypesSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'RandomContentTypesSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) == 0 {
+		return errors.New("RandomContentTypesSuggester expected to have some arguments.")
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("RandomContentTypesSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	suggester.contentTypes = spec.Args
+	suggester.SqlSuggester.genSql = RandomContentTypes(suggester.contentTypes)
+	return nil
 }
 
 func RandomContentTypes(contentTypes []string) GenerateSqlFunc {
@@ -462,4 +710,22 @@ func RandomContentTypes(contentTypes []string) GenerateSqlFunc {
 			request.MoreItems,
 		)
 	}
+}
+
+func init() {
+	core.RegisterSuggester("LastClipsSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastClipsSameTagSuggester(db) })
+	core.RegisterSuggester("LastClipsSuggester", func(db *sql.DB) core.Suggester { return MakeLastClipsSuggester(db) })
+	core.RegisterSuggester("LastCollectionSameSourceSuggester", func(db *sql.DB) core.Suggester { return MakeLastCollectionSameSourceSuggester(db, []string(nil)) })
+	core.RegisterSuggester("LastCongressSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastCongressSameTagSuggester(db) })
+	core.RegisterSuggester("LastContentTypesSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastContentTypesSameTagSuggester(db, []string(nil)) })
+	core.RegisterSuggester("LastContentUnitsSameCollectionSuggester", func(db *sql.DB) core.Suggester { return MakeLastContentUnitsSameCollectionSuggester(db) })
+	core.RegisterSuggester("LastContentUnitsSuggester", func(db *sql.DB) core.Suggester { return MakeLastContentUnitsSuggester(db) })
+	core.RegisterSuggester("LastLessonsSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastLessonsSameTagSuggester(db) })
+	core.RegisterSuggester("LastLessonsSuggester", func(db *sql.DB) core.Suggester { return MakeLastLessonsSuggester(db) })
+	core.RegisterSuggester("LastProgramsSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastProgramsSameTagSuggester(db) })
+	core.RegisterSuggester("LastProgramsSuggester", func(db *sql.DB) core.Suggester { return MakeLastProgramsSuggester(db) })
+	core.RegisterSuggester("NextContentUnitsSameSourceSuggester", func(db *sql.DB) core.Suggester { return MakeNextContentUnitsSameSourceSuggester(db, []string(nil)) })
+	core.RegisterSuggester("PrevContentUnitsSameCollectionSuggester", func(db *sql.DB) core.Suggester { return MakePrevContentUnitsSameCollectionSuggester(db) })
+	core.RegisterSuggester("PrevContentUnitsSameSourceSuggester", func(db *sql.DB) core.Suggester { return MakePrevContentUnitsSameSourceSuggester(db, []string(nil)) })
+	core.RegisterSuggester("RandomContentTypesSuggester", func(db *sql.DB) core.Suggester { return MakeRandomContentTypesSuggester(db, []string(nil)) })
 }

@@ -17,14 +17,14 @@ func MakeRecommender(db *sql.DB) *Recommender {
 			core.MakeCompletionSuggester([]core.Suggester{MakeLastClipsSameTagSuggester(db), MakeLastClipsSuggester(db)}),
 			MakeLastContentUnitsSameCollectionSuggester(db),
 			MakePrevContentUnitsSameCollectionSuggester(db),
-			MakeNextContentUnitsSameSourceSuggester([]string{consts.CT_LESSON_PART}, db),
-			MakePrevContentUnitsSameSourceSuggester([]string{consts.CT_LESSON_PART}, db),
-			MakeLastCollectionSameSourceSuggester([]string{consts.CT_LESSONS_SERIES}, db),
+			MakeNextContentUnitsSameSourceSuggester(db, []string{consts.CT_LESSON_PART}),
+			MakePrevContentUnitsSameSourceSuggester(db, []string{consts.CT_LESSON_PART}),
+			MakeLastCollectionSameSourceSuggester(db, []string{consts.CT_LESSONS_SERIES}),
 			core.MakeCompletionSuggester([]core.Suggester{MakeLastLessonsSameTagSuggester(db), MakeLastLessonsSuggester(db)}),
 			core.MakeCompletionSuggester([]core.Suggester{MakeLastProgramsSameTagSuggester(db), MakeLastProgramsSuggester(db)}),
 			MakeLastCongressSameTagSuggester(db),
 		}),
-		MakeRandomContentTypesSuggester([]string{consts.CT_CLIP, consts.CT_LESSON_PART, consts.CT_VIDEO_PROGRAM_CHAPTER}, db),
+		MakeRandomContentTypesSuggester(db, []string{consts.CT_CLIP, consts.CT_LESSON_PART, consts.CT_VIDEO_PROGRAM_CHAPTER}),
 	})}
 }
 

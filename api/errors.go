@@ -17,7 +17,7 @@ func (e HttpError) Error() string {
 }
 
 func (e HttpError) Abort(c *gin.Context) {
-	c.AbortWithError(e.Code, e.Err).SetType(e.Type)
+	c.String(e.Code, "%+v", e.Err)
 }
 
 func NewHttpError(code int, err error, t gin.ErrorType) *HttpError {

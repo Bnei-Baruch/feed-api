@@ -1,5 +1,13 @@
 package core
 
+import (
+	"database/sql"
+	"fmt"
+
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+)
+
 // Given slice of Suggesters will take the first one, if not enough
 // suggestions will take the second one, ect...
 // The OriginalOrder here is the index of the suggester, e.g.,
@@ -9,7 +17,50 @@ type CompletionSuggester struct {
 }
 
 func MakeCompletionSuggester(suggesters []Suggester) *CompletionSuggester {
-	return &CompletionSuggester{suggesters: suggesters}
+	return &CompletionSuggester{suggesters}
+}
+
+func init() {
+	RegisterSuggester("CompletionSuggester", func(db *sql.DB) Suggester { return MakeCompletionSuggester([]Suggester(nil)) })
+}
+
+func (suggester *CompletionSuggester) MarshalSpec() (SuggesterSpec, error) {
+	log.Infof("Marshal!")
+	var specs []SuggesterSpec
+	for i := range suggester.suggesters {
+		if spec, err := suggester.suggesters[i].MarshalSpec(); err != nil {
+			return SuggesterSpec{}, err
+		} else {
+			specs = append(specs, spec)
+		}
+	}
+	return SuggesterSpec{
+		Name:  "CompletionSuggester",
+		Specs: specs,
+	}, nil
+}
+
+func (suggester *CompletionSuggester) UnmarshalSpec(db *sql.DB, spec SuggesterSpec) error {
+	if spec.Name != "CompletionSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'CompletionSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Args) != 0 {
+		return errors.New("CompletionSuggester expected to have no arguments.")
+	}
+	if len(spec.Specs) == 0 {
+		return errors.New("CompletionSuggester expected to have some suggesters, got 0.")
+	}
+	for i := range spec.Specs {
+		if newSuggester, err := MakeSuggesterFromName(db, spec.Specs[i].Name); err != nil {
+			return err
+		} else {
+			if err := newSuggester.UnmarshalSpec(db, spec.Specs[i]); err != nil {
+				return err
+			}
+			suggester.suggesters = append(suggester.suggesters, newSuggester)
+		}
+	}
+	return nil
 }
 
 func (suggester *CompletionSuggester) More(request MoreRequest) ([]ContentItem, error) {
