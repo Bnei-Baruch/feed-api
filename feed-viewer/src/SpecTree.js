@@ -15,7 +15,7 @@ const SUGGESTERS = [
   "CompletionSuggester",
   "SortSuggester",
   "ContentUnitsSuggester",
-  "CollectionsSuggester",
+  "CollectionSuggester",
   "LastClipsSameTagSuggester",
   "LastClipsSuggester",
   "LastCollectionSameSourceSuggester",
@@ -36,7 +36,7 @@ const SUGGESTERS = [
 const HAS_ARGS = [
   "ContentTypeSuggester",
   "ContentUnitsSuggester",
-  "CollectionsSuggester",
+  "CollectionSuggester",
   "LastCollectionSameSourceSuggester",
   "LastContentTypesSameTagSuggester",
   "NextContentUnitsSameSourceSuggester",

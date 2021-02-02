@@ -10,7 +10,53 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/Bnei-Baruch/feed-api/mdb"
+	"github.com/Bnei-Baruch/feed-api/utils"
 )
+
+// Filter collection to have language.
+const COLLECTIONS_BY_FIRST_CONTENT_UNIT_CLAUSE = `
+  and c.id = collection_first_content_unit_languages.collection_id
+`
+
+func CollectionsByFirstUnitLanguagesTableSql(contentTypes []string, languages []string) string {
+	return fmt.Sprintf(`
+		(
+			select
+				cfcu.collection_id as collection_id
+			from 
+				(
+					select
+						distinct on (c.id)
+						c.id as collection_id,
+						coalesce(cu.properties->>'film_date', cu.properties->>'start_date', cu.created_at::text)::date as date,
+						cu.id as content_unit_id
+					from
+						content_units as cu,
+						collections as c,
+						collections_content_units as ccu
+					where
+						ccu.content_unit_id = cu.id and
+						ccu.collection_id = c.id
+						%s
+					order by c.id, date desc
+				) as cfcu
+			where
+				0 < (
+					select
+						count(f.language)
+					from
+						files as f
+					where
+						f.content_unit_id = cfcu.content_unit_id
+						and
+						f.mime_type in ('video/mp4', 'audio/mpeg')
+						%s
+					)
+		) as collection_first_content_unit_languages
+	`,
+		utils.InClause("and c.type_id in", ContentTypesToContentIds(contentTypes)),
+		utils.InClause("and f.language in ", languages))
+}
 
 type CollectionSuggester struct {
 	db          *sql.DB
@@ -56,10 +102,10 @@ func (suggester *CollectionSuggester) More(request MoreRequest) ([]ContentItem, 
 			currentLessonUIDs = append(currentLessonUIDs, ci.UID)
 		}
 	}
-	return suggester.fetchCollection(currentLessonUIDs, request.MoreItems)
+	return suggester.fetchCollection(currentLessonUIDs, request.MoreItems, request.Options.Languages)
 }
 
-func (suggester *CollectionSuggester) fetchCollection(currentLessonUIDs []string, moreItems int) ([]ContentItem, error) {
+func (suggester *CollectionSuggester) fetchCollection(currentLessonUIDs []string, moreItems int, languages []string) ([]ContentItem, error) {
 	uidsQuery := ""
 	if len(currentLessonUIDs) > 0 {
 		quoted := []string(nil)
@@ -69,17 +115,29 @@ func (suggester *CollectionSuggester) fetchCollection(currentLessonUIDs []string
 		uidsQuery = fmt.Sprintf("and c.uid not in (%s)", strings.Join(quoted, ","))
 	}
 	query := fmt.Sprintf(`
-		select c.uid, MAX((coalesce(cu.properties->>'film_date', cu.properties->>'start_date', cu.created_at::text))::date) as date, MAX(cu.created_at) as last_created_at
-		from collections as c, content_units as cu, collections_content_units as ccu
-		where c.id = ccu.collection_id
-		and cu.id = ccu.content_unit_id
-		and cu.secure = 0 AND cu.published IS TRUE
-		%s
-		and c.type_id = %d
+		select
+			c.uid, MAX((coalesce(cu.properties->>'film_date', cu.properties->>'start_date', cu.created_at::text))::date) as date, MAX(cu.created_at) as last_created_at
+		from
+			collections as c,
+			content_units as cu,
+			collections_content_units as ccu,
+			%s
+		where 
+			c.id = ccu.collection_id
+			and cu.id = ccu.content_unit_id
+			and cu.secure = 0 AND cu.published IS TRUE
+			%s
+			and c.type_id = %d
+			%s
 		group by c.uid
 		order by date desc, last_created_at desc
 		limit %d;
-		`, uidsQuery, mdb.CONTENT_TYPE_REGISTRY.ByName[suggester.contentType].ID, moreItems)
+		`,
+		CollectionsByFirstUnitLanguagesTableSql([]string{suggester.contentType}, languages),
+		uidsQuery,
+		mdb.CONTENT_TYPE_REGISTRY.ByName[suggester.contentType].ID,
+		COLLECTIONS_BY_FIRST_CONTENT_UNIT_CLAUSE,
+		moreItems)
 	rows, err := queries.Raw(suggester.db, query).Query()
 	if err != nil {
 		return nil, err

@@ -32,8 +32,11 @@ type MoreOptions struct {
 	ContentTypes Subscriptions `json:"content_types" form:"content_type"`
 	// Map from collection content type to Subscriptions.
 	Collections map[string]Subscriptions `json:"collections" form:"collections"`
-	Recommend   Recommend                `json:"recommend" form:"recommend"`
-	Spec        *SuggesterSpec           `json:"spec,omitempty" form:"spec,omitempty"`
+
+	Recommend Recommend      `json:"recommend" form:"recommend"`
+	Spec      *SuggesterSpec `json:"spec,omitempty" form:"spec,omitempty"`
+
+	Languages []string `json:"languages,omitempty" form:"languages,omitempty"`
 }
 
 type MoreRequest struct {

@@ -12,9 +12,24 @@ import (
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
-const (
-	CONTENT_UNIT_SUGGESTER_NAME = "ContentUnitsSuggester"
-)
+const CONTENT_UNIT_SUGGESTER_NAME = "ContentUnitsSuggester"
+
+// Filter content unit to have language.
+func FilterByLanguageSql(languages []string) string {
+	if len(languages) == 0 {
+		return ""
+	}
+	return fmt.Sprintf(`
+		and 0 < (
+			select
+				count(f.language)
+			from
+				files as f
+			where
+				f.content_unit_id = cu.id and f.mime_type in ('video/mp4', 'audio/mpeg') %s
+		)
+	`, utils.InClause(" and f.language in ", languages))
+}
 
 type ContentUnitsSuggester struct {
 	db           *sql.DB
@@ -62,7 +77,7 @@ func (suggester *ContentUnitsSuggester) More(request MoreRequest) ([]ContentItem
 			currentUIDs = append(currentUIDs, ci.UID)
 		}
 	}
-	return suggester.fetchContentUnits(currentUIDs, request.MoreItems)
+	return suggester.fetchContentUnits(currentUIDs, request.MoreItems, request.Options.Languages)
 }
 
 func ContentTypesToContentIds(contentTypes []string) []string {
@@ -73,11 +88,12 @@ func ContentTypesToContentIds(contentTypes []string) []string {
 	return contentTypesIds
 }
 
-func (suggester *ContentUnitsSuggester) fetchContentUnits(currentUIDs []string, moreItems int) ([]ContentItem, error) {
+func (suggester *ContentUnitsSuggester) fetchContentUnits(currentUIDs []string, moreItems int, languages []string) ([]ContentItem, error) {
 	query := fmt.Sprintf(`
 		select cu.uid, (coalesce(cu.properties->>'film_date', cu.properties->>'start_date', cu.created_at::text))::date as date, cu.created_at, cu.type_id
 		from content_units as cu
 		where cu.secure = 0 AND cu.published IS TRUE
+		%s
 		%s
 		%s
 		order by date desc, cu.created_at desc
@@ -85,6 +101,7 @@ func (suggester *ContentUnitsSuggester) fetchContentUnits(currentUIDs []string, 
 		`,
 		utils.InClause("and cu.uid not in", currentUIDs),
 		utils.InClause("and cu.type_id in", ContentTypesToContentIds(suggester.contentTypes)),
+		FilterByLanguageSql(languages),
 		moreItems)
 	rows, err := queries.Raw(suggester.db, query).Query()
 	if err != nil {

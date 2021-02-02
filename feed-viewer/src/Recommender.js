@@ -26,6 +26,7 @@ const Recommender = (props) => {
   const [uid, setUid] = useState(new URLSearchParams(window.location.search).get('uid') || DEFAULT_UID);
   const [spec, setSpec] = useState(new URLSearchParams(window.location.search).get('spec') || '');
   const [numItems, setNumItems] = useState(20);
+  const [languages, setLanguages] = useState(['he', 'en']);
   const [itemsByUid, setItemsByUid] = useState({});
   const [recommendError, setRecommendError] = useState('');
   const [specError, setSpecError] = useState('');
@@ -51,7 +52,7 @@ const Recommender = (props) => {
 
   const recommendClicked = () => {
     setRecommendError('');
-    const options = {recommend: {uid}};
+    const options = {recommend: {uid}, languages};
     if (specObj) {
       options.spec = specObj;
     }
@@ -73,12 +74,13 @@ const Recommender = (props) => {
           <Segment style={{'direction': 'ltr'}}>
             <h3>Context</h3>
             <Segment textAlign='left'>
-              <div>
-                UID: <Input placeholder='UID...' defaultValue={uid} onChange={(event, data) => setUid(data.value)} />
-              </div>
-              <div>
-                Num Items: <Input placeholder='Num Items to Recommend' defaultValue={numItems} onChange={(event, data) => setNumItems(Number(data.value))} />
-              </div>
+              <table>
+                <tbody>
+                  <tr><td>UID:</td><td><Input placeholder='UID...' defaultValue={uid} onChange={(event, data) => setUid(data.value)} /></td></tr>
+                  <tr><td>Num Items:</td><td><Input placeholder='Num Items to Recommend' defaultValue={numItems} onChange={(event, data) => setNumItems(Number(data.value))} /></td></tr>
+                  <tr><td>Languages:</td><td><Input placeholder='List of preffered languages' defaultValue={languages.join(',')} onChange={(event, data) => setLanguages(data.value.split(',').filter(language => !!language))} /></td></tr>
+                </tbody>
+              </table>
             </Segment>
             <Segment textAlign='left'>
               <div>Spec Tree</div>

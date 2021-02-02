@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/Bnei-Baruch/sqlboiler/queries"
-	// log "github.com/sirupsen/logrus"
 
 	"github.com/Bnei-Baruch/feed-api/core"
 	"github.com/Bnei-Baruch/feed-api/mdb"
@@ -19,19 +18,8 @@ type SqlSuggester struct {
 	Name   string
 }
 
-// Should be per specific sql suggester! as some has arguments...
-// func (suggester *SqlSuggester) MarshalSpec() (core.SuggesterSpec, error) {
-//	return core.SuggesterSpec{Name: suggester.name}, nil
-//}
-
-//func (suggester *SqlSuggester) UnmarshalSpec(spec core.SuggesterSpec) error {
-//	// Should get the args... right?
-//	return nil
-// }
-
 func (s *SqlSuggester) More(request core.MoreRequest) ([]core.ContentItem, error) {
 	query := s.genSql(request)
-	// log.Infof("Suggester: %s Query: [%s]", s.name, query)
 	if query == "" {
 		return []core.ContentItem(nil), nil
 	}
@@ -54,6 +42,5 @@ func (s *SqlSuggester) More(request core.MoreRequest) ([]core.ContentItem, error
 		}
 		ret = append(ret, core.ContentItem{UID: uid, Date: date, CreatedAt: createdAt, ContentType: contentType, Suggester: s.Name})
 	}
-	// log.Infof("ret: %+v", ret)
 	return ret, nil
 }
