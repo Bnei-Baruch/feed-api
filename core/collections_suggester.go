@@ -47,14 +47,15 @@ func CollectionsByFirstUnitLanguagesTableSql(contentTypes []string, languages []
 		(
 			select
 				cfcu.collection_id as collection_id,
-				cu.properties->>'original_language' as original_language
+				cfcu.original_language as original_language
 			from 
 				(
 					select
 						distinct on (c.id)
 						c.id as collection_id,
 						coalesce(cu.properties->>'film_date', cu.properties->>'start_date', cu.created_at::text)::date as date,
-						cu.id as content_unit_id
+						cu.id as content_unit_id,
+						cu.properties->>'original_language' as original_language
 					from
 						content_units as cu,
 						collections as c,
