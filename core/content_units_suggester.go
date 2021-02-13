@@ -3,6 +3,7 @@ package core
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Bnei-Baruch/sqlboiler/queries"
@@ -19,16 +20,29 @@ func FilterByLanguageSql(languages []string) string {
 	if len(languages) == 0 {
 		return ""
 	}
-	return fmt.Sprintf(`
-		and 0 < (
-			select
-				count(f.language)
-			from
-				files as f
-			where
-				f.content_unit_id = cu.id and f.mime_type in ('video/mp4', 'audio/mpeg') %s
-		)
-	`, utils.InClause(" and f.language in ", languages))
+	orClauses := []string{}
+	for i := range languages {
+		if languages[i] == "he" {
+			orClauses = append(orClauses, "(cu.properties->>'original_language')::text = 'he'")
+			languages = append(languages[:i], languages[i+1:]...)
+			break
+		}
+	}
+
+	if len(languages) > 0 {
+		orClauses = append(orClauses, fmt.Sprintf(`
+				0 < (
+					select
+						count(f.language)
+					from
+						files as f
+					where
+						f.content_unit_id = cu.id and f.mime_type in ('video/mp4', 'audio/mpeg') %s
+				)
+			`, utils.InClause(" and f.language in ", languages)))
+	}
+
+	return fmt.Sprintf(" and (%s)", strings.Join(orClauses, " or "))
 }
 
 type ContentUnitsSuggester struct {

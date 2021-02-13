@@ -19,10 +19,35 @@ const COLLECTIONS_BY_FIRST_CONTENT_UNIT_CLAUSE = `
 `
 
 func CollectionsByFirstUnitLanguagesTableSql(contentTypes []string, languages []string) string {
+	orClauses := []string{}
+	for i := range languages {
+		if languages[i] == "he" {
+			orClauses = append(orClauses, "cfcu.original_language = 'he'")
+			languages = append(languages[:i], languages[i+1:]...)
+			break
+		}
+	}
+	if len(languages) > 0 {
+		orClauses = append(orClauses, fmt.Sprintf(`
+			0 < (
+				select
+					count(f.language)
+				from
+					files as f
+				where
+					f.content_unit_id = cfcu.content_unit_id
+					and
+					f.mime_type in ('video/mp4', 'audio/mpeg')
+					%s
+				)
+		`, utils.InClause("and f.language in ", languages)))
+	}
+
 	return fmt.Sprintf(`
 		(
 			select
-				cfcu.collection_id as collection_id
+				cfcu.collection_id as collection_id,
+				cu.properties->>'original_language' as original_language
 			from 
 				(
 					select
@@ -41,21 +66,11 @@ func CollectionsByFirstUnitLanguagesTableSql(contentTypes []string, languages []
 					order by c.id, date desc
 				) as cfcu
 			where
-				0 < (
-					select
-						count(f.language)
-					from
-						files as f
-					where
-						f.content_unit_id = cfcu.content_unit_id
-						and
-						f.mime_type in ('video/mp4', 'audio/mpeg')
-						%s
-					)
+			%s
 		) as collection_first_content_unit_languages
 	`,
 		utils.InClause("and c.type_id in", ContentTypesToContentIds(contentTypes)),
-		utils.InClause("and f.language in ", languages))
+		strings.Join(orClauses, " or "))
 }
 
 type CollectionSuggester struct {

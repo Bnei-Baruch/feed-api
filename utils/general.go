@@ -77,3 +77,4 @@ func InClause(prefix string, list []string) string {
 	}
 	return inClause
 }
+
