@@ -145,6 +145,7 @@ func LastContentUnitsContentTypesGenSql(contentTypes []string) GenerateSqlFunc {
 					%s
 					%s
 					%s
+					%s
 				order by date desc, created_at desc
 				limit %d;
 			`,
@@ -153,6 +154,7 @@ func LastContentUnitsContentTypesGenSql(contentTypes []string) GenerateSqlFunc {
 			contentTypesClause,
 			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 			core.FilterByLanguageSql(request.Options.Languages),
+			core.CONTENT_UNIT_PERSON_RAV,
 			request.MoreItems,
 		)
 	}
@@ -204,6 +206,7 @@ func LastContentUnitsSameCollectionGenSql(request core.MoreRequest) string {
         cu.uid != '%s'
         %s
 				%s
+				%s
       order by date desc, created_at desc
       limit %d;
     `,
@@ -212,6 +215,7 @@ func LastContentUnitsSameCollectionGenSql(request core.MoreRequest) string {
 		request.Options.Recommend.Uid,
 		fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 		core.FilterByLanguageSql(request.Options.Languages),
+		core.CONTENT_UNIT_PERSON_RAV,
 		request.MoreItems,
 	)
 }
@@ -269,6 +273,7 @@ func NextContentUnitsSameSourceGenSql(contentTypes []string) GenerateSqlFunc {
 					%s
 					%s
 					%s
+					%s
 				order by date asc, created_at asc
 				limit %d;
 			`,
@@ -279,6 +284,7 @@ func NextContentUnitsSameSourceGenSql(contentTypes []string) GenerateSqlFunc {
 			utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes)),
 			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 			core.FilterByLanguageSql(request.Options.Languages),
+			core.CONTENT_UNIT_PERSON_RAV,
 			request.MoreItems,
 		)
 	}
@@ -337,6 +343,7 @@ func PrevContentUnitsSameSourceGenSql(contentTypes []string) GenerateSqlFunc {
 					%s
 					%s
 					%s
+					%s
 				order by date desc, created_at desc
 				limit %d;
 			`,
@@ -347,6 +354,7 @@ func PrevContentUnitsSameSourceGenSql(contentTypes []string) GenerateSqlFunc {
 			utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes)),
 			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 			core.FilterByLanguageSql(request.Options.Languages),
+			core.CONTENT_UNIT_PERSON_RAV,
 			request.MoreItems,
 		)
 	}
@@ -399,6 +407,7 @@ func PrevContentUnitsSameCollectionGenSql(request core.MoreRequest) string {
 				cu.uid != '%s'
 				%s
 				%s
+				%s
 			order by date desc, created_at desc
 			limit %d;
 		`,
@@ -408,6 +417,7 @@ func PrevContentUnitsSameCollectionGenSql(request core.MoreRequest) string {
 		request.Options.Recommend.Uid,
 		fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 		core.FilterByLanguageSql(request.Options.Languages),
+		core.CONTENT_UNIT_PERSON_RAV,
 		request.MoreItems,
 	)
 }
@@ -539,6 +549,7 @@ func LastContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
 					cu.uid != '%s' %s
 					%s
 					%s
+					%s
 				order by date desc, created_at desc
 				limit %d;
 			`,
@@ -548,6 +559,7 @@ func LastContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
 			utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes)),
 			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 			core.FilterByLanguageSql(request.Options.Languages),
+			core.CONTENT_UNIT_PERSON_RAV,
 			request.MoreItems,
 		)
 	}
@@ -656,6 +668,7 @@ func LastCollectionContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
 					cu.uid != '%s' %s
 					%s
 					%s
+					%s
 				order by date desc, created_at desc
 				limit %d;
 			`,
@@ -665,6 +678,7 @@ func LastCollectionContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
 			utils.InClause("and c.type_id in", core.ContentTypesToContentIds(contentTypes)),
 			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 			core.FilterByLanguageSql(request.Options.Languages),
+			core.CONTENT_UNIT_PERSON_RAV,
 			request.MoreItems,
 		)
 	}
@@ -719,6 +733,7 @@ func RandomContentTypes(contentTypes []string) GenerateSqlFunc {
 					cu.uid != '%s' %s
 					%s
 					%s
+					%s
 				order by random()
 				limit %d;
 			`,
@@ -727,6 +742,7 @@ func RandomContentTypes(contentTypes []string) GenerateSqlFunc {
 			utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes)),
 			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 			core.FilterByLanguageSql(request.Options.Languages),
+			core.CONTENT_UNIT_PERSON_RAV,
 			request.MoreItems,
 		)
 	}

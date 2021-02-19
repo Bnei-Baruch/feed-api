@@ -15,6 +15,20 @@ import (
 
 const CONTENT_UNIT_SUGGESTER_NAME = "ContentUnitsSuggester"
 
+const CONTENT_UNIT_PERSON_RAV = `
+	and cu.id in (
+		select
+			distinct cup.content_unit_id
+		from
+			content_units_persons as cup,
+			persons as p
+		where
+			p.id = cup.person_id
+			and
+			p.uid = 'abcdefgh'
+	)
+`
+
 // Filter content unit to have language.
 func FilterByLanguageSql(languages []string) string {
 	if len(languages) == 0 {
@@ -110,12 +124,14 @@ func (suggester *ContentUnitsSuggester) fetchContentUnits(currentUIDs []string, 
 		%s
 		%s
 		%s
+		%s
 		order by date desc, cu.created_at desc
 		limit %d;
 		`,
 		utils.InClause("and cu.uid not in", currentUIDs),
 		utils.InClause("and cu.type_id in", ContentTypesToContentIds(suggester.contentTypes)),
 		FilterByLanguageSql(languages),
+		CONTENT_UNIT_PERSON_RAV,
 		moreItems)
 	rows, err := queries.Raw(suggester.db, query).Query()
 	if err != nil {
