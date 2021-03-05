@@ -27,6 +27,7 @@ const Recommender = (props) => {
   const [spec, setSpec] = useState(new URLSearchParams(window.location.search).get('spec') || '');
   const [numItems, setNumItems] = useState(20);
   const [languages, setLanguages] = useState(['he', 'en']);
+  const [skipUids, setSkipUids] = useState([]);
   const [itemsByUid, setItemsByUid] = useState({});
   const [recommendError, setRecommendError] = useState('');
   const [specError, setSpecError] = useState('');
@@ -52,7 +53,7 @@ const Recommender = (props) => {
 
   const recommendClicked = () => {
     setRecommendError('');
-    const options = {recommend: {uid}, languages};
+    const options = {recommend: {uid}, languages, skip_uids: skipUids};
     if (specObj) {
       options.spec = specObj;
     }
@@ -79,6 +80,7 @@ const Recommender = (props) => {
                   <tr><td>UID:</td><td><Input placeholder='UID...' defaultValue={uid} onChange={(event, data) => setUid(data.value)} /></td></tr>
                   <tr><td>Num Items:</td><td><Input placeholder='Num Items to Recommend' defaultValue={numItems} onChange={(event, data) => setNumItems(Number(data.value))} /></td></tr>
                   <tr><td>Languages:</td><td><Input placeholder='List of preffered languages' defaultValue={languages.join(',')} onChange={(event, data) => setLanguages(data.value.split(',').filter(language => !!language))} /></td></tr>
+                  <tr><td>Skip Uids:</td><td><Input placeholder='List of uids' defaultValue={skipUids.join(',')} onChange={(event, data) => setSkipUids(data.value.split(',').map(uid => uid.trim()).filter(uid => !!uid))} /></td></tr>
                 </tbody>
               </table>
             </Segment>

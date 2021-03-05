@@ -105,6 +105,9 @@ func (suggester *ContentUnitsSuggester) More(request MoreRequest) ([]ContentItem
 			currentUIDs = append(currentUIDs, ci.UID)
 		}
 	}
+	for _, uid := range request.Options.SkipUids {
+		currentUIDs = append(currentUIDs, uid)
+	}
 	return suggester.fetchContentUnits(currentUIDs, request.MoreItems, request.Options.Languages)
 }
 

@@ -118,6 +118,9 @@ func (suggester *CollectionSuggester) More(request MoreRequest) ([]ContentItem, 
 			currentLessonUIDs = append(currentLessonUIDs, ci.UID)
 		}
 	}
+	for _, uid := range request.Options.SkipUids {
+		currentLessonUIDs = append(currentLessonUIDs, uid)
+	}
 	return suggester.fetchCollection(currentLessonUIDs, request.MoreItems, request.Options.Languages)
 }
 

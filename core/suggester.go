@@ -37,6 +37,7 @@ type MoreOptions struct {
 	Spec      *SuggesterSpec `json:"spec,omitempty" form:"spec,omitempty"`
 
 	Languages []string `json:"languages,omitempty" form:"languages,omitempty"`
+	SkipUids  []string `json:"skip_uids"`
 }
 
 type MoreRequest struct {
