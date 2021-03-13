@@ -663,56 +663,69 @@ func LastCollectionContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
 type RandomContentTypesSuggester struct {
 	SqlSuggester
 	contentTypes []string
+	tagUids      []string
 }
 
-func MakeRandomContentTypesSuggester(db *sql.DB, contentTypes []string) *RandomContentTypesSuggester {
+func MakeRandomContentTypesSuggester(db *sql.DB, contentTypes []string, tagUids []string) *RandomContentTypesSuggester {
 	return &RandomContentTypesSuggester{
 		SqlSuggester: SqlSuggester{
 			db,
-			RandomContentTypes(contentTypes),
+			RandomContentTypes(contentTypes, tagUids),
 			"RandomContentTypesSuggester",
 		},
 		contentTypes: contentTypes,
+		tagUids:      tagUids,
 	}
 }
 
 func (suggester *RandomContentTypesSuggester) MarshalSpec() (core.SuggesterSpec, error) {
-	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes}, nil
+	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes, SecondArgs: suggester.tagUids}, nil
 }
 
 func (suggester *RandomContentTypesSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
 	if spec.Name != "RandomContentTypesSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'RandomContentTypesSuggester', got: '%s'.", spec.Name))
 	}
-	if len(spec.Args) == 0 {
-		return errors.New("RandomContentTypesSuggester expected to have some arguments.")
-	}
 	if len(spec.Specs) != 0 {
 		return errors.New(fmt.Sprintf("RandomContentTypesSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
 	}
 	suggester.contentTypes = spec.Args
-	suggester.SqlSuggester.genSql = RandomContentTypes(suggester.contentTypes)
+	suggester.tagUids = spec.SecondArgs
+	suggester.SqlSuggester.genSql = RandomContentTypes(suggester.contentTypes, suggester.tagUids)
 	return nil
 }
 
-func RandomContentTypes(contentTypes []string) GenerateSqlFunc {
+func RandomContentTypes(contentTypes []string, tagUids []string) GenerateSqlFunc {
 	return func(request core.MoreRequest) string {
 		if request.Options.Recommend.Uid == "" {
 			return ""
+		}
+		contentTypesSql := ""
+		if len(contentTypes) > 0 {
+			contentTypesSql = utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes))
+		}
+		tagsFromSql := ""
+		tagsWhereSql := ""
+		if len(tagUids) > 0 {
+			tagsFromSql = ", content_units_tags as cut, tags as t"
+			tagsWhereSql = utils.InClause("and cu.id = cut.content_unit_id and cut.tag_id = t.id and t.uid in", tagUids)
 		}
 		return fmt.Sprintf(`
 				select cu.type_id, cu.uid as uid, %s as date, cu.created_at as created_at
 				from
 					content_units as cu
+					%s
 				where
 					cu.secure = 0 AND cu.published IS TRUE
-					%s %s %s %s %s
+					%s %s %s %s %s %s
 				order by random()
 				limit %d;
 			`,
 			DATE_FIELD,
+			tagsFromSql,
 			utils.InClause("and cu.uid not in", append(request.Options.SkipUids, request.Options.Recommend.Uid)),
-			utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes)),
+			contentTypesSql,
+			tagsWhereSql,
 			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 			core.FilterByLanguageSql(request.Options.Languages),
 			core.CONTENT_UNIT_PERSON_RAV,
@@ -736,5 +749,7 @@ func init() {
 	core.RegisterSuggester("NextContentUnitsSameSourceSuggester", func(db *sql.DB) core.Suggester { return MakeNextContentUnitsSameSourceSuggester(db, []string(nil)) })
 	core.RegisterSuggester("PrevContentUnitsSameCollectionSuggester", func(db *sql.DB) core.Suggester { return MakePrevContentUnitsSameCollectionSuggester(db) })
 	core.RegisterSuggester("PrevContentUnitsSameSourceSuggester", func(db *sql.DB) core.Suggester { return MakePrevContentUnitsSameSourceSuggester(db, []string(nil)) })
-	core.RegisterSuggester("RandomContentTypesSuggester", func(db *sql.DB) core.Suggester { return MakeRandomContentTypesSuggester(db, []string(nil)) })
+	core.RegisterSuggester("RandomContentTypesSuggester", func(db *sql.DB) core.Suggester {
+		return MakeRandomContentTypesSuggester(db, []string(nil), []string(nil))
+	})
 }

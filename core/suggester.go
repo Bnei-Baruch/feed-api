@@ -23,9 +23,10 @@ type Recommend struct {
 }
 
 type SuggesterSpec struct {
-	Name  string          `json:"name,omitempty" form:"name,omitempty"`
-	Args  []string        `json:"args,omitempty" form:"args,omitempty"`
-	Specs []SuggesterSpec `json:"specs,omitempty" form:"specs,omitempty"`
+	Name       string          `json:"name,omitempty" form:"name,omitempty"`
+	Args       []string        `json:"args,omitempty" form:"args,omitempty"`
+	SecondArgs []string        `json:"second_args,omitempty" form:"second_args,omitempty"`
+	Specs      []SuggesterSpec `json:"specs,omitempty" form:"specs,omitempty"`
 }
 
 type MoreOptions struct {

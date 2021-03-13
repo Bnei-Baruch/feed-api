@@ -44,6 +44,10 @@ const HAS_ARGS = [
   "RandomContentTypesSuggester",
 ];
 
+const HAS_SECOND_ARGS = [
+  "RandomContentTypesSuggester",
+];
+
 const HAS_SPECS = [
   "ContentTypeSuggester",
   "RoundRobinSuggester",
@@ -285,6 +289,25 @@ const SpecTree = (props) => {
     }
     onChange(spec);
   };
+  const addSecondArg = (tagUid) => {
+    console.log(tagUid, selectedSpec);
+    if (!selectedSpec.second_args) {
+      selectedSpec.second_args = [];
+    }
+    const index = selectedSpec.second_args.indexOf(tagUid);
+    if (index === -1) {
+      selectedSpec.second_args.push(tagUid);
+    }
+    onChange(spec);
+  }
+  const setSecondArgs = (tagUids) => {
+    console.log(tagUids, selectedSpec);
+    if (!selectedSpec.second_args) {
+      selectedSpec.second_args = [];
+    }
+    selectedSpec.second_args = tagUids;
+    onChange(spec);
+  }
 
   return (
     <div>
@@ -292,11 +315,12 @@ const SpecTree = (props) => {
         <Dropdown
           button
           options={SUGGESTERS.map(s => ({key: s, text: s, value: s}))}
-          text='Add Suggester'
+          text='Add'
           onChange={(event, data) => add(data.value)}
           disabled={!!selected && !HAS_SPECS.includes(selected.split('.').slice(-1)[0].split('-')[1])}
           value={''}
         />
+        <Button disabled={!selected} onClick={() => { remove(selected, spec); fixRemoveSelectedExpanded(selected); }}>Remove</Button>
         <Dropdown
           button
           scrolling
@@ -316,7 +340,19 @@ const SpecTree = (props) => {
             ))}
           </Dropdown.Menu>
         </Dropdown>
-        <Button disabled={!selected} onClick={() => { remove(selected, spec); fixRemoveSelectedExpanded(selected); }}>Remove Suggester</Button>
+        <Dropdown
+          button
+          options={selectedSpec?.second_args?.map((value) => ({text: value, value})) ?? []}
+          placeholder='Add Tag Uids'
+          search
+          multiple
+          selection
+          allowAdditions
+          value={selectedSpec?.second_args ?? []}
+          onAddItem={(event, data) => addSecondArg(data.value)}
+          onChange={(event, data) => setSecondArgs(data.value)}
+          disabled={!selected || !HAS_SECOND_ARGS.includes(selected.split('.').slice(-1)[0].split('-')[1])}
+        />
       </Button.Group>
       { spec && SpecItem('', spec, expanded) }
     </div>

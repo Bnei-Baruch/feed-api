@@ -24,7 +24,7 @@ func MakeRecommender(db *sql.DB) *Recommender {
 			core.MakeCompletionSuggester([]core.Suggester{MakeLastProgramsSameTagSuggester(db), MakeLastProgramsSuggester(db)}),
 			MakeLastCongressSameTagSuggester(db),
 		}),
-		MakeRandomContentTypesSuggester(db, []string{consts.CT_CLIP, consts.CT_LESSON_PART, consts.CT_VIDEO_PROGRAM_CHAPTER}),
+		MakeRandomContentTypesSuggester(db, []string{consts.CT_CLIP, consts.CT_LESSON_PART, consts.CT_VIDEO_PROGRAM_CHAPTER}, []string(nil) /* tagUids */),
 	})}
 }
 
