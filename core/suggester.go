@@ -22,11 +22,22 @@ type Recommend struct {
 	Uid string `json:"uid"`
 }
 
+// Defines time constrain for selecting content units / collection.
+type TimeSelectorEnum int
+
+const (
+	Last TimeSelectorEnum = iota
+	Next
+	Prev
+	Rand
+)
+
 type SuggesterSpec struct {
-	Name       string          `json:"name,omitempty" form:"name,omitempty"`
-	Args       []string        `json:"args,omitempty" form:"args,omitempty"`
-	SecondArgs []string        `json:"second_args,omitempty" form:"second_args,omitempty"`
-	Specs      []SuggesterSpec `json:"specs,omitempty" form:"specs,omitempty"`
+	Name         string           `json:"name,omitempty" form:"name,omitempty"`
+	Args         []string         `json:"args,omitempty" form:"args,omitempty"`
+	SecondArgs   []string         `json:"second_args,omitempty" form:"second_args,omitempty"`
+	TimeSelector TimeSelectorEnum `json:"time_selector,omitempty" form:"time_selector,omitempty"`
+	Specs        []SuggesterSpec  `json:"specs,omitempty" form:"specs,omitempty"`
 }
 
 type MoreOptions struct {

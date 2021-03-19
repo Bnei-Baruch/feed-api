@@ -9,13 +9,19 @@ import {
   List,
 } from 'semantic-ui-react';
 
+const TIME_SELECTOR_OPTIONS = [
+  {key: "Last", text: "Last", value: 0},
+  {key: "Next", text: "Next", value: 1},
+  {key: "Prev", text: "Prev", value: 2},
+  {key: "Rand", text: "Rand", value: 3},
+];
+
 const SUGGESTERS = [
-  "ContentTypeSuggester",
-  "RoundRobinSuggester",
-  "CompletionSuggester",
-  "SortSuggester",
-  "ContentUnitsSuggester",
   "CollectionSuggester",
+  "CompletionSuggester",
+  "ContentTypeSuggester",
+  "ContentTypesSameTagSuggester",
+  "ContentUnitsSuggester",
   "LastClipsSameTagSuggester",
   "LastClipsSuggester",
   "LastCollectionSameSourceSuggester",
@@ -32,12 +38,15 @@ const SUGGESTERS = [
   "PrevContentUnitsSameSourceSuggester",
   "RandomContentTypesSuggester",
   "RandomContentUnitsSameSourceSuggester",
+  "RoundRobinSuggester",
+  "SortSuggester",
 ];
 
 const HAS_ARGS = [
-  "ContentTypeSuggester",
-  "ContentUnitsSuggester",
   "CollectionSuggester",
+  "ContentTypeSuggester",
+  "ContentTypesSameTagSuggester",
+  "ContentUnitsSuggester",
   "LastCollectionSameSourceSuggester",
   "LastContentTypesSameTagSuggester",
   "NextContentUnitsSameSourceSuggester",
@@ -51,10 +60,14 @@ const HAS_SECOND_ARGS = [
   "RandomContentUnitsSameSourceSuggester",
 ];
 
+const HAS_TIME_SELECTOR = [
+  "ContentTypesSameTagSuggester",
+];
+
 const HAS_SPECS = [
+  "CompletionSuggester",
   "ContentTypeSuggester",
   "RoundRobinSuggester",
-  "CompletionSuggester",
   "SortSuggester",
 ];
 
@@ -312,6 +325,12 @@ const SpecTree = (props) => {
     onChange(spec);
   }
 
+  const setTimeSelector = (timeSelector) => {
+    console.log(timeSelector, selectedSpec);
+    selectedSpec.time_selector = timeSelector;
+    onChange(spec);
+  }
+
   return (
     <div>
       <Button.Group>
@@ -329,7 +348,7 @@ const SpecTree = (props) => {
           scrolling
           closeOnChange={false}
           multiple
-          text='Edit Content Types'
+          text='Content Types'
           disabled={!selected || !HAS_ARGS.includes(selected.split('.').slice(-1)[0].split('-')[1])}>
           <Dropdown.Menu>
             {ALL_CONTENT_TYPES.map(contentType => (
@@ -355,6 +374,13 @@ const SpecTree = (props) => {
           onAddItem={(event, data) => addSecondArg(data.value)}
           onChange={(event, data) => setSecondArgs(data.value)}
           disabled={!selected || !HAS_SECOND_ARGS.includes(selected.split('.').slice(-1)[0].split('-')[1])}
+        />
+        <Dropdown
+          button
+          options={TIME_SELECTOR_OPTIONS}
+          text='Time Selector'
+          onChange={(event, data) => setTimeSelector(data.value)}
+          disabled={!!selected && !HAS_TIME_SELECTOR.includes(selected.split('.').slice(-1)[0].split('-')[1])}
         />
       </Button.Group>
       { spec && SpecItem('', spec, expanded) }

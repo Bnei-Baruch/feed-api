@@ -411,7 +411,7 @@ type LastContentTypesSameTagSuggester struct {
 
 func MakeLastContentTypesSameTagSuggester(db *sql.DB, contentTypes []string) *LastContentTypesSameTagSuggester {
 	return &LastContentTypesSameTagSuggester{
-		SqlSuggester: SqlSuggester{db, LastContentTypesSameTag(contentTypes), "LastContentTypesSameTagSuggester"},
+		SqlSuggester: SqlSuggester{db, ContentTypesSameTagGen(contentTypes, core.Last), "LastContentTypesSameTagSuggester"},
 		contentTypes: contentTypes,
 	}
 }
@@ -432,7 +432,7 @@ func (suggester *LastContentTypesSameTagSuggester) UnmarshalSpec(db *sql.DB, spe
 			return errors.New("LastContentTypesSameTagSuggester expected to have some arguments.")
 		}
 		suggester.contentTypes = spec.Args
-		suggester.SqlSuggester.genSql = LastContentTypesSameTag(suggester.contentTypes)
+		suggester.SqlSuggester.genSql = ContentTypesSameTagGen(suggester.contentTypes, core.Last)
 	} else {
 		if len(spec.Args) != 0 {
 			return errors.New(fmt.Sprintf("%s expected to have some arguments.", suggester.Name))
@@ -443,7 +443,7 @@ func (suggester *LastContentTypesSameTagSuggester) UnmarshalSpec(db *sql.DB, spe
 
 func MakeLastClipsSameTagSuggester(db *sql.DB) *LastContentTypesSameTagSuggester {
 	return &LastContentTypesSameTagSuggester{
-		SqlSuggester: SqlSuggester{db, LastContentTypesSameTag([]string{consts.CT_CLIP}), "LastClipsSameTagSuggester"},
+		SqlSuggester: SqlSuggester{db, ContentTypesSameTagGen([]string{consts.CT_CLIP}, core.Last), "LastClipsSameTagSuggester"},
 	}
 }
 
@@ -456,28 +456,28 @@ func MakeLastLessonsSameTagSuggester(db *sql.DB) *LastLessonsSameTagSuggester {
 		&LastContentTypesSameTagSuggester{
 			SqlSuggester: SqlSuggester{
 				db,
-				LastContentTypesSameTag([]string{consts.CT_LESSON_PART}),
+				ContentTypesSameTagGen([]string{consts.CT_LESSON_PART}, core.Last),
 				"LastLessonPartSameTagSuggester",
 			},
 		},
 		&LastContentTypesSameTagSuggester{
 			SqlSuggester: SqlSuggester{
 				db,
-				LastContentTypesSameTag([]string{consts.CT_VIRTUAL_LESSON}),
+				ContentTypesSameTagGen([]string{consts.CT_VIRTUAL_LESSON}, core.Last),
 				"LastVirtualLessonSameTagSuggester",
 			},
 		},
 		&LastContentTypesSameTagSuggester{
 			SqlSuggester: SqlSuggester{
 				db,
-				LastContentTypesSameTag([]string{consts.CT_WOMEN_LESSON}),
+				ContentTypesSameTagGen([]string{consts.CT_WOMEN_LESSON}, core.Last),
 				"LastWomenLessonsSameTagSuggester",
 			},
 		},
 		&LastContentTypesSameTagSuggester{
 			SqlSuggester: SqlSuggester{
 				db,
-				LastContentTypesSameTag([]string{consts.CT_LECTURE}),
+				ContentTypesSameTagGen([]string{consts.CT_LECTURE}, core.Last),
 				"LastLectureSameTagSuggester",
 			},
 		},
@@ -505,40 +505,59 @@ func MakeLastProgramsSameTagSuggester(db *sql.DB) *LastContentTypesSameTagSugges
 	return &LastContentTypesSameTagSuggester{
 		SqlSuggester: SqlSuggester{
 			db,
-			LastContentTypesSameTag([]string{consts.CT_VIDEO_PROGRAM_CHAPTER}),
+			ContentTypesSameTagGen([]string{consts.CT_VIDEO_PROGRAM_CHAPTER}, core.Last),
 			"LastProgramsSameTagSuggester",
 		},
 	}
 }
 
-func LastContentTypesSameTag(contentTypes []string) GenerateSqlFunc {
+func ContentTypesSameTagGen(contentTypes []string, timeSelector core.TimeSelectorEnum) GenerateSqlFunc {
 	return func(request core.MoreRequest) string {
 		if request.Options.Recommend.Uid == "" {
 			return ""
+		}
+		contentTypesSql := ""
+		if len(contentTypes) > 0 {
+			contentTypesSql = utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes))
+		}
+		timeSelectorWhere := ""
+		if timeSelector == core.Next {
+			timeSelectorWhere = "and (date > d.date or (date = d.date and cu.created_at > d.created_at))"
+		} else if timeSelector == core.Prev {
+			timeSelectorWhere = "and (date < d.date or (date = d.date and cu.created_at < d.created_at))"
+		}
+		timeSelectorOrderBy := "order by date desc, created_at desc"
+		if timeSelector == core.Next {
+			timeSelectorOrderBy = "order by date asc, created_at asc"
+		} else if timeSelector == core.Rand {
+			timeSelectorOrderBy = "order by random()"
 		}
 		return fmt.Sprintf(`
 				select cu.type_id, cu.uid as uid, %s as date, cu.created_at as created_at
 				from
 					content_units as cu,
 					content_units_tags as cut,
-					(select t.id as tag_id
+					(select t.id as tag_id, cu.created_at, %s as date
 					 from content_units as cu, content_units_tags as cut, tags as t
 					 where t.id = cut.tag_id and cut.content_unit_id = cu.id and cu.uid = '%s') as d
 				where
 					cu.secure = 0 AND cu.published IS TRUE and
 					cu.id = cut.content_unit_id and
 					cut.tag_id = d.tag_id
-					%s %s %s %s %s
-				order by date desc, created_at desc
+					%s %s %s %s %s %s
+				%s
 				limit %d;
 			`,
 			DATE_FIELD,
+			DATE_FIELD,
 			request.Options.Recommend.Uid,
+			timeSelectorWhere,
 			utils.InClause("and cu.uid not in", append(request.Options.SkipUids, request.Options.Recommend.Uid)),
-			utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes)),
+			contentTypesSql,
 			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 			core.FilterByLanguageSql(request.Options.Languages),
 			core.CONTENT_UNIT_PERSON_RAV,
+			timeSelectorOrderBy,
 			request.MoreItems,
 		)
 	}
@@ -812,6 +831,37 @@ func RandomContentUnitsSameSourceGenSql(contentTypes []string, tagUids []string)
 	}
 }
 
+type ContentTypesSameTagSuggester struct {
+	SqlSuggester
+	contentTypes []string
+	timeSelector core.TimeSelectorEnum
+}
+
+func MakeContentTypesSameTagSuggester(db *sql.DB, contentTypes []string, timeSelector core.TimeSelectorEnum) *ContentTypesSameTagSuggester {
+	return &ContentTypesSameTagSuggester{
+		SqlSuggester: SqlSuggester{db, ContentTypesSameTagGen(contentTypes, timeSelector), "ContentTypesSameTagSuggester"},
+		contentTypes: contentTypes,
+		timeSelector: timeSelector,
+	}
+}
+
+func (suggester *ContentTypesSameTagSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes, TimeSelector: suggester.timeSelector}, nil
+}
+
+func (suggester *ContentTypesSameTagSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "ContentTypesSameTagSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'ContentTypesSameTagSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("ContentTypesSameTagSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	suggester.contentTypes = spec.Args
+	suggester.timeSelector = spec.TimeSelector
+	suggester.SqlSuggester.genSql = ContentTypesSameTagGen(suggester.contentTypes, suggester.timeSelector)
+	return nil
+}
+
 func init() {
 	core.RegisterSuggester("LastClipsSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastClipsSameTagSuggester(db) })
 	core.RegisterSuggester("LastClipsSuggester", func(db *sql.DB) core.Suggester { return MakeLastClipsSuggester(db) })
@@ -833,4 +883,5 @@ func init() {
 	core.RegisterSuggester("RandomContentUnitsSameSourceSuggester", func(db *sql.DB) core.Suggester {
 		return MakeRandomContentUnitsSameSourceSuggester(db, []string(nil), []string(nil))
 	})
+	core.RegisterSuggester("ContentTypesSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeContentTypesSameTagSuggester(db, []string(nil), core.Last) })
 }
