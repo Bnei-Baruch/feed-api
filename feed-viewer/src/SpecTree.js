@@ -31,6 +31,7 @@ const SUGGESTERS = [
   "PrevContentUnitsSameCollectionSuggester",
   "PrevContentUnitsSameSourceSuggester",
   "RandomContentTypesSuggester",
+  "RandomContentUnitsSameSourceSuggester",
 ];
 
 const HAS_ARGS = [
@@ -42,10 +43,12 @@ const HAS_ARGS = [
   "NextContentUnitsSameSourceSuggester",
   "PrevContentUnitsSameSourceSuggester",
   "RandomContentTypesSuggester",
+  "RandomContentUnitsSameSourceSuggester",
 ];
 
 const HAS_SECOND_ARGS = [
   "RandomContentTypesSuggester",
+  "RandomContentUnitsSameSourceSuggester",
 ];
 
 const HAS_SPECS = [
