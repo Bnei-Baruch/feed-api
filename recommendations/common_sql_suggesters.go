@@ -862,6 +862,63 @@ func (suggester *ContentTypesSameTagSuggester) UnmarshalSpec(db *sql.DB, spec co
 	return nil
 }
 
+type ContentUnitCollectionSuggester struct {
+	SqlSuggester
+	contentTypes []string
+}
+
+func MakeContentUnitCollectionSuggester(db *sql.DB, contentTypes []string) *ContentUnitCollectionSuggester {
+	return &ContentUnitCollectionSuggester{
+		SqlSuggester: SqlSuggester{db, ContentUnitCollectionGen(contentTypes), "ContentUnitCollectionSuggester"},
+		contentTypes: contentTypes,
+	}
+}
+
+func (suggester *ContentUnitCollectionSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes}, nil
+}
+
+func (suggester *ContentUnitCollectionSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "ContentUnitCollectionSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'ContentUnitCollectionSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("ContentUnitCollectionSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	suggester.contentTypes = spec.Args
+	suggester.SqlSuggester.genSql = ContentUnitCollectionGen(suggester.contentTypes)
+	return nil
+}
+
+func ContentUnitCollectionGen(contentTypes []string) GenerateSqlFunc {
+	return func(request core.MoreRequest) string {
+		if request.Options.Recommend.Uid == "" {
+			return ""
+		}
+		return fmt.Sprintf(`
+				select c.type_id, c.uid as uid, %s as date, c.created_at as created_at
+				from
+					content_units as cu,
+					collections_content_units as ccu,
+					collections as c
+				where
+					cu.secure = 0 AND cu.published IS TRUE and
+					cu.uid = '%s' and
+					ccu.content_unit_id = cu.id and
+					c.id = ccu.collection_id
+					%s %s
+				order by date desc, created_at desc
+				limit %d;
+			`,
+			COLLECTION_DATE_FIELD,
+			request.Options.Recommend.Uid,
+			utils.InClause("and c.uid not in", append(request.Options.SkipUids, request.Options.Recommend.Uid)),
+			utils.InClause("and c.type_id in", core.ContentTypesToContentIds(contentTypes)),
+			request.MoreItems,
+		)
+	}
+}
+
 func init() {
 	core.RegisterSuggester("LastClipsSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastClipsSameTagSuggester(db) })
 	core.RegisterSuggester("LastClipsSuggester", func(db *sql.DB) core.Suggester { return MakeLastClipsSuggester(db) })
@@ -884,4 +941,5 @@ func init() {
 		return MakeRandomContentUnitsSameSourceSuggester(db, []string(nil), []string(nil))
 	})
 	core.RegisterSuggester("ContentTypesSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeContentTypesSameTagSuggester(db, []string(nil), core.Last) })
+	core.RegisterSuggester("ContentUnitCollectionSuggester", func(db *sql.DB) core.Suggester { return MakeContentUnitCollectionSuggester(db, []string(nil)) })
 }
