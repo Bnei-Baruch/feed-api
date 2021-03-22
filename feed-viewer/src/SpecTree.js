@@ -338,6 +338,7 @@ const SpecTree = (props) => {
       <Button.Group>
         <Dropdown
           button
+          scrolling
           options={SUGGESTERS.map(s => ({key: s, text: s, value: s}))}
           text='Add'
           onChange={(event, data) => add(data.value)}

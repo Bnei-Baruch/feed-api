@@ -1,5 +1,6 @@
 import React, { 
   useEffect,
+  useRef,
   useState, 
 } from 'react';
 
@@ -31,6 +32,10 @@ const Recommender = (props) => {
   const [itemsByUid, setItemsByUid] = useState({});
   const [recommendError, setRecommendError] = useState('');
   const [specError, setSpecError] = useState('');
+
+  const url = new URL(window.location.toString());
+  url.search = `?uid=${uid}&spec=${spec}`;
+  window.history.replaceState({}, 'Recommender', url.toString());
 
   const parseSpec = () => {
     if (spec) {
@@ -68,6 +73,7 @@ const Recommender = (props) => {
   };
   useEffect(recommendClicked, []);
 
+  console.log(spec);
   return (
     <Grid>
       <Grid.Row>
@@ -91,7 +97,7 @@ const Recommender = (props) => {
             <Segment textAlign='left'>
               <div>Spec JSON:</div>
               <div>
-                <TextArea placeholder='Spec' rows="10" style={{'width': '100%'}} defaultValue={spec} onChange={(event, data) => setSpec(data.value)} />
+                <TextArea placeholder='Spec' rows="10" style={{'width': '100%'}} value={spec} onChange={(event, data) => setSpec(data.value)} />
               </div>
             </Segment>
           </Segment>
