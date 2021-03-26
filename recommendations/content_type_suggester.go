@@ -86,7 +86,7 @@ func (s *ContentTypeSuggester) More(request core.MoreRequest) ([]core.ContentIte
 		}
 	}
 	for i := range s.contentTypes {
-		if s.contentTypes[i] == contentType {
+		if s.contentTypes[i] == contentType || s.contentTypes[i] == "*" {
 			if i < len(s.suggesters) {
 				return s.suggesters[i].More(request)
 			}

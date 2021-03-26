@@ -63,7 +63,11 @@ func handleRecommend(db *sql.DB, r core.MoreRequest) (*MoreResponse, *HttpError)
 	log.Infof("Spec: %+v", r.Options.Spec)
 	var recommend *recommendations.Recommender
 	if r.Options.Spec == nil {
-		recommend = recommendations.MakeRecommender(db)
+		var err error
+		recommend, err = recommendations.MakeRecommender(db)
+		if err != nil {
+			return nil, NewInternalError(err)
+		}
 	} else {
 		if s, err := core.MakeSuggesterFromName(db, r.Options.Spec.Name); err != nil {
 			return nil, NewInternalError(err)
