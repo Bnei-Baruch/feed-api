@@ -22,22 +22,45 @@ type Recommend struct {
 	Uid string `json:"uid"`
 }
 
-// Defines time constrain for selecting content units / collection.
-type TimeSelectorEnum int
+// Define filter constrain for unit being watched.
+type FilterSelectorEnum int
 
 const (
-	Last TimeSelectorEnum = iota
+	UnitContentTypes FilterSelectorEnum = iota
+	CollectionContentTypes
+	Tags
+	Sources
+	Collections
+	SameTag
+	SameSource
+	SameCollection
+)
+
+type SuggesterFilter struct {
+	FilterSelector FilterSelectorEnum `json:"filter_selector,omitempty" form:"filter_selector,omitempty"`
+	Args           []string           `json:"args,omitempty" form:"args,omitempty"`
+}
+
+// Defines order constrain for selecting content units / collection.
+type OrderSelectorEnum int
+
+const (
+	Last OrderSelectorEnum = iota
 	Next
 	Prev
 	Rand
+	// (TBD) Popular
 )
 
 type SuggesterSpec struct {
-	Name         string           `json:"name,omitempty" form:"name,omitempty"`
-	Args         []string         `json:"args,omitempty" form:"args,omitempty"`
-	SecondArgs   []string         `json:"second_args,omitempty" form:"second_args,omitempty"`
-	TimeSelector TimeSelectorEnum `json:"time_selector,omitempty" form:"time_selector,omitempty"`
-	Specs        []SuggesterSpec  `json:"specs,omitempty" form:"specs,omitempty"`
+	Name          string            `json:"name,omitempty" form:"name,omitempty"`
+	Filters       []SuggesterFilter `json:"filters,omitempty" form:"filters,omitempty"`
+	OrderSelector OrderSelectorEnum `json:"order_selector,omitempty" form:"order_selector,omitempty"`
+	Specs         []SuggesterSpec   `json:"specs,omitempty" form:"specs,omitempty"`
+
+	// Deprecated
+	Args       []string `json:"args,omitempty" form:"args,omitempty"`
+	SecondArgs []string `json:"second_args,omitempty" form:"second_args,omitempty"`
 }
 
 type MoreOptions struct {

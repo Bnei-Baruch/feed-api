@@ -31,7 +31,7 @@ func MakeRecommender(db *sql.DB) (*Recommender, error) {
 							"args": [
 								"LESSON_PART"
 							],
-							"time_selector": 2
+							"order_selector": 2
 						},
 						{
 							"name": "RandomContentUnitsSameSourceSuggester",
@@ -44,7 +44,7 @@ func MakeRecommender(db *sql.DB) (*Recommender, error) {
 							"args": [
 								"LESSON_PART"
 							],
-							"time_selector": 3
+							"order_selector": 3
 						}
 					]
 				},
@@ -59,7 +59,7 @@ func MakeRecommender(db *sql.DB) (*Recommender, error) {
 						},
 						{
 							"name": "ContentTypesSameTagSuggester",
-							"time_selector": 1,
+							"order_selector": 1,
 							"args": [
 								"LESSON_PART"
 							]
@@ -75,7 +75,7 @@ func MakeRecommender(db *sql.DB) (*Recommender, error) {
 							"args": [
 								"LESSON_PART"
 							],
-							"time_selector": 3
+							"order_selector": 3
 						}
 					]
 				},
@@ -261,8 +261,6 @@ func MakeRecommender(db *sql.DB) (*Recommender, error) {
 	if err := json.Unmarshal([]byte(rootJSON), &spec); err != nil {
 		return nil, err
 	}
-
-	fmt.Printf("?!?!?!??????????? %+v", spec)
 
 	if s, err := core.MakeSuggesterFromName(db, spec.Name); err != nil {
 		return nil, err

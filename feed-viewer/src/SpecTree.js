@@ -7,6 +7,7 @@ import {
   Checkbox,
   Dropdown,
   List,
+  Table,
 } from 'semantic-ui-react';
 
 const TIME_SELECTOR_OPTIONS = [
@@ -16,31 +17,52 @@ const TIME_SELECTOR_OPTIONS = [
   {key: "Rand", text: "Rand", value: 3},
 ];
 
+const FITLER_SELECTOR_UNIT_CONTENT_TYPES = 0;
+const FILTER_SELECTOR_COLLECTION_CONTENT_TYPES = 1;
+const FILTER_SELECTOR_TAGS = 2;
+const FILTER_SELECTOR_SOURCES = 3;
+const FILTER_SELECTOR_COLLECTIONS = 4;
+const FITLER_SELECTOR_SAME_TAG = 5;
+const FILTER_SELECTOR_SAME_SOURCE = 6;
+const FILTER_SELECTOR_SAME_COLLECTION = 7;
+
+const FILTER_SELECTOR_OPTIONS = [
+  {key: FITLER_SELECTOR_UNIT_CONTENT_TYPES, text: "UnitContentTypes", value: FITLER_SELECTOR_UNIT_CONTENT_TYPES},
+  {key: FILTER_SELECTOR_COLLECTION_CONTENT_TYPES, text: "CollectionContentTypes", value: FILTER_SELECTOR_COLLECTION_CONTENT_TYPES},
+  {key: FILTER_SELECTOR_TAGS, text: "Tags", value: FILTER_SELECTOR_TAGS},
+  {key: FILTER_SELECTOR_SOURCES, text: "Sources", value: FILTER_SELECTOR_SOURCES},
+  {key: FILTER_SELECTOR_COLLECTIONS, text: "Collections", value: FILTER_SELECTOR_COLLECTIONS},
+  {key: FITLER_SELECTOR_SAME_TAG, text: "SameTag", value: FITLER_SELECTOR_SAME_TAG},
+  {key: FILTER_SELECTOR_SAME_SOURCE, text: "SameSource", value: FILTER_SELECTOR_SAME_SOURCE},
+  {key: FILTER_SELECTOR_SAME_COLLECTION, text: "SameCollection", value: FILTER_SELECTOR_SAME_COLLECTION},
+];
+
 const SUGGESTERS = [
-  "CollectionSuggester",
+//  "CollectionSuggester",
   "CompletionSuggester",
   "ContentTypeSuggester",
-  "ContentTypesSameTagSuggester",
-  "ContentUnitCollectionSuggester",
-  "ContentUnitsSuggester",
-  "LastClipsSameTagSuggester",
-  "LastClipsSuggester",
-  "LastCollectionSameSourceSuggester",
-  "LastCongressSameTagSuggester",
-  "LastContentTypesSameTagSuggester",
-  "LastContentUnitsSameCollectionSuggester",
-  "LastContentUnitsSuggester",
-  "LastLessonsSameTagSuggester",
-  "LastLessonsSuggester",
-  "LastProgramsSameTagSuggester",
-  "LastProgramsSuggester",
-  "NextContentUnitsSameSourceSuggester",
-  "PrevContentUnitsSameCollectionSuggester",
-  "PrevContentUnitsSameSourceSuggester",
-  "RandomContentTypesSuggester",
-  "RandomContentUnitsSameSourceSuggester",
+//  "ContentTypesSameTagSuggester",
+//  "ContentUnitCollectionSuggester",
+//  "ContentUnitsSuggester",
+//  "LastClipsSameTagSuggester",
+//  "LastClipsSuggester",
+//  "LastCollectionSameSourceSuggester",
+//  "LastCongressSameTagSuggester",
+//  "LastContentTypesSameTagSuggester",
+//  "LastContentUnitsSameCollectionSuggester",
+//  "LastContentUnitsSuggester",
+//  "LastLessonsSameTagSuggester",
+//  "LastLessonsSuggester",
+//  "LastProgramsSameTagSuggester",
+//  "LastProgramsSuggester",
+//  "NextContentUnitsSameSourceSuggester",
+//  "PrevContentUnitsSameCollectionSuggester",
+//  "PrevContentUnitsSameSourceSuggester",
+//  "RandomContentTypesSuggester",
+//  "RandomContentUnitsSameSourceSuggester",
   "RoundRobinSuggester",
   "SortSuggester",
+  "NewContentUnitsSuggester",
 ];
 
 const HAS_ARGS = [
@@ -57,13 +79,14 @@ const HAS_ARGS = [
   "RandomContentUnitsSameSourceSuggester",
 ];
 
-const HAS_SECOND_ARGS = [
-  "RandomContentTypesSuggester",
-  "RandomContentUnitsSameSourceSuggester",
-];
+//const HAS_SECOND_ARGS = [
+//  "RandomContentTypesSuggester",
+//  "RandomContentUnitsSameSourceSuggester",
+//];
 
 const HAS_TIME_SELECTOR = [
   "ContentTypesSameTagSuggester",
+  "NewContentUnitsSuggester",
 ];
 
 const HAS_SPECS = [
@@ -115,6 +138,30 @@ const CT_UNKNOWN               = "UNKNOWN";
 const CT_VIDEO_PROGRAM_CHAPTER = "VIDEO_PROGRAM_CHAPTER";
 const CT_VIRTUAL_LESSON        = "VIRTUAL_LESSON";
 const CT_WOMEN_LESSON          = "WOMEN_LESSON";
+
+const CONTENT_UNIT_TYPES = [
+  CT_ARTICLE,
+  CT_BLOG_POST,
+  CT_BOOK,
+  CT_CHILDREN_LESSON,
+  CT_CLIP,
+  CT_EVENT_PART,
+  CT_FRIENDS_GATHERING,
+  CT_FULL_LESSON,
+  CT_KITEI_MAKOR,
+  CT_LECTURE,
+  CT_LELO_MIKUD,
+  CT_LESSON_PART,
+  CT_MEAL,
+  CT_PUBLICATION,
+  CT_RESEARCH_MATERIAL,
+  CT_SONG,
+  CT_TRAINING,
+  CT_UNKNOWN,
+  CT_VIDEO_PROGRAM_CHAPTER,
+  CT_VIRTUAL_LESSON,
+  CT_WOMEN_LESSON,
+];
 
 const COLLECTION_TYPES = [
   // Collection Types
@@ -196,6 +243,134 @@ const splitKeyHead = (key) => {
   return [/*head index*/ Number(headParts[0]), /*head suggester*/ headParts[1], /*rest*/ parts.slice(1).join('.')];
 };
 
+const filterSelectorText = (filterSelector) => FILTER_SELECTOR_OPTIONS.find(({value}) => value === filterSelector).text;
+const orderSelectorText = (orderSelector) => TIME_SELECTOR_OPTIONS.find(({value}) => value === orderSelector)?.text ?? '';
+
+const SelectedSpec = (props) => {
+  const {spec, onChange, selectedSpec, selected} = props;
+
+  const setTimeSelector = (orderSelector) => {
+    console.log(orderSelector, selectedSpec);
+    selectedSpec.order_selector = orderSelector;
+    onChange(spec);
+  }
+
+  const addFilterSelector = (filterSelector) => {
+    console.log(filterSelector, selectedSpec);
+    if (!selectedSpec.filters) {
+      selectedSpec.filters = [];
+    }
+    if (!selectedSpec.filters.find(({filter_selector}) => filter_selector === filterSelector)) {
+      selectedSpec.filters.push({filter_selector: filterSelector, args: []});
+      onChange(spec);
+    }
+  }
+ 
+
+  return (
+    <div>
+      <h4>{selectedSpec.name}</h4>
+      <div style={{marginBottom: '10px'}}>
+        <span style={{marginRight: '5px'}}>Time Selection</span>
+        <Dropdown
+          selection
+          options={TIME_SELECTOR_OPTIONS}
+          defaultValue={spec.order_selector}
+          onChange={(event, data) => setTimeSelector(data.value)}
+          disabled={!!selected && !HAS_TIME_SELECTOR.includes(selected.split('.').slice(-1)[0].split('-')[1])}
+        />
+      </div>
+      <div>
+        <Dropdown
+          button
+          options={FILTER_SELECTOR_OPTIONS}
+          isOptionDisabled={(option) => option.disabled}
+          text='Add Filter'
+          onChange={(event, data) => addFilterSelector(data.value)}
+          disabled={!!selected && 'NewContentUnitsSuggester' !== selected.split('.').slice(-1)[0].split('-')[1]}
+        />
+        {selectedSpec?.filters?.length ? (
+          <Table>
+            <Table.Body>
+              {(selectedSpec?.filters ?? []).map((filter, index) => SuggesterFilter({onChange, spec, selectedSpec, filterIndex: index}))}
+            </Table.Body>
+          </Table>
+        ) :null}
+      </div>
+    </div>
+  );
+};
+
+const SuggesterFilterArgs = ({spec, selectedSpec, filterIndex, onChange}) => {
+  const updateArgs = (valueOrValues) => {
+    console.log(valueOrValues, selectedSpec.filters[filterIndex]);
+    if (Array.isArray(valueOrValues)) {
+      selectedSpec.filters[filterIndex].args = valueOrValues;
+    } else {
+      if (!selectedSpec.filters[filterIndex].args) {
+        selectedSpec.filters[filterIndex].args = [];
+      }
+      const index = selectedSpec.filters[filterIndex].args.indexOf(valueOrValues);
+      if (index === -1) {
+        selectedSpec.filters[filterIndex].args.push(valueOrValues);
+      }
+    }
+    onChange(spec);
+  }
+
+  console.log(selectedSpec.filters[filterIndex].args);
+  if ([FITLER_SELECTOR_UNIT_CONTENT_TYPES, FILTER_SELECTOR_COLLECTION_CONTENT_TYPES].includes(selectedSpec.filters[filterIndex].filter_selector)) {
+    const options = (selectedSpec.filters[filterIndex].filter_selector === FITLER_SELECTOR_UNIT_CONTENT_TYPES ?
+      CONTENT_UNIT_TYPES : COLLECTION_TYPES).map((contentType) => ({text: contentType, value: contentType}));
+    return (
+      <Dropdown placeholder='Content Types'
+                fluid
+                multiple
+                search
+                selection
+                options={options}
+                value={selectedSpec.filters[filterIndex].args}
+                onAddItem={(event, data) => updateArgs(data.value)}
+                onChange={(event, data) => updateArgs(data.value)}
+      />
+    );
+  }
+  if ([FILTER_SELECTOR_TAGS, FILTER_SELECTOR_SOURCES, FILTER_SELECTOR_COLLECTIONS].includes(selectedSpec.filters[filterIndex].filter_selector)) {
+    return (
+      <Dropdown placeholder='Add Uids'
+                fluid
+                search
+                multiple
+                selection
+                allowAdditions
+                options={(selectedSpec.filters[filterIndex]?.args ?? []).map((value) => ({text: value, value}))}
+                value={selectedSpec.filters[filterIndex].args}
+                onAddItem={(event, data) => updateArgs(data.value)}
+                onChange={(event, data) => updateArgs(data.value)}
+      />
+    );
+  }
+  return null;
+}
+
+const SuggesterFilter = (props) => {
+  const {onChange, spec, selectedSpec, filterIndex} = props;
+
+  const removeFilter = () => {
+    selectedSpec.filters.splice(filterIndex, 1);
+    onChange(spec);
+  }
+
+  return (
+    <Table.Row key={filterIndex}>
+      <Table.Cell width={1}><Button circular icon='close' onClick={() => removeFilter()} /></Table.Cell>
+      <Table.Cell width={1}>{filterIndex+1}.</Table.Cell>
+      <Table.Cell width={1}>{filterSelectorText(selectedSpec.filters[filterIndex].filter_selector)}</Table.Cell>
+      <Table.Cell width={8}>{SuggesterFilterArgs(props)}</Table.Cell>
+    </Table.Row>
+  );
+}
+
 const SpecTree = (props) => {
   const {spec, onChange} = props;
   const [expanded, setExpanded] = useState([]);
@@ -221,7 +396,10 @@ const SpecTree = (props) => {
           {(!spec.specs || !spec.specs.length) ? <div style={{'paddingRight': '1.8em', 'display': 'table-cell'}}></div> : null}
           <List.Content style={{'display': (!spec.specs || !spec.specs.length) ? 'table-cell' : undefined}} onClick={(e) => {e.stopPropagation(); setSelected(newPrefix);}}>
             <List.Header style={{'fontWeight': selected !== newPrefix ? 'normal' : undefined}}>
-              {spec.name}{spec.args ? `[${spec.args.join(',')}]` : ''}
+              {spec.name}
+              {spec.args ? `[${spec.args.join(',')}]` : ''}
+              {orderSelectorText(spec.order_selector) ? `[${orderSelectorText(spec.order_selector)}]` : ''}
+              {(spec?.filters ?? []).map(filter => `[${filterSelectorText(filter.filter_selector)}${filter.args.length ? `(${filter.args.length})` : ''}]`)}
             </List.Header> 
             { specExpanded && spec.specs && spec.specs.map((child, index) => SpecItem(`${newPrefix}.${index}`, child)) }
           </List.Content>
@@ -307,32 +485,8 @@ const SpecTree = (props) => {
     }
     onChange(spec);
   };
-  const addSecondArg = (tagUid) => {
-    console.log(tagUid, selectedSpec);
-    if (!selectedSpec.second_args) {
-      selectedSpec.second_args = [];
-    }
-    const index = selectedSpec.second_args.indexOf(tagUid);
-    if (index === -1) {
-      selectedSpec.second_args.push(tagUid);
-    }
-    onChange(spec);
-  }
-  const setSecondArgs = (tagUids) => {
-    console.log(tagUids, selectedSpec);
-    if (!selectedSpec.second_args) {
-      selectedSpec.second_args = [];
-    }
-    selectedSpec.second_args = tagUids;
-    onChange(spec);
-  }
-
-  const setTimeSelector = (timeSelector) => {
-    console.log(timeSelector, selectedSpec);
-    selectedSpec.time_selector = timeSelector;
-    onChange(spec);
-  }
-
+  
+  const selectedSpecName = selected.split('.').slice(-1)[0].split('-')[1];
   return (
     <div>
       <Button.Group>
@@ -342,7 +496,7 @@ const SpecTree = (props) => {
           options={SUGGESTERS.map(s => ({key: s, text: s, value: s}))}
           text='Add'
           onChange={(event, data) => add(data.value)}
-          disabled={!!selected && !HAS_SPECS.includes(selected.split('.').slice(-1)[0].split('-')[1])}
+          disabled={!!selected && !HAS_SPECS.includes(selectedSpecName)}
           value={''}
         />
         <Button disabled={!selected} onClick={() => { remove(selected, spec); fixRemoveSelectedExpanded(selected); }}>Remove</Button>
@@ -352,7 +506,7 @@ const SpecTree = (props) => {
           closeOnChange={false}
           multiple
           text='Content Types'
-          disabled={!selected || !HAS_ARGS.includes(selected.split('.').slice(-1)[0].split('-')[1])}>
+          disabled={!selected || !HAS_ARGS.includes(selectedSpecName)}>
           <Dropdown.Menu>
             {ALL_CONTENT_TYPES.map(contentType => (
               <Dropdown.Item key={contentType + selectedSpec?.args?.includes(contentType)} onClick={(e) => e.stopPropagation()}>
@@ -365,28 +519,9 @@ const SpecTree = (props) => {
             ))}
           </Dropdown.Menu>
         </Dropdown>
-        <Dropdown
-          button
-          options={selectedSpec?.second_args?.map((value) => ({text: value, value})) ?? []}
-          placeholder='Add Tag Uids'
-          search
-          multiple
-          selection
-          allowAdditions
-          value={selectedSpec?.second_args ?? []}
-          onAddItem={(event, data) => addSecondArg(data.value)}
-          onChange={(event, data) => setSecondArgs(data.value)}
-          disabled={!selected || !HAS_SECOND_ARGS.includes(selected.split('.').slice(-1)[0].split('-')[1])}
-        />
-        <Dropdown
-          button
-          options={TIME_SELECTOR_OPTIONS}
-          text='Time Selector'
-          onChange={(event, data) => setTimeSelector(data.value)}
-          disabled={!!selected && !HAS_TIME_SELECTOR.includes(selected.split('.').slice(-1)[0].split('-')[1])}
-        />
       </Button.Group>
-      { spec && SpecItem('', spec, expanded) }
+      { spec ? SpecItem('', spec, expanded) : null }
+      { selectedSpec && selectedSpecName === 'NewContentUnitsSuggester' ? SelectedSpec({spec, selectedSpec, selected, onChange}) : null }
     </div>
   );
 };

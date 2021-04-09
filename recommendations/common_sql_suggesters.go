@@ -3,8 +3,10 @@ package recommendations
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/Bnei-Baruch/feed-api/consts"
 	"github.com/Bnei-Baruch/feed-api/core"
@@ -511,7 +513,7 @@ func MakeLastProgramsSameTagSuggester(db *sql.DB) *LastContentTypesSameTagSugges
 	}
 }
 
-func ContentTypesSameTagGen(contentTypes []string, timeSelector core.TimeSelectorEnum) GenerateSqlFunc {
+func ContentTypesSameTagGen(contentTypes []string, orderSelector core.OrderSelectorEnum) GenerateSqlFunc {
 	return func(request core.MoreRequest) string {
 		if request.Options.Recommend.Uid == "" {
 			return ""
@@ -520,17 +522,17 @@ func ContentTypesSameTagGen(contentTypes []string, timeSelector core.TimeSelecto
 		if len(contentTypes) > 0 {
 			contentTypesSql = utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(contentTypes))
 		}
-		timeSelectorWhere := ""
-		if timeSelector == core.Next {
-			timeSelectorWhere = "and (date > d.date or (date = d.date and cu.created_at > d.created_at))"
-		} else if timeSelector == core.Prev {
-			timeSelectorWhere = "and (date < d.date or (date = d.date and cu.created_at < d.created_at))"
+		orderSelectorWhere := ""
+		if orderSelector == core.Next {
+			orderSelectorWhere = "and (date > d.date or (date = d.date and cu.created_at > d.created_at))"
+		} else if orderSelector == core.Prev {
+			orderSelectorWhere = "and (date < d.date or (date = d.date and cu.created_at < d.created_at))"
 		}
-		timeSelectorOrderBy := "order by date desc, created_at desc"
-		if timeSelector == core.Next {
-			timeSelectorOrderBy = "order by date asc, created_at asc"
-		} else if timeSelector == core.Rand {
-			timeSelectorOrderBy = "order by random()"
+		orderSelectorOrderBy := "order by date desc, created_at desc"
+		if orderSelector == core.Next {
+			orderSelectorOrderBy = "order by date asc, created_at asc"
+		} else if orderSelector == core.Rand {
+			orderSelectorOrderBy = "order by random()"
 		}
 		return fmt.Sprintf(`
 				select cu.type_id, cu.uid as uid, %s as date, cu.created_at as created_at
@@ -551,13 +553,13 @@ func ContentTypesSameTagGen(contentTypes []string, timeSelector core.TimeSelecto
 			DATE_FIELD,
 			DATE_FIELD,
 			request.Options.Recommend.Uid,
-			timeSelectorWhere,
+			orderSelectorWhere,
 			utils.InClause("and cu.uid not in", append(request.Options.SkipUids, request.Options.Recommend.Uid)),
 			contentTypesSql,
 			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
 			core.FilterByLanguageSql(request.Options.Languages),
 			core.CONTENT_UNIT_PERSON_RAV,
-			timeSelectorOrderBy,
+			orderSelectorOrderBy,
 			request.MoreItems,
 		)
 	}
@@ -833,20 +835,20 @@ func RandomContentUnitsSameSourceGenSql(contentTypes []string, tagUids []string)
 
 type ContentTypesSameTagSuggester struct {
 	SqlSuggester
-	contentTypes []string
-	timeSelector core.TimeSelectorEnum
+	contentTypes  []string
+	orderSelector core.OrderSelectorEnum
 }
 
-func MakeContentTypesSameTagSuggester(db *sql.DB, contentTypes []string, timeSelector core.TimeSelectorEnum) *ContentTypesSameTagSuggester {
+func MakeContentTypesSameTagSuggester(db *sql.DB, contentTypes []string, orderSelector core.OrderSelectorEnum) *ContentTypesSameTagSuggester {
 	return &ContentTypesSameTagSuggester{
-		SqlSuggester: SqlSuggester{db, ContentTypesSameTagGen(contentTypes, timeSelector), "ContentTypesSameTagSuggester"},
-		contentTypes: contentTypes,
-		timeSelector: timeSelector,
+		SqlSuggester:  SqlSuggester{db, ContentTypesSameTagGen(contentTypes, orderSelector), "ContentTypesSameTagSuggester"},
+		contentTypes:  contentTypes,
+		orderSelector: orderSelector,
 	}
 }
 
 func (suggester *ContentTypesSameTagSuggester) MarshalSpec() (core.SuggesterSpec, error) {
-	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes, TimeSelector: suggester.timeSelector}, nil
+	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes, OrderSelector: suggester.orderSelector}, nil
 }
 
 func (suggester *ContentTypesSameTagSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
@@ -857,8 +859,8 @@ func (suggester *ContentTypesSameTagSuggester) UnmarshalSpec(db *sql.DB, spec co
 		return errors.New(fmt.Sprintf("ContentTypesSameTagSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
 	}
 	suggester.contentTypes = spec.Args
-	suggester.timeSelector = spec.TimeSelector
-	suggester.SqlSuggester.genSql = ContentTypesSameTagGen(suggester.contentTypes, suggester.timeSelector)
+	suggester.orderSelector = spec.OrderSelector
+	suggester.SqlSuggester.genSql = ContentTypesSameTagGen(suggester.contentTypes, suggester.orderSelector)
 	return nil
 }
 
@@ -919,6 +921,172 @@ func ContentUnitCollectionGen(contentTypes []string) GenerateSqlFunc {
 	}
 }
 
+type ContentUnitsSuggester struct {
+	SqlSuggester
+	filters       []core.SuggesterFilter
+	orderSelector core.OrderSelectorEnum
+}
+
+func MakeContentUnitsSuggester(db *sql.DB, filters []core.SuggesterFilter, orderSelector core.OrderSelectorEnum) *ContentUnitsSuggester {
+	return &ContentUnitsSuggester{
+		SqlSuggester:  SqlSuggester{db, ContentUnitsSqlGen(filters, orderSelector), "NewContentUnitsSuggester"},
+		filters:       filters,
+		orderSelector: orderSelector,
+	}
+}
+
+func (suggester *ContentUnitsSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name, Filters: suggester.filters, OrderSelector: suggester.orderSelector}, nil
+}
+
+func (suggester *ContentUnitsSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "NewContentUnitsSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'NewContentUnitsSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("NewContentUnitsSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	suggester.filters = spec.Filters
+	suggester.orderSelector = spec.OrderSelector
+	suggester.SqlSuggester.genSql = ContentUnitsSqlGen(suggester.filters, suggester.orderSelector)
+	return nil
+}
+
+func ContentUnitsSqlGen(filters []core.SuggesterFilter, orderSelector core.OrderSelectorEnum) GenerateSqlFunc {
+	return func(request core.MoreRequest) string {
+		if request.Options.Recommend.Uid == "" {
+			return ""
+		}
+		filtersFrom := []string(nil)
+		filtersWhere := []string(nil)
+		collectionRelationAdded := false
+		addCollectionRelation := func() {
+			if !collectionRelationAdded {
+				filtersFrom = append(filtersFrom, `,
+						collections as c,
+						collections_content_units as ccu
+					`)
+				filtersWhere = append(filtersWhere, `and
+						c.id = ccu.collection_id and
+						cu.id = ccu.content_unit_id
+					`)
+				collectionRelationAdded = true
+			}
+		}
+		sourcesRelationAdded := false
+		addSourcesRelation := func() {
+			if !sourcesRelationAdded {
+				filtersFrom = append(filtersFrom, ", content_units_sources as cus")
+				sourcesRelationAdded = true
+			}
+		}
+		tagsRelationAdded := false
+		addTagsRelation := func() {
+			if !tagsRelationAdded {
+				filtersFrom = append(filtersFrom, ", content_units_tags as cut")
+				tagsRelationAdded = true
+			}
+		}
+		for _, filter := range filters {
+			switch filter.FilterSelector {
+			case core.UnitContentTypes:
+				filtersWhere = append(filtersWhere, utils.InClause("and cu.type_id in", core.ContentTypesToContentIds(filter.Args)))
+			case core.CollectionContentTypes:
+				addCollectionRelation()
+				filtersWhere = append(filtersWhere, utils.InClause("and c.type_id in", core.ContentTypesToContentIds(filter.Args)))
+			case core.Tags:
+				addTagsRelation()
+				filtersFrom = append(filtersFrom, ", tags as t")
+				filtersWhere = append(filtersWhere, utils.InClause(`and
+					cut.content_unit_id = cu.id and
+					cut.tag_id = t.id and
+					t.uid in`, filter.Args))
+			case core.Sources:
+				addSourcesRelation()
+				filtersFrom = append(filtersFrom, ", sources as s")
+				filtersWhere = append(filtersWhere, utils.InClause(`and 
+					cus.content_unit_id = cu.id and
+					cus.source_id = s.id and
+					s.uid in`, filter.Args))
+			case core.Collections:
+				addCollectionRelation()
+				filtersWhere = append(filtersWhere, utils.InClause("and c.uid in", filter.Args))
+			case core.SameTag:
+				addTagsRelation()
+				filtersFrom = append(filtersFrom, fmt.Sprintf(`,
+					(select t.id as tag_id, cu.created_at
+					 from content_units as cu, content_units_tags as cut, tags as t
+					 where t.id = cut.tag_id and cut.content_unit_id = cu.id and cu.uid = '%s') as same_tag
+				`, request.Options.Recommend.Uid))
+				filtersWhere = append(filtersWhere, `and
+					cu.id = cut.content_unit_id and
+					cut.tag_id = same_tag.tag_id
+				`)
+			case core.SameCollection:
+				addCollectionRelation()
+				filtersFrom = append(filtersFrom, fmt.Sprintf(`,
+					(select ccu.collection_id as collection_id
+					 from content_units as cu, collections_content_units as ccu
+					 where cu.id = ccu.content_unit_id and cu.uid = '%s') as same_collection
+				`, request.Options.Recommend.Uid))
+				filtersWhere = append(filtersWhere, "and c.id = same_collection.collection_id")
+			case core.SameSource:
+				addSourcesRelation()
+				filtersFrom = append(filtersFrom, fmt.Sprintf(`,
+					(select cus.source_id as source_id, cu.created_at
+					 from content_units as cu, content_units_sources as cus
+					 where cu.uid = '%s' and cus.content_unit_id = cu.id) as same_source
+				`, request.Options.Recommend.Uid))
+				filtersWhere = append(filtersWhere, `and
+					cu.id = cus.content_unit_id and
+					cus.source_id = same_source.source_id
+				`)
+			default:
+				log.Errorf("Did not expect filter selector enum %d", filter.FilterSelector)
+			}
+		}
+		if orderSelector == core.Next || orderSelector == core.Prev {
+			filtersFrom = append(filtersFrom, fmt.Sprintf(`,
+				(select cu.created_at, %s as date
+				 from content_units as cu
+				 where cu.uid = '%s') as d
+			`, DATE_FIELD, request.Options.Recommend.Uid))
+			if orderSelector == core.Next {
+				filtersWhere = append(filtersWhere, "and (date > d.date or (date = d.date and cu.created_at > d.created_at))")
+			} else {
+				filtersWhere = append(filtersWhere, "and (date < d.date or (date = d.date and cu.created_at < d.created_at))")
+			}
+		}
+		orderSelectorOrderBy := "order by date desc, created_at desc"
+		if orderSelector == core.Next {
+			orderSelectorOrderBy = "order by date asc, created_at asc"
+		} else if orderSelector == core.Rand {
+			orderSelectorOrderBy = "order by random()"
+		}
+		return fmt.Sprintf(`
+				select cu.type_id, cu.uid as uid, %s as date, cu.created_at as created_at
+				from
+					content_units as cu
+					%s
+				where
+					cu.secure = 0 AND cu.published IS TRUE
+					%s %s %s %s %s
+				%s
+				limit %d;
+			`,
+			DATE_FIELD,
+			strings.Join(filtersFrom, " "),
+			utils.InClause("and cu.uid not in", append(request.Options.SkipUids, request.Options.Recommend.Uid)),
+			strings.Join(filtersWhere, " "),
+			fmt.Sprintf(FILTER_LESSON_PREP, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID),
+			core.FilterByLanguageSql(request.Options.Languages),
+			core.CONTENT_UNIT_PERSON_RAV,
+			orderSelectorOrderBy,
+			request.MoreItems,
+		)
+	}
+}
+
 func init() {
 	core.RegisterSuggester("LastClipsSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastClipsSameTagSuggester(db) })
 	core.RegisterSuggester("LastClipsSuggester", func(db *sql.DB) core.Suggester { return MakeLastClipsSuggester(db) })
@@ -942,4 +1110,7 @@ func init() {
 	})
 	core.RegisterSuggester("ContentTypesSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeContentTypesSameTagSuggester(db, []string(nil), core.Last) })
 	core.RegisterSuggester("ContentUnitCollectionSuggester", func(db *sql.DB) core.Suggester { return MakeContentUnitCollectionSuggester(db, []string(nil)) })
+	core.RegisterSuggester("NewContentUnitsSuggester", func(db *sql.DB) core.Suggester {
+		return MakeContentUnitsSuggester(db, []core.SuggesterFilter(nil), core.Last)
+	})
 }

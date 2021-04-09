@@ -89,9 +89,9 @@ const Recommender = (props) => {
                 </tbody>
               </table>
             </Segment>
+            <h3>Spec Tree</h3>
             <Segment textAlign='left'>
-              <div>Spec Tree</div>
-              <div><SpecTree spec={specObj} onChange={spec => spec ? setSpec(JSON.stringify(spec, null, 2)) : setSpec('')} /></div>
+              <SpecTree spec={specObj} onChange={spec => spec ? setSpec(JSON.stringify(spec, null, 2)) : setSpec('')} />
             </Segment>
             <Segment textAlign='left'>
               <div>Spec JSON:</div>
