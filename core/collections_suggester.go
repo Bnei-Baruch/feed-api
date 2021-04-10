@@ -42,6 +42,10 @@ func CollectionsByFirstUnitLanguagesTableSql(contentTypes []string, languages []
 				)
 		`, utils.InClause("and f.language in ", languages)))
 	}
+	contentTypesWhere := ""
+	if len(contentTypes) > 0 {
+		contentTypesWhere = utils.InClause("and c.type_id in", ContentTypesToContentIds(contentTypes))
+	}
 
 	return fmt.Sprintf(`
 		(
@@ -69,9 +73,7 @@ func CollectionsByFirstUnitLanguagesTableSql(contentTypes []string, languages []
 			where
 			%s
 		) as collection_first_content_unit_languages
-	`,
-		utils.InClause("and c.type_id in", ContentTypesToContentIds(contentTypes)),
-		strings.Join(orClauses, " or "))
+	`, contentTypesWhere, strings.Join(orClauses, " or "))
 }
 
 type CollectionSuggester struct {

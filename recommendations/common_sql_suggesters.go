@@ -1087,6 +1087,108 @@ func ContentUnitsSqlGen(filters []core.SuggesterFilter, orderSelector core.Order
 	}
 }
 
+type CollectionsSuggester struct {
+	SqlSuggester
+	filters       []core.SuggesterFilter
+	orderSelector core.OrderSelectorEnum
+}
+
+func MakeCollectionsSuggester(db *sql.DB, filters []core.SuggesterFilter, orderSelector core.OrderSelectorEnum) *CollectionsSuggester {
+	return &CollectionsSuggester{
+		SqlSuggester:  SqlSuggester{db, CollectionsSqlGen(filters, orderSelector), "NewCollectionsSuggester"},
+		filters:       filters,
+		orderSelector: orderSelector,
+	}
+}
+
+func (suggester *CollectionsSuggester) MarshalSpec() (core.SuggesterSpec, error) {
+	return core.SuggesterSpec{Name: suggester.Name, Filters: suggester.filters, OrderSelector: suggester.orderSelector}, nil
+}
+
+func (suggester *CollectionsSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+	if spec.Name != "NewCollectionsSuggester" {
+		return errors.New(fmt.Sprintf("Expected suggester name to be: 'NewCollectionsSuggester', got: '%s'.", spec.Name))
+	}
+	if len(spec.Specs) != 0 {
+		return errors.New(fmt.Sprintf("NewCollectionsSuggester expected to have no suggesters, got %d.", len(spec.Specs)))
+	}
+	suggester.filters = spec.Filters
+	suggester.orderSelector = spec.OrderSelector
+	suggester.SqlSuggester.genSql = CollectionsSqlGen(suggester.filters, suggester.orderSelector)
+	return nil
+}
+
+func CollectionsSqlGen(filters []core.SuggesterFilter, orderSelector core.OrderSelectorEnum) GenerateSqlFunc {
+	return func(request core.MoreRequest) string {
+		if request.Options.Recommend.Uid == "" {
+			return ""
+		}
+		filtersFrom := []string(nil)
+		filtersWhere := []string(nil)
+		collectionContentTypes := []string(nil)
+		for _, filter := range filters {
+			switch filter.FilterSelector {
+			case core.UnitContentTypes:
+				log.Warn("CollectionSuggester should not have UnitContentTypes filter.")
+			case core.CollectionContentTypes:
+				collectionContentTypes = filter.Args
+				filtersWhere = append(filtersWhere, utils.InClause("and c.type_id in", core.ContentTypesToContentIds(filter.Args)))
+			case core.Tags:
+				log.Warn("CollectionSuggester should not have UnitContentTypes filter.")
+			case core.Sources:
+				log.Warn("CollectionSuggester should not have Sources filter.")
+			case core.Collections:
+				filtersWhere = append(filtersWhere, utils.InClause("and c.uid in", filter.Args))
+			case core.SameTag:
+				log.Warn("CollectionSuggester should not have SameTag filter.")
+			case core.SameCollection:
+				filtersFrom = append(filtersFrom, fmt.Sprintf(`,
+					content_units as cu,
+					collections_content_units as ccu,
+					(select ccu.collection_id as collection_id
+					 from content_units as cu, collections_content_units as ccu
+					 where cu.id = ccu.content_unit_id and cu.uid = '%s') as same_collection
+				`, request.Options.Recommend.Uid))
+				filtersWhere = append(filtersWhere, `and
+					c.id = same_collection.collection_id and
+					c.id = ccu.collection_id and
+					cu.id = ccu.content_unit_id
+				`)
+			case core.SameSource:
+				log.Warn("CollectionSuggester should not have SameSource filter.")
+			default:
+				log.Errorf("Did not expect filter selector enum %d", filter.FilterSelector)
+			}
+		}
+		if orderSelector == core.Next || orderSelector == core.Prev {
+			log.Warn("CollectionSuggester should not have Next or Prev order selector.")
+		}
+		orderSelectorOrderBy := "order by date desc, created_at desc"
+		if orderSelector == core.Rand {
+			orderSelectorOrderBy = "order by random()"
+		}
+		return fmt.Sprintf(`
+				select c.type_id, c.uid as uid, %s as date, c.created_at as created_at
+				from
+					collections as c,
+					%s %s
+				where
+					%s %s %s
+				%s
+				limit %d;
+			`,
+			COLLECTION_DATE_FIELD,
+			core.CollectionsByFirstUnitLanguagesTableSql(collectionContentTypes, request.Options.Languages),
+			strings.Join(filtersFrom, " "),
+			utils.InClause("c.uid not in", append(request.Options.SkipUids, request.Options.Recommend.Uid)),
+			strings.Join(filtersWhere, " "),
+			core.COLLECTIONS_BY_FIRST_CONTENT_UNIT_CLAUSE,
+			orderSelectorOrderBy,
+			request.MoreItems,
+		)
+	}
+}
+
 func init() {
 	core.RegisterSuggester("LastClipsSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastClipsSameTagSuggester(db) })
 	core.RegisterSuggester("LastClipsSuggester", func(db *sql.DB) core.Suggester { return MakeLastClipsSuggester(db) })
@@ -1112,5 +1214,8 @@ func init() {
 	core.RegisterSuggester("ContentUnitCollectionSuggester", func(db *sql.DB) core.Suggester { return MakeContentUnitCollectionSuggester(db, []string(nil)) })
 	core.RegisterSuggester("NewContentUnitsSuggester", func(db *sql.DB) core.Suggester {
 		return MakeContentUnitsSuggester(db, []core.SuggesterFilter(nil), core.Last)
+	})
+	core.RegisterSuggester("NewCollectionsSuggester", func(db *sql.DB) core.Suggester {
+		return MakeCollectionsSuggester(db, []core.SuggesterFilter(nil), core.Last)
 	})
 }

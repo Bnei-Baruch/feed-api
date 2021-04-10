@@ -12,9 +12,10 @@ import {
 
 const TIME_SELECTOR_OPTIONS = [
   {key: "Last", text: "Last", value: 0},
-  {key: "Next", text: "Next", value: 1},
-  {key: "Prev", text: "Prev", value: 2},
+  {key: "Next", text: "Next", value: 1, disabled: ['NewCollectionsSuggester']},
+  {key: "Prev", text: "Prev", value: 2, disabled: ['NewCollectionsSuggester']},
   {key: "Rand", text: "Rand", value: 3},
+  {key: "Popular", text: "Popular", value: 4, disabled: ['NewCollectionsSuggester', 'NewContentUnitsSuggester']},
 ];
 
 const FITLER_SELECTOR_UNIT_CONTENT_TYPES = 0;
@@ -27,13 +28,13 @@ const FILTER_SELECTOR_SAME_SOURCE = 6;
 const FILTER_SELECTOR_SAME_COLLECTION = 7;
 
 const FILTER_SELECTOR_OPTIONS = [
-  {key: FITLER_SELECTOR_UNIT_CONTENT_TYPES, text: "UnitContentTypes", value: FITLER_SELECTOR_UNIT_CONTENT_TYPES},
+  {key: FITLER_SELECTOR_UNIT_CONTENT_TYPES, text: "UnitContentTypes", value: FITLER_SELECTOR_UNIT_CONTENT_TYPES, disabled: ['NewCollectionsSuggester']},
   {key: FILTER_SELECTOR_COLLECTION_CONTENT_TYPES, text: "CollectionContentTypes", value: FILTER_SELECTOR_COLLECTION_CONTENT_TYPES},
-  {key: FILTER_SELECTOR_TAGS, text: "Tags", value: FILTER_SELECTOR_TAGS},
-  {key: FILTER_SELECTOR_SOURCES, text: "Sources", value: FILTER_SELECTOR_SOURCES},
+  {key: FILTER_SELECTOR_TAGS, text: "Tags", value: FILTER_SELECTOR_TAGS, disabled: ['NewCollectionsSuggester']},
+  {key: FILTER_SELECTOR_SOURCES, text: "Sources", value: FILTER_SELECTOR_SOURCES, disabled: ['NewCollectionsSuggester']},
   {key: FILTER_SELECTOR_COLLECTIONS, text: "Collections", value: FILTER_SELECTOR_COLLECTIONS},
-  {key: FITLER_SELECTOR_SAME_TAG, text: "SameTag", value: FITLER_SELECTOR_SAME_TAG},
-  {key: FILTER_SELECTOR_SAME_SOURCE, text: "SameSource", value: FILTER_SELECTOR_SAME_SOURCE},
+  {key: FITLER_SELECTOR_SAME_TAG, text: "SameTag", value: FITLER_SELECTOR_SAME_TAG, disabled: ['NewCollectionsSuggester']},
+  {key: FILTER_SELECTOR_SAME_SOURCE, text: "SameSource", value: FILTER_SELECTOR_SAME_SOURCE, disabled: ['NewCollectionsSuggester']},
   {key: FILTER_SELECTOR_SAME_COLLECTION, text: "SameCollection", value: FILTER_SELECTOR_SAME_COLLECTION},
 ];
 
@@ -63,6 +64,7 @@ const SUGGESTERS = [
   "RoundRobinSuggester",
   "SortSuggester",
   "NewContentUnitsSuggester",
+  "NewCollectionsSuggester",
 ];
 
 const HAS_ARGS = [
@@ -87,6 +89,7 @@ const HAS_ARGS = [
 const HAS_TIME_SELECTOR = [
   "ContentTypesSameTagSuggester",
   "NewContentUnitsSuggester",
+  "NewCollectionsSuggester",
 ];
 
 const HAS_SPECS = [
@@ -265,8 +268,8 @@ const SelectedSpec = (props) => {
       onChange(spec);
     }
   }
- 
 
+  const selectedSpecName = selected.split('.').slice(-1)[0].split('-')[1];
   return (
     <div>
       <h4>{selectedSpec.name}</h4>
@@ -275,19 +278,20 @@ const SelectedSpec = (props) => {
         <Dropdown
           selection
           options={TIME_SELECTOR_OPTIONS}
+          isOptionDisabled={(option) => option.disabled?.includes(selectedSpecName)}
           defaultValue={spec.order_selector}
           onChange={(event, data) => setTimeSelector(data.value)}
-          disabled={!!selected && !HAS_TIME_SELECTOR.includes(selected.split('.').slice(-1)[0].split('-')[1])}
+          disabled={!!selected && !HAS_TIME_SELECTOR.includes(selectedSpecName)}
         />
       </div>
       <div>
         <Dropdown
           button
           options={FILTER_SELECTOR_OPTIONS}
-          isOptionDisabled={(option) => option.disabled}
+          isOptionDisabled={(option) => option.disabled?.includes(selectedSpecName)}
           text='Add Filter'
           onChange={(event, data) => addFilterSelector(data.value)}
-          disabled={!!selected && 'NewContentUnitsSuggester' !== selected.split('.').slice(-1)[0].split('-')[1]}
+          disabled={!!selected && !['NewContentUnitsSuggester', 'NewCollectionsSuggester'].includes(selectedSpecName)}
         />
         {selectedSpec?.filters?.length ? (
           <Table>
@@ -521,7 +525,7 @@ const SpecTree = (props) => {
         </Dropdown>
       </Button.Group>
       { spec ? SpecItem('', spec, expanded) : null }
-      { selectedSpec && selectedSpecName === 'NewContentUnitsSuggester' ? SelectedSpec({spec, selectedSpec, selected, onChange}) : null }
+      { selectedSpec && ['NewContentUnitsSuggester', 'NewCollectionsSuggester'].includes(selectedSpecName) ? SelectedSpec({spec, selectedSpec, selected, onChange}) : null }
     </div>
   );
 };
