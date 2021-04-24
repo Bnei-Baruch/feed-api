@@ -67,7 +67,7 @@ const Recommender = (props) => {
       setItemsByUid(itemsByUid);
       setRecommendError('');
     }).catch((error) => {
-      setRecommendError(error);
+      setRecommendError(String(error));
     });
   };
   useEffect(recommendClicked, []);

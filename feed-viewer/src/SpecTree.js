@@ -278,7 +278,7 @@ const SelectedSpec = (props) => {
         <Dropdown
           selection
           options={TIME_SELECTOR_OPTIONS}
-          isOptionDisabled={(option) => option.disabled?.includes(selectedSpecName)}
+          isOptionDisabled={(option) => !!option.disabled?.includes(selectedSpecName)}
           defaultValue={spec.order_selector}
           onChange={(event, data) => setTimeSelector(data.value)}
           disabled={!!selected && !HAS_TIME_SELECTOR.includes(selectedSpecName)}
