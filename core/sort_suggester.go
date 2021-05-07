@@ -1,7 +1,6 @@
 package core
 
 import (
-	"database/sql"
 	"fmt"
 	"sort"
 
@@ -20,7 +19,7 @@ func MakeSortSuggester(suggester Suggester) *SortSuggester {
 }
 
 func init() {
-	RegisterSuggester("SortSuggester", func(db *sql.DB) Suggester { return MakeSortSuggester(nil) })
+	RegisterSuggester("SortSuggester", func(suggesterContext SuggesterContext) Suggester { return MakeSortSuggester(nil) })
 }
 
 func (suggester *SortSuggester) MarshalSpec() (SuggesterSpec, error) {
@@ -34,7 +33,7 @@ func (suggester *SortSuggester) MarshalSpec() (SuggesterSpec, error) {
 	}
 }
 
-func (suggester *SortSuggester) UnmarshalSpec(db *sql.DB, spec SuggesterSpec) error {
+func (suggester *SortSuggester) UnmarshalSpec(suggesterContext SuggesterContext, spec SuggesterSpec) error {
 	if spec.Name != "SortSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'SortSuggester', got: '%s'.", spec.Name))
 	}
@@ -44,11 +43,11 @@ func (suggester *SortSuggester) UnmarshalSpec(db *sql.DB, spec SuggesterSpec) er
 	if len(spec.Specs) == 1 {
 		return errors.New(fmt.Sprintf("SortSuggester expected to have 1 suggesters, got %d.", len(spec.Specs)))
 	}
-	if newSuggester, err := MakeSuggesterFromName(db, spec.Specs[0].Name); err != nil {
+	if newSuggester, err := MakeSuggesterFromName(suggesterContext, spec.Specs[0].Name); err != nil {
 		return err
 	} else {
 		suggester.suggester = newSuggester
-		if err := suggester.suggester.UnmarshalSpec(db, spec.Specs[0]); err != nil {
+		if err := suggester.suggester.UnmarshalSpec(suggesterContext, spec.Specs[0]); err != nil {
 			return err
 		}
 	}

@@ -37,7 +37,7 @@ func (suggester *ContentTypeSuggester) MarshalSpec() (core.SuggesterSpec, error)
 	}, nil
 }
 
-func (suggester *ContentTypeSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *ContentTypeSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "ContentTypeSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'ContentTypeSuggester', got: '%s'.", spec.Name))
 	}
@@ -49,10 +49,10 @@ func (suggester *ContentTypeSuggester) UnmarshalSpec(db *sql.DB, spec core.Sugge
 	}
 	suggester.contentTypes = spec.Args
 	for i := range spec.Specs {
-		if newSuggester, err := core.MakeSuggesterFromName(db, spec.Specs[i].Name); err != nil {
+		if newSuggester, err := core.MakeSuggesterFromName(suggesterContext, spec.Specs[i].Name); err != nil {
 			return err
 		} else {
-			if err := newSuggester.UnmarshalSpec(db, spec.Specs[i]); err != nil {
+			if err := newSuggester.UnmarshalSpec(suggesterContext, spec.Specs[i]); err != nil {
 				return err
 			}
 			suggester.suggesters = append(suggester.suggesters, newSuggester)
@@ -96,7 +96,7 @@ func (s *ContentTypeSuggester) More(request core.MoreRequest) ([]core.ContentIte
 }
 
 func init() {
-	core.RegisterSuggester("ContentTypeSuggester", func(db *sql.DB) core.Suggester {
-		return MakeContentTypeSuggester(db, []string(nil), []core.Suggester(nil))
+	core.RegisterSuggester("ContentTypeSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeContentTypeSuggester(suggesterContext.DB, []string(nil), []core.Suggester(nil))
 	})
 }

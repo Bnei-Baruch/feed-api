@@ -74,7 +74,9 @@ func MakeContentUnitsSuggester(db *sql.DB, contentTypes []string) *ContentUnitsS
 }
 
 func init() {
-	RegisterSuggester(CONTENT_UNIT_SUGGESTER_NAME, func(db *sql.DB) Suggester { return MakeContentUnitsSuggester(db, []string(nil)) })
+	RegisterSuggester(CONTENT_UNIT_SUGGESTER_NAME, func(suggesterContext SuggesterContext) Suggester {
+		return MakeContentUnitsSuggester(suggesterContext.DB, []string(nil))
+	})
 }
 
 func (suggester *ContentUnitsSuggester) MarshalSpec() (SuggesterSpec, error) {
@@ -84,7 +86,7 @@ func (suggester *ContentUnitsSuggester) MarshalSpec() (SuggesterSpec, error) {
 	}, nil
 }
 
-func (suggester *ContentUnitsSuggester) UnmarshalSpec(db *sql.DB, spec SuggesterSpec) error {
+func (suggester *ContentUnitsSuggester) UnmarshalSpec(suggesterContext SuggesterContext, spec SuggesterSpec) error {
 	if spec.Name != CONTENT_UNIT_SUGGESTER_NAME {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: '%s', got: '%s'.", CONTENT_UNIT_SUGGESTER_NAME, spec.Name))
 	}
@@ -117,6 +119,14 @@ func ContentTypesToContentIds(contentTypes []string) []string {
 		contentTypesIds = append(contentTypesIds, fmt.Sprintf("%d", mdb.CONTENT_TYPE_REGISTRY.ByName[contentType].ID))
 	}
 	return contentTypesIds
+}
+
+func ContentTypesToInt64Ids(contentTypes []string) []int64 {
+	ids := []int64(nil)
+	for _, contentType := range contentTypes {
+		ids = append(ids, mdb.CONTENT_TYPE_REGISTRY.ByName[contentType].ID)
+	}
+	return ids
 }
 
 func (suggester *ContentUnitsSuggester) fetchContentUnits(currentUIDs []string, moreItems int, languages []string) ([]ContentItem, error) {

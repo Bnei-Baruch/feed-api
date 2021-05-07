@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
+	"github.com/Bnei-Baruch/feed-api/data_models"
 )
 
 const (
@@ -36,6 +38,17 @@ const (
 	SameCollection
 )
 
+var FILTER_STRING_TO_VALUE = map[string]FilterSelectorEnum{
+	"FUnitContentTypes":       UnitContentTypes,
+	"FCollectionContentTypes": CollectionContentTypes,
+	"FTags":                   Tags,
+	"FSources":                Sources,
+	"FCollections":            Collections,
+	"FSameTag":                SameTag,
+	"FSameSource":             SameSource,
+	"FSameCollection":         SameCollection,
+}
+
 type SuggesterFilter struct {
 	FilterSelector FilterSelectorEnum `json:"filter_selector,omitempty" form:"filter_selector,omitempty"`
 	Args           []string           `json:"args,omitempty" form:"args,omitempty"`
@@ -51,6 +64,13 @@ const (
 	Rand
 	// (TBD) Popular
 )
+
+var ORDER_STRING_TO_VALUE = map[string]OrderSelectorEnum{
+	"OLast": Last,
+	"ONext": Next,
+	"OPrev": Prev,
+	"ORand": Rand,
+}
 
 type SuggesterSpec struct {
 	Name          string            `json:"name,omitempty" form:"name,omitempty"`
@@ -94,10 +114,16 @@ type Suggester interface {
 	More(request MoreRequest) ([]ContentItem, error)
 
 	MarshalSpec() (SuggesterSpec, error)
-	UnmarshalSpec(db *sql.DB, spec SuggesterSpec) error
+	UnmarshalSpec(suggesterContext SuggesterContext, spec SuggesterSpec) error
 }
 
-type MakeSuggesterFunc func(db *sql.DB) Suggester
+type SuggesterContext struct {
+	DB         *sql.DB
+	DataModels *data_models.DataModels
+	Cache      map[string]interface{}
+}
+
+type MakeSuggesterFunc func(suggesterContext SuggesterContext) Suggester
 
 var Suggesters = map[string]MakeSuggesterFunc{}
 
@@ -105,10 +131,10 @@ func RegisterSuggester(name string, makeFunc MakeSuggesterFunc) {
 	Suggesters[name] = makeFunc
 }
 
-func MakeSuggesterFromName(db *sql.DB, name string) (Suggester, error) {
+func MakeSuggesterFromName(suggesterContext SuggesterContext, name string) (Suggester, error) {
 	if makeSuggesterFunc, ok := Suggesters[name]; !ok {
 		return nil, errors.New(fmt.Sprintf("Did not find suggester %s in registry.", name))
 	} else {
-		return makeSuggesterFunc(db), nil
+		return makeSuggesterFunc(suggesterContext), nil
 	}
 }

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -22,7 +21,9 @@ func MakeRoundRobinSuggester(suggesters []Suggester) *RoundRobinSuggester {
 }
 
 func init() {
-	RegisterSuggester("RoundRobinSuggester", func(db *sql.DB) Suggester { return MakeRoundRobinSuggester([]Suggester(nil)) })
+	RegisterSuggester("RoundRobinSuggester", func(suggesterContext SuggesterContext) Suggester {
+		return MakeRoundRobinSuggester([]Suggester(nil))
+	})
 }
 
 func (suggester *RoundRobinSuggester) MarshalSpec() (SuggesterSpec, error) {
@@ -40,7 +41,7 @@ func (suggester *RoundRobinSuggester) MarshalSpec() (SuggesterSpec, error) {
 	}, nil
 }
 
-func (suggester *RoundRobinSuggester) UnmarshalSpec(db *sql.DB, spec SuggesterSpec) error {
+func (suggester *RoundRobinSuggester) UnmarshalSpec(suggesterContext SuggesterContext, spec SuggesterSpec) error {
 	if spec.Name != suggester.Name {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: '%s', got: '%s'.", suggester.Name, spec.Name))
 	}
@@ -51,10 +52,10 @@ func (suggester *RoundRobinSuggester) UnmarshalSpec(db *sql.DB, spec SuggesterSp
 		return errors.New(fmt.Sprintf("%s expected to have some suggesters, got 0.", suggester.Name))
 	}
 	for i := range spec.Specs {
-		if newSuggester, err := MakeSuggesterFromName(db, spec.Specs[i].Name); err != nil {
+		if newSuggester, err := MakeSuggesterFromName(suggesterContext, spec.Specs[i].Name); err != nil {
 			return err
 		} else {
-			if err := newSuggester.UnmarshalSpec(db, spec.Specs[i]); err != nil {
+			if err := newSuggester.UnmarshalSpec(suggesterContext, spec.Specs[i]); err != nil {
 				return err
 			}
 			suggester.Suggesters = append(suggester.Suggesters, newSuggester)

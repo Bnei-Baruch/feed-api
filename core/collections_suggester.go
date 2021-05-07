@@ -89,7 +89,9 @@ func MakeCollectionSuggester(db *sql.DB, contentType string) *CollectionSuggeste
 }
 
 func init() {
-	RegisterSuggester("CollectionSuggester", func(db *sql.DB) Suggester { return MakeCollectionSuggester(db, "") })
+	RegisterSuggester("CollectionSuggester", func(suggesterContext SuggesterContext) Suggester {
+		return MakeCollectionSuggester(suggesterContext.DB, "")
+	})
 }
 
 func (suggester *CollectionSuggester) MarshalSpec() (SuggesterSpec, error) {
@@ -99,7 +101,7 @@ func (suggester *CollectionSuggester) MarshalSpec() (SuggesterSpec, error) {
 	}, nil
 }
 
-func (suggester *CollectionSuggester) UnmarshalSpec(db *sql.DB, spec SuggesterSpec) error {
+func (suggester *CollectionSuggester) UnmarshalSpec(suggesterContext SuggesterContext, spec SuggesterSpec) error {
 	if spec.Name != "CollectionSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'CollectionSuggester', got: '%s'.", spec.Name))
 	}

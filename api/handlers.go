@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/Bnei-Baruch/feed-api/core"
+	"github.com/Bnei-Baruch/feed-api/data_models"
 	"github.com/Bnei-Baruch/feed-api/recommendations"
 )
 
@@ -32,13 +33,18 @@ func MoreHandler(c *gin.Context) {
 		return
 	}
 
-	resp, err := handleMore(c.MustGet("MDB_DB").(*sql.DB), r)
+	suggesterContext := core.SuggesterContext{
+		c.MustGet("MDB_DB").(*sql.DB),
+		c.MustGet("DATA_MODELS").(*data_models.DataModels),
+		make(map[string]interface{}),
+	}
+	resp, err := handleMore(suggesterContext, r)
 	concludeRequest(c, resp, err)
 }
 
-func handleMore(db *sql.DB, r core.MoreRequest) (*MoreResponse, *HttpError) {
+func handleMore(suggesterContext core.SuggesterContext, r core.MoreRequest) (*MoreResponse, *HttpError) {
 	log.Infof("r: %+v", r)
-	feed := core.MakeFeed(db)
+	feed := core.MakeFeed(suggesterContext)
 	if cis, err := feed.More(r); err != nil {
 		return nil, NewInternalError(err)
 	} else {
@@ -53,26 +59,31 @@ func RecommendHandler(c *gin.Context) {
 		return
 	}
 
-	resp, err := handleRecommend(c.MustGet("MDB_DB").(*sql.DB), r)
+	suggesterContext := core.SuggesterContext{
+		c.MustGet("MDB_DB").(*sql.DB),
+		c.MustGet("DATA_MODELS").(*data_models.DataModels),
+		make(map[string]interface{}),
+	}
+	resp, err := handleRecommend(suggesterContext, r)
 	log.Infof("Err: %+v", err)
 	concludeRequest(c, resp, err)
 }
 
-func handleRecommend(db *sql.DB, r core.MoreRequest) (*MoreResponse, *HttpError) {
+func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest) (*MoreResponse, *HttpError) {
 	log.Infof("r: %+v", r)
 	log.Infof("Spec: %+v", r.Options.Spec)
 	var recommend *recommendations.Recommender
 	if r.Options.Spec == nil {
 		var err error
-		recommend, err = recommendations.MakeRecommender(db)
+		recommend, err = recommendations.MakeRecommender(suggesterContext)
 		if err != nil {
 			return nil, NewInternalError(err)
 		}
 	} else {
-		if s, err := core.MakeSuggesterFromName(db, r.Options.Spec.Name); err != nil {
+		if s, err := core.MakeSuggesterFromName(suggesterContext, r.Options.Spec.Name); err != nil {
 			return nil, NewInternalError(err)
 		} else {
-			if err := s.UnmarshalSpec(db, *r.Options.Spec); err != nil {
+			if err := s.UnmarshalSpec(suggesterContext, *r.Options.Spec); err != nil {
 				return nil, NewInternalError(err)
 			} else {
 				recommend = &recommendations.Recommender{s}

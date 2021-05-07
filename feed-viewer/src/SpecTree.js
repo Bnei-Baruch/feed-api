@@ -10,12 +10,14 @@ import {
   Table,
 } from 'semantic-ui-react';
 
+const COLLECTIONS_SUGGESTERS = ['NewCollectionsSuggester', 'DataCollectionsSuggester'];
+
 const TIME_SELECTOR_OPTIONS = [
   {key: "Last", text: "Last", value: 0},
-  {key: "Next", text: "Next", value: 1, disabled: ['NewCollectionsSuggester']},
-  {key: "Prev", text: "Prev", value: 2, disabled: ['NewCollectionsSuggester']},
+  {key: "Next", text: "Next", value: 1, disabled: COLLECTIONS_SUGGESTERS},
+  {key: "Prev", text: "Prev", value: 2, disabled: COLLECTIONS_SUGGESTERS},
   {key: "Rand", text: "Rand", value: 3},
-  {key: "Popular", text: "Popular", value: 4, disabled: ['NewCollectionsSuggester', 'NewContentUnitsSuggester']},
+  {key: "Popular", text: "Popular", value: 4, disabled: ['NewCollectionsSuggester', 'NewContentUnitsSuggester', 'DataCollectionsSuggester']},
 ];
 
 const FITLER_SELECTOR_UNIT_CONTENT_TYPES = 0;
@@ -28,13 +30,13 @@ const FILTER_SELECTOR_SAME_SOURCE = 6;
 const FILTER_SELECTOR_SAME_COLLECTION = 7;
 
 const FILTER_SELECTOR_OPTIONS = [
-  {key: FITLER_SELECTOR_UNIT_CONTENT_TYPES, text: "UnitContentTypes", value: FITLER_SELECTOR_UNIT_CONTENT_TYPES, disabled: ['NewCollectionsSuggester']},
+  {key: FITLER_SELECTOR_UNIT_CONTENT_TYPES, text: "UnitContentTypes", value: FITLER_SELECTOR_UNIT_CONTENT_TYPES, disabled: COLLECTIONS_SUGGESTERS},
   {key: FILTER_SELECTOR_COLLECTION_CONTENT_TYPES, text: "CollectionContentTypes", value: FILTER_SELECTOR_COLLECTION_CONTENT_TYPES},
-  {key: FILTER_SELECTOR_TAGS, text: "Tags", value: FILTER_SELECTOR_TAGS, disabled: ['NewCollectionsSuggester']},
-  {key: FILTER_SELECTOR_SOURCES, text: "Sources", value: FILTER_SELECTOR_SOURCES, disabled: ['NewCollectionsSuggester']},
+  {key: FILTER_SELECTOR_TAGS, text: "Tags", value: FILTER_SELECTOR_TAGS, disabled: COLLECTIONS_SUGGESTERS},
+  {key: FILTER_SELECTOR_SOURCES, text: "Sources", value: FILTER_SELECTOR_SOURCES, disabled: COLLECTIONS_SUGGESTERS},
   {key: FILTER_SELECTOR_COLLECTIONS, text: "Collections", value: FILTER_SELECTOR_COLLECTIONS},
-  {key: FITLER_SELECTOR_SAME_TAG, text: "SameTag", value: FITLER_SELECTOR_SAME_TAG, disabled: ['NewCollectionsSuggester']},
-  {key: FILTER_SELECTOR_SAME_SOURCE, text: "SameSource", value: FILTER_SELECTOR_SAME_SOURCE, disabled: ['NewCollectionsSuggester']},
+  {key: FITLER_SELECTOR_SAME_TAG, text: "SameTag", value: FITLER_SELECTOR_SAME_TAG, disabled: COLLECTIONS_SUGGESTERS},
+  {key: FILTER_SELECTOR_SAME_SOURCE, text: "SameSource", value: FILTER_SELECTOR_SAME_SOURCE, disabled: COLLECTIONS_SUGGESTERS},
   {key: FILTER_SELECTOR_SAME_COLLECTION, text: "SameCollection", value: FILTER_SELECTOR_SAME_COLLECTION},
 ];
 
@@ -65,6 +67,8 @@ const SUGGESTERS = [
   "SortSuggester",
   "NewContentUnitsSuggester",
   "NewCollectionsSuggester",
+  "DataContentUnitsSuggester",
+  "DataCollectionsSuggester",
 ];
 
 const HAS_ARGS = [
@@ -90,6 +94,8 @@ const HAS_TIME_SELECTOR = [
   "ContentTypesSameTagSuggester",
   "NewContentUnitsSuggester",
   "NewCollectionsSuggester",
+  "DataContentUnitsSuggester",
+  "DataCollectionsSuggester",
 ];
 
 const HAS_SPECS = [
@@ -97,6 +103,13 @@ const HAS_SPECS = [
   "ContentTypeSuggester",
   "RoundRobinSuggester",
   "SortSuggester",
+];
+
+const ADVANCED_SUGGESTORS = [
+  "NewContentUnitsSuggester",
+  "NewCollectionsSuggester",
+  "DataContentUnitsSuggester",
+  "DataCollectionsSuggester",
 ];
 
 // Collection Types
@@ -277,8 +290,7 @@ const SelectedSpec = (props) => {
         <span style={{marginRight: '5px'}}>Time Selection</span>
         <Dropdown
           selection
-          options={TIME_SELECTOR_OPTIONS}
-          isOptionDisabled={(option) => !!option.disabled?.includes(selectedSpecName)}
+          options={TIME_SELECTOR_OPTIONS.map((option) => Object.assign({}, option, {disabled: !!option.disabled?.includes(selectedSpecName)}))}
           defaultValue={spec.order_selector}
           onChange={(event, data) => setTimeSelector(data.value)}
           disabled={!!selected && !HAS_TIME_SELECTOR.includes(selectedSpecName)}
@@ -287,11 +299,10 @@ const SelectedSpec = (props) => {
       <div>
         <Dropdown
           button
-          options={FILTER_SELECTOR_OPTIONS}
-          isOptionDisabled={(option) => option.disabled?.includes(selectedSpecName)}
+          options={FILTER_SELECTOR_OPTIONS.map((option) => Object.assign({}, option, {disabled: !!option.disabled?.includes(selectedSpecName)}))}
           text='Add Filter'
           onChange={(event, data) => addFilterSelector(data.value)}
-          disabled={!!selected && !['NewContentUnitsSuggester', 'NewCollectionsSuggester'].includes(selectedSpecName)}
+          disabled={!!selected && !ADVANCED_SUGGESTORS.includes(selectedSpecName)}
         />
         {selectedSpec?.filters?.length ? (
           <Table>
@@ -525,7 +536,7 @@ const SpecTree = (props) => {
         </Dropdown>
       </Button.Group>
       { spec ? SpecItem('', spec, expanded) : null }
-      { selectedSpec && ['NewContentUnitsSuggester', 'NewCollectionsSuggester'].includes(selectedSpecName) ? SelectedSpec({spec, selectedSpec, selected, onChange}) : null }
+      { selectedSpec && ADVANCED_SUGGESTORS.includes(selectedSpecName) ? SelectedSpec({spec, selectedSpec, selected, onChange}) : null }
     </div>
   );
 };

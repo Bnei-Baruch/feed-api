@@ -1,9 +1,9 @@
 package recommendations
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/Bnei-Baruch/feed-api/core"
 )
@@ -12,7 +12,7 @@ type Recommender struct {
 	Suggester core.Suggester
 }
 
-func MakeRecommender(db *sql.DB) (*Recommender, error) {
+func MakeRecommender(suggesterContext core.SuggesterContext) (*Recommender, error) {
 	lessonsJSON := `
 		{
 			"name": "RoundRobinSuggester",
@@ -21,61 +21,64 @@ func MakeRecommender(db *sql.DB) (*Recommender, error) {
 					"name": "CompletionSuggester",
 					"specs": [
 						{
-							"name": "PrevContentUnitsSameSourceSuggester",
-							"args": [
-								"LESSON_PART"
-							]
-						},
-						{
-							"name": "ContentTypesSameTagSuggester",
-							"args": [
-								"LESSON_PART"
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LESSON_PART"
+									]
+								},
+								{
+									"filter_selector": FSameSource
+								}
 							],
-							"order_selector": 2
+							"order_selector": OPrev
 						},
 						{
-							"name": "RandomContentUnitsSameSourceSuggester",
-							"args": [
-								"LESSON_PART"
-							]
-						},
-						{
-							"name": "ContentTypesSameTagSuggester",
-							"args": [
-								"LESSON_PART"
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LESSON_PART"
+									]
+								},
+								{
+									"filter_selector": FSameTag
+								}
 							],
-							"order_selector": 3
-						}
-					]
-				},
-				{
-					"name": "CompletionSuggester",
-					"specs": [
-						{
-							"name": "NextContentUnitsSameSourceSuggester",
-							"args": [
-								"LESSON_PART"
-							]
+							"order_selector": OPrev
 						},
 						{
-							"name": "ContentTypesSameTagSuggester",
-							"order_selector": 1,
-							"args": [
-								"LESSON_PART"
-							]
-						},
-						{
-							"name": "RandomContentUnitsSameSourceSuggester",
-							"args": [
-								"LESSON_PART"
-							]
-						},
-						{
-							"name": "ContentTypesSameTagSuggester",
-							"args": [
-								"LESSON_PART"
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LESSON_PART"
+									]
+								},
+								{
+									"filter_selector": FSameSource
+								}
 							],
-							"order_selector": 3
+							"order_selector": ORand
+						},
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LESSON_PART"
+									]
+								},
+								{
+									"filter_selector": FSameTag
+								}
+							],
+							"order_selector": ORand
 						}
 					]
 				},
@@ -83,22 +86,64 @@ func MakeRecommender(db *sql.DB) (*Recommender, error) {
 					"name": "CompletionSuggester",
 					"specs": [
 						{
-							"name": "ContentUnitCollectionSuggester",
-							"args": [
-								"LESSONS_SERIES"
-							]
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LESSON_PART"
+									]
+								},
+								{
+									"filter_selector": FSameSource
+								}
+							],
+							"order_selector": ONext
 						},
 						{
-							"name": "ContentTypesSameTagSuggester",
-							"args": [
-								"LESSON_PART"
-							]
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LESSON_PART"
+									]
+								},
+								{
+									"filter_selector": FSameTag
+								}
+							],
+							"order_selector": ONext
 						},
 						{
-							"name": "RandomContentUnitsSameSourceSuggester",
-							"args": [
-								"LESSON_PART"
-							]
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LESSON_PART"
+									]
+								},
+								{
+									"filter_selector": FSameSource
+								}
+							],
+							"order_selector": ORand
+						},
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LESSON_PART"
+									]
+								},
+								{
+									"filter_selector": FSameTag
+								}
+							],
+							"order_selector": ORand
 						}
 					]
 				},
@@ -106,22 +151,46 @@ func MakeRecommender(db *sql.DB) (*Recommender, error) {
 					"name": "CompletionSuggester",
 					"specs": [
 						{
-							"name": "ContentTypesSameTagSuggester",
-							"args": [
-								"LECTURE"
-							]
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FCollectionContentTypes,
+									"args": [
+										"LESSONS_SERIES"
+									]
+								}
+							],
+							"order_selector": OLast
 						},
 						{
-							"name": "RandomContentUnitsSameSourceSuggester",
-							"args": [
-								"LECTURE"
-							]
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LESSON_PART"
+									]
+								},
+								{
+									"filter_selector": FSameTag
+								}
+							],
+							"order_selector": OLast
 						},
 						{
-							"name": "RandomContentTypesSuggester",
-							"args": [
-								"LECTURE"
-							]
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LESSON_PART"
+									]
+								},
+								{
+									"filter_selector": FSameSource
+								}
+							],
+							"order_selector": ORand
 						}
 					]
 				},
@@ -129,16 +198,46 @@ func MakeRecommender(db *sql.DB) (*Recommender, error) {
 					"name": "CompletionSuggester",
 					"specs": [
 						{
-							"name": "ContentTypesSameTagSuggester",
-							"args": [
-								"VIDEO_PROGRAM_CHAPTER"
-							]
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LECTURE"
+									]
+								},
+								{
+									"filter_selector": FSameTag
+								}
+							],
+							"order_selector": OLast
 						},
 						{
-							"name": "RandomContentTypesSuggester",
-							"args": [
-								"VIDEO_PROGRAM_CHAPTER"
-							]
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LECTURE"
+									]
+								},
+								{
+									"filter_selector": FSameSource
+								}
+							],
+							"order_selector": ORand
+						},
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LECTURE"
+									]
+								}
+							],
+							"order_selector": ORand
 						}
 					]
 				},
@@ -146,16 +245,31 @@ func MakeRecommender(db *sql.DB) (*Recommender, error) {
 					"name": "CompletionSuggester",
 					"specs": [
 						{
-							"name": "ContentTypesSameTagSuggester",
-							"args": [
-								"VIDEO_PROGRAM_CHAPTER"
-							]
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"VIDEO_PROGRAM_CHAPTER"
+									]
+								},
+								{
+									"filter_selector": FSameTag
+								}
+							],
+							"order_selector": OLast
 						},
 						{
-							"name": "RandomContentTypesSuggester",
-							"args": [
-								"VIDEO_PROGRAM_CHAPTER"
-							]
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"VIDEO_PROGRAM_CHAPTER"
+									]
+								}
+							],
+							"order_selector": ORand
 						}
 					]
 				},
@@ -163,47 +277,121 @@ func MakeRecommender(db *sql.DB) (*Recommender, error) {
 					"name": "CompletionSuggester",
 					"specs": [
 						{
-							"name": "ContentTypesSameTagSuggester",
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"VIDEO_PROGRAM_CHAPTER"
+									]
+								},
+								{
+									"filter_selector": FSameTag
+								}
+							],
+							"order_selector": OLast
+						},
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"VIDEO_PROGRAM_CHAPTER"
+									]
+								}
+							],
+							"order_selector": ORand
+						}
+					]
+				},
+				{
+					"name": "CompletionSuggester",
+					"specs": [
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"CLIP"
+									]
+								},
+								{
+									"filter_selector": FSameTag
+								}
+							],
+							"order_selector": OLast
+						},
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"CLIP"
+									]
+								}
+							],
+							"order_selector": ORand
+						}
+					]
+				},
+				{
+					"name": "CompletionSuggester",
+					"specs": [
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"CLIP"
+									]
+								},
+								{
+									"filter_selector": FSameTag
+								}
+							],
+							"order_selector": OLast
+						},
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"CLIP"
+									]
+								}
+							],
+							"order_selector": ORand
+						}
+					]
+				},
+				{
+					"name": "DataContentUnitsSuggester",
+					"filters": [
+						{
+							"filter_selector": FUnitContentTypes,
 							"args": [
 								"CLIP"
 							]
-						},
+						}
+					],
+					"order_selector": ORand
+				},
+				{
+					"name": "DataContentUnitsSuggester",
+					"filters": [
 						{
-							"name": "RandomContentTypesSuggester",
+							"filter_selector": FUnitContentTypes,
 							"args": [
 								"CLIP"
 							]
 						}
-					]
-				},
-				{
-					"name": "CompletionSuggester",
-					"specs": [
-						{
-							"name": "ContentTypesSameTagSuggester",
-							"args": [
-								"CLIP"
-							]
-						},
-						{
-							"name": "RandomContentTypesSuggester",
-							"args": [
-								"CLIP"
-							]
-						}
-					]
-				},
-				{
-					"name": "RandomContentTypesSuggester",
-					"args": [
-						"CLIP"
-					]
-				},
-				{
-					"name": "RandomContentTypesSuggester",
-					"args": [
-						"CLIP"
-					]
+					],
+					"order_selector": ORand
 				}
 			]
 		}
@@ -218,33 +406,245 @@ func MakeRecommender(db *sql.DB) (*Recommender, error) {
 						{
 							"name":"CompletionSuggester",
 							"specs":[
-								{"name":"LastClipsSameTagSuggester"},
-								{"name":"LastClipsSuggester"}
+								{
+									"name": "DataContentUnitsSuggester",
+									"filters": [
+										{
+											"filter_selector": FUnitContentTypes,
+											"args": [
+												"CLIP"
+											]
+										},
+										{
+											"filter_selector": FSameTag
+										}
+									],
+									"order_selector": OLast
+								},
+								{
+									"name": "DataContentUnitsSuggester",
+									"filters": [
+										{
+											"filter_selector": FUnitContentTypes,
+											"args": [
+												"CLIP"
+											]
+										}
+									],
+									"order_selector": OLast
+								}
 							]
 						},
-						{"name":"LastContentUnitsSameCollectionSuggester"},
-						{"name":"PrevContentUnitsSameCollectionSuggester"},
-						{"name":"NextContentUnitsSameSourceSuggester","args":["LESSON_PART"]},
-						{"name":"PrevContentUnitsSameSourceSuggester","args":["LESSON_PART"]},
-						{"name":"LastCollectionSameSourceSuggester","args":["LESSONS_SERIES"]},
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FSameCollection
+								}
+							],
+							"order_selector": OLast
+						},
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FSameCollection
+								}
+							],
+							"order_selector": OPrev
+						},
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LESSON_PART"
+									]
+								},
+								{
+									"filter_selector": FSameSource
+								}
+							],
+							"order_selector": ONext
+						},
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FUnitContentTypes,
+									"args": [
+										"LESSON_PART"
+									]
+								},
+								{
+									"filter_selector": FSameSource
+								}
+							],
+							"order_selector": OPrev
+						},
+						{
+							"name": "DataCollectionsSuggester",
+							"filters": [
+								{
+									"filter_selector": FCollectionContentTypes,
+									"args": [
+										"LESSONS_SERIES"
+									]
+								},
+								{
+									"filter_selector": FSameSource
+								}
+							],
+							"order_selector": OLast
+						},
 						{
 							"name":"CompletionSuggester",
 							"specs":[
-								{"name":"LastLessonsSameTagSuggester"},
-								{"name":"LastLessonsSuggester"}
+								{
+									"name": "RoundRobinSuggester",
+									"specs": [
+										{
+											"name": "DataContentUnitsSuggester",
+											"filters": [
+												{
+													"filter_selector": FUnitContentTypes,
+													"args": [
+														"LESSON_PART"
+													]
+												},
+												{
+													"filter_selector": FSameTag
+												}
+											],
+											"order_selector": OLast
+										},
+										{
+											"name": "DataContentUnitsSuggester",
+											"filters": [
+												{
+													"filter_selector": FUnitContentTypes,
+													"args": [
+														"VIRTUAL_LESSON"
+													]
+												},
+												{
+													"filter_selector": FSameTag
+												}
+											],
+											"order_selector": OLast
+										},
+										{
+											"name": "DataContentUnitsSuggester",
+											"filters": [
+												{
+													"filter_selector": FUnitContentTypes,
+													"args": [
+														"WOMEN_LESSON"
+													]
+												},
+												{
+													"filter_selector": FSameTag
+												}
+											],
+											"order_selector": OLast
+										},
+										{
+											"name": "DataContentUnitsSuggester",
+											"filters": [
+												{
+													"filter_selector": FUnitContentTypes,
+													"args": [
+														"LECTURE"
+													]
+												},
+												{
+													"filter_selector": FSameTag
+												}
+											],
+											"order_selector": OLast
+										}
+									]
+								},
+								{
+									"name": "DataContentUnitsSuggester",
+									"filters": [
+										{
+											"filter_selector": FUnitContentTypes,
+											"args": [
+												"LESSON_PART",
+												"VIRTUAL_LESSON",
+												"WOMEN_LESSON"
+											]
+										}
+									],
+									"order_selector": OLast
+								}
 							]
 						},
 						{
 							"name":"CompletionSuggester",
 							"specs":[
-								{"name":"LastProgramsSameTagSuggester"},
-								{"name":"LastProgramsSuggester"}
+								{
+									"name": "DataContentUnitsSuggester",
+									"filters": [
+										{
+											"filter_selector": FUnitContentTypes,
+											"args": [
+												"VIDEO_PROGRAM_CHAPTER"
+											]
+										},
+										{
+											"filter_selector": FSameTag
+										}
+									],
+									"order_selector": OLast
+								},
+								{
+									"name": "DataContentUnitsSuggester",
+									"filters": [
+										{
+											"filter_selector": FUnitContentTypes,
+											"args": [
+												"VIDEO_PROGRAM_CHAPTER"
+											]
+										}
+									],
+									"order_selector": OLast
+								}
 							]
 						},
-						{"name":"LastCongressSameTagSuggester"}
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": FCollectionContentTypes,
+									"args": [
+										"CONGRESS"
+									]
+								},
+								{
+									"filter_selector": FSameTag
+								}
+							],
+							"order_selector": OLast
+						}
 					]
 				},
-				{"name":"RandomContentTypesSuggester","args":["CLIP","LESSON_PART","VIDEO_PROGRAM_CHAPTER"]}
+				{
+					"name": "DataContentUnitsSuggester",
+					"filters": [
+						{
+							"filter_selector": FUnitContentTypes,
+							"args": [
+								"CLIP",
+								"LESSON_PART",
+								"VIDEO_PROGRAM_CHAPTER"
+							]
+						}
+					],
+					"order_selector": ORand
+				}
 			]
 		}
 	`
@@ -257,15 +657,22 @@ func MakeRecommender(db *sql.DB) (*Recommender, error) {
 		}
 	`, lessonsJSON, defaultJSON)
 
+	for filterName, filterValue := range core.FILTER_STRING_TO_VALUE {
+		rootJSON = strings.ReplaceAll(rootJSON, filterName, fmt.Sprintf("%d", filterValue))
+	}
+	for orderName, orderValue := range core.ORDER_STRING_TO_VALUE {
+		rootJSON = strings.ReplaceAll(rootJSON, orderName, fmt.Sprintf("%d", orderValue))
+	}
+
 	var spec core.SuggesterSpec
 	if err := json.Unmarshal([]byte(rootJSON), &spec); err != nil {
 		return nil, err
 	}
 
-	if s, err := core.MakeSuggesterFromName(db, spec.Name); err != nil {
+	if s, err := core.MakeSuggesterFromName(suggesterContext, spec.Name); err != nil {
 		return nil, err
 	} else {
-		if err := s.UnmarshalSpec(db, spec); err != nil {
+		if err := s.UnmarshalSpec(suggesterContext, spec); err != nil {
 			return nil, err
 		} else {
 			return &Recommender{s}, nil

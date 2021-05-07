@@ -1,7 +1,6 @@
 package core
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -21,7 +20,9 @@ func MakeCompletionSuggester(suggesters []Suggester) *CompletionSuggester {
 }
 
 func init() {
-	RegisterSuggester("CompletionSuggester", func(db *sql.DB) Suggester { return MakeCompletionSuggester([]Suggester(nil)) })
+	RegisterSuggester("CompletionSuggester", func(suggesterContext SuggesterContext) Suggester {
+		return MakeCompletionSuggester([]Suggester(nil))
+	})
 }
 
 func (suggester *CompletionSuggester) MarshalSpec() (SuggesterSpec, error) {
@@ -40,7 +41,7 @@ func (suggester *CompletionSuggester) MarshalSpec() (SuggesterSpec, error) {
 	}, nil
 }
 
-func (suggester *CompletionSuggester) UnmarshalSpec(db *sql.DB, spec SuggesterSpec) error {
+func (suggester *CompletionSuggester) UnmarshalSpec(suggesterContext SuggesterContext, spec SuggesterSpec) error {
 	if spec.Name != "CompletionSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'CompletionSuggester', got: '%s'.", spec.Name))
 	}
@@ -51,10 +52,10 @@ func (suggester *CompletionSuggester) UnmarshalSpec(db *sql.DB, spec SuggesterSp
 		return errors.New("CompletionSuggester expected to have some suggesters, got 0.")
 	}
 	for i := range spec.Specs {
-		if newSuggester, err := MakeSuggesterFromName(db, spec.Specs[i].Name); err != nil {
+		if newSuggester, err := MakeSuggesterFromName(suggesterContext, spec.Specs[i].Name); err != nil {
 			return err
 		} else {
-			if err := newSuggester.UnmarshalSpec(db, spec.Specs[i]); err != nil {
+			if err := newSuggester.UnmarshalSpec(suggesterContext, spec.Specs[i]); err != nil {
 				return err
 			}
 			suggester.suggesters = append(suggester.suggesters, newSuggester)

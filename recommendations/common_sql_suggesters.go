@@ -32,7 +32,7 @@ func (suggester *LastContentUnitsSuggester) MarshalSpec() (core.SuggesterSpec, e
 	return core.SuggesterSpec{Name: suggester.Name}, nil
 }
 
-func (suggester *LastContentUnitsSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *LastContentUnitsSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "LastContentUnitsSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastContentUnitsSuggester', got: '%s'.", spec.Name))
 	}
@@ -57,7 +57,7 @@ func (suggester *LastClipsSuggester) MarshalSpec() (core.SuggesterSpec, error) {
 	return core.SuggesterSpec{Name: suggester.Name}, nil
 }
 
-func (suggester *LastClipsSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *LastClipsSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "LastClipsSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastClipsSuggester', got: '%s'.", spec.Name))
 	}
@@ -86,7 +86,7 @@ func (suggester *LastLessonsSuggester) MarshalSpec() (core.SuggesterSpec, error)
 	return core.SuggesterSpec{Name: suggester.Name}, nil
 }
 
-func (suggester *LastLessonsSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *LastLessonsSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "LastLessonsSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastLessonsSuggester', got: '%s'.", spec.Name))
 	}
@@ -115,7 +115,7 @@ func (suggester *LastProgramsSuggester) MarshalSpec() (core.SuggesterSpec, error
 	return core.SuggesterSpec{Name: suggester.Name}, nil
 }
 
-func (suggester *LastProgramsSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *LastProgramsSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "LastProgramsSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastProgramsSuggester', got: '%s'.", spec.Name))
 	}
@@ -170,7 +170,7 @@ func (suggester *LastContentUnitsSameCollectionSuggester) MarshalSpec() (core.Su
 	return core.SuggesterSpec{Name: suggester.Name}, nil
 }
 
-func (suggester *LastContentUnitsSameCollectionSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *LastContentUnitsSameCollectionSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "LastContentUnitsSameCollectionSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastContentUnitsSameCollectionSuggester', got: '%s'.", spec.Name))
 	}
@@ -231,7 +231,7 @@ func (suggester *NextContentUnitsSameSourceSuggester) MarshalSpec() (core.Sugges
 	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes}, nil
 }
 
-func (suggester *NextContentUnitsSameSourceSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *NextContentUnitsSameSourceSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "NextContentUnitsSameSourceSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'NextContentUnitsSameSourceSuggester', got: '%s'.", spec.Name))
 	}
@@ -297,7 +297,7 @@ func (suggester *PrevContentUnitsSameSourceSuggester) MarshalSpec() (core.Sugges
 	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes}, nil
 }
 
-func (suggester *PrevContentUnitsSameSourceSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *PrevContentUnitsSameSourceSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "PrevContentUnitsSameSourceSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'PrevContentUnitsSameSourceSuggester', got: '%s'.", spec.Name))
 	}
@@ -359,7 +359,7 @@ func (suggester *PrevContentUnitsSameCollectionSuggester) MarshalSpec() (core.Su
 	return core.SuggesterSpec{Name: suggester.Name}, nil
 }
 
-func (suggester *PrevContentUnitsSameCollectionSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *PrevContentUnitsSameCollectionSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "PrevContentUnitsSameCollectionSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'PrevContentUnitsSameCollectionSuggester', got: '%s'.", spec.Name))
 	}
@@ -422,7 +422,7 @@ func (suggester *LastContentTypesSameTagSuggester) MarshalSpec() (core.Suggester
 	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes}, nil
 }
 
-func (suggester *LastContentTypesSameTagSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *LastContentTypesSameTagSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != suggester.SqlSuggester.Name {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: '%s', got: '%s'.", suggester.Name, spec.Name))
 	}
@@ -490,7 +490,7 @@ func (suggester *LastLessonsSameTagSuggester) MarshalSpec() (core.SuggesterSpec,
 	return core.SuggesterSpec{Name: "LastLessonsSameTagSuggester"}, nil
 }
 
-func (suggester *LastLessonsSameTagSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *LastLessonsSameTagSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "LastLessonsSameTagSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastLessonsSameTagSuggester', got: '%s'.", spec.Name))
 	}
@@ -585,7 +585,7 @@ func (suggester *LastCollectionSameSourceSuggester) MarshalSpec() (core.Suggeste
 	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes}, nil
 }
 
-func (suggester *LastCollectionSameSourceSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *LastCollectionSameSourceSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "LastCollectionSameSourceSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'LastCollectionSameSourceSuggester', got: '%s'.", spec.Name))
 	}
@@ -703,7 +703,7 @@ func (suggester *RandomContentTypesSuggester) MarshalSpec() (core.SuggesterSpec,
 	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes, SecondArgs: suggester.tagUids}, nil
 }
 
-func (suggester *RandomContentTypesSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *RandomContentTypesSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "RandomContentTypesSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'RandomContentTypesSuggester', got: '%s'.", spec.Name))
 	}
@@ -773,7 +773,7 @@ func (suggester *RandomContentUnitsSameSourceSuggester) MarshalSpec() (core.Sugg
 	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes, SecondArgs: suggester.tagUids}, nil
 }
 
-func (suggester *RandomContentUnitsSameSourceSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *RandomContentUnitsSameSourceSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "RandomContentUnitsSameSourceSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'RandomContentUnitsSameSourceSuggester', got: '%s'.", spec.Name))
 	}
@@ -851,7 +851,7 @@ func (suggester *ContentTypesSameTagSuggester) MarshalSpec() (core.SuggesterSpec
 	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes, OrderSelector: suggester.orderSelector}, nil
 }
 
-func (suggester *ContentTypesSameTagSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *ContentTypesSameTagSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "ContentTypesSameTagSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'ContentTypesSameTagSuggester', got: '%s'.", spec.Name))
 	}
@@ -880,7 +880,7 @@ func (suggester *ContentUnitCollectionSuggester) MarshalSpec() (core.SuggesterSp
 	return core.SuggesterSpec{Name: suggester.Name, Args: suggester.contentTypes}, nil
 }
 
-func (suggester *ContentUnitCollectionSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *ContentUnitCollectionSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "ContentUnitCollectionSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'ContentUnitCollectionSuggester', got: '%s'.", spec.Name))
 	}
@@ -939,7 +939,7 @@ func (suggester *ContentUnitsSuggester) MarshalSpec() (core.SuggesterSpec, error
 	return core.SuggesterSpec{Name: suggester.Name, Filters: suggester.filters, OrderSelector: suggester.orderSelector}, nil
 }
 
-func (suggester *ContentUnitsSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *ContentUnitsSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "NewContentUnitsSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'NewContentUnitsSuggester', got: '%s'.", spec.Name))
 	}
@@ -1105,7 +1105,7 @@ func (suggester *CollectionsSuggester) MarshalSpec() (core.SuggesterSpec, error)
 	return core.SuggesterSpec{Name: suggester.Name, Filters: suggester.filters, OrderSelector: suggester.orderSelector}, nil
 }
 
-func (suggester *CollectionsSuggester) UnmarshalSpec(db *sql.DB, spec core.SuggesterSpec) error {
+func (suggester *CollectionsSuggester) UnmarshalSpec(suggesterContext core.SuggesterContext, spec core.SuggesterSpec) error {
 	if spec.Name != "NewCollectionsSuggester" {
 		return errors.New(fmt.Sprintf("Expected suggester name to be: 'NewCollectionsSuggester', got: '%s'.", spec.Name))
 	}
@@ -1190,32 +1190,64 @@ func CollectionsSqlGen(filters []core.SuggesterFilter, orderSelector core.OrderS
 }
 
 func init() {
-	core.RegisterSuggester("LastClipsSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastClipsSameTagSuggester(db) })
-	core.RegisterSuggester("LastClipsSuggester", func(db *sql.DB) core.Suggester { return MakeLastClipsSuggester(db) })
-	core.RegisterSuggester("LastCollectionSameSourceSuggester", func(db *sql.DB) core.Suggester { return MakeLastCollectionSameSourceSuggester(db, []string(nil)) })
-	core.RegisterSuggester("LastCongressSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastCongressSameTagSuggester(db) })
-	core.RegisterSuggester("LastContentTypesSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastContentTypesSameTagSuggester(db, []string(nil)) })
-	core.RegisterSuggester("LastContentUnitsSameCollectionSuggester", func(db *sql.DB) core.Suggester { return MakeLastContentUnitsSameCollectionSuggester(db) })
-	core.RegisterSuggester("LastContentUnitsSuggester", func(db *sql.DB) core.Suggester { return MakeLastContentUnitsSuggester(db) })
-	core.RegisterSuggester("LastLessonsSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastLessonsSameTagSuggester(db) })
-	core.RegisterSuggester("LastLessonsSuggester", func(db *sql.DB) core.Suggester { return MakeLastLessonsSuggester(db) })
-	core.RegisterSuggester("LastProgramsSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeLastProgramsSameTagSuggester(db) })
-	core.RegisterSuggester("LastProgramsSuggester", func(db *sql.DB) core.Suggester { return MakeLastProgramsSuggester(db) })
-	core.RegisterSuggester("NextContentUnitsSameSourceSuggester", func(db *sql.DB) core.Suggester { return MakeNextContentUnitsSameSourceSuggester(db, []string(nil)) })
-	core.RegisterSuggester("PrevContentUnitsSameCollectionSuggester", func(db *sql.DB) core.Suggester { return MakePrevContentUnitsSameCollectionSuggester(db) })
-	core.RegisterSuggester("PrevContentUnitsSameSourceSuggester", func(db *sql.DB) core.Suggester { return MakePrevContentUnitsSameSourceSuggester(db, []string(nil)) })
-	core.RegisterSuggester("RandomContentTypesSuggester", func(db *sql.DB) core.Suggester {
-		return MakeRandomContentTypesSuggester(db, []string(nil), []string(nil))
+	core.RegisterSuggester("LastClipsSameTagSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeLastClipsSameTagSuggester(suggesterContext.DB)
 	})
-	core.RegisterSuggester("RandomContentUnitsSameSourceSuggester", func(db *sql.DB) core.Suggester {
-		return MakeRandomContentUnitsSameSourceSuggester(db, []string(nil), []string(nil))
+	core.RegisterSuggester("LastClipsSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeLastClipsSuggester(suggesterContext.DB)
 	})
-	core.RegisterSuggester("ContentTypesSameTagSuggester", func(db *sql.DB) core.Suggester { return MakeContentTypesSameTagSuggester(db, []string(nil), core.Last) })
-	core.RegisterSuggester("ContentUnitCollectionSuggester", func(db *sql.DB) core.Suggester { return MakeContentUnitCollectionSuggester(db, []string(nil)) })
-	core.RegisterSuggester("NewContentUnitsSuggester", func(db *sql.DB) core.Suggester {
-		return MakeContentUnitsSuggester(db, []core.SuggesterFilter(nil), core.Last)
+	core.RegisterSuggester("LastCollectionSameSourceSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeLastCollectionSameSourceSuggester(suggesterContext.DB, []string(nil))
 	})
-	core.RegisterSuggester("NewCollectionsSuggester", func(db *sql.DB) core.Suggester {
-		return MakeCollectionsSuggester(db, []core.SuggesterFilter(nil), core.Last)
+	core.RegisterSuggester("LastCongressSameTagSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeLastCongressSameTagSuggester(suggesterContext.DB)
+	})
+	core.RegisterSuggester("LastContentTypesSameTagSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeLastContentTypesSameTagSuggester(suggesterContext.DB, []string(nil))
+	})
+	core.RegisterSuggester("LastContentUnitsSameCollectionSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeLastContentUnitsSameCollectionSuggester(suggesterContext.DB)
+	})
+	core.RegisterSuggester("LastContentUnitsSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeLastContentUnitsSuggester(suggesterContext.DB)
+	})
+	core.RegisterSuggester("LastLessonsSameTagSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeLastLessonsSameTagSuggester(suggesterContext.DB)
+	})
+	core.RegisterSuggester("LastLessonsSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeLastLessonsSuggester(suggesterContext.DB)
+	})
+	core.RegisterSuggester("LastProgramsSameTagSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeLastProgramsSameTagSuggester(suggesterContext.DB)
+	})
+	core.RegisterSuggester("LastProgramsSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeLastProgramsSuggester(suggesterContext.DB)
+	})
+	core.RegisterSuggester("NextContentUnitsSameSourceSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeNextContentUnitsSameSourceSuggester(suggesterContext.DB, []string(nil))
+	})
+	core.RegisterSuggester("PrevContentUnitsSameCollectionSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakePrevContentUnitsSameCollectionSuggester(suggesterContext.DB)
+	})
+	core.RegisterSuggester("PrevContentUnitsSameSourceSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakePrevContentUnitsSameSourceSuggester(suggesterContext.DB, []string(nil))
+	})
+	core.RegisterSuggester("RandomContentTypesSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeRandomContentTypesSuggester(suggesterContext.DB, []string(nil), []string(nil))
+	})
+	core.RegisterSuggester("RandomContentUnitsSameSourceSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeRandomContentUnitsSameSourceSuggester(suggesterContext.DB, []string(nil), []string(nil))
+	})
+	core.RegisterSuggester("ContentTypesSameTagSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeContentTypesSameTagSuggester(suggesterContext.DB, []string(nil), core.Last)
+	})
+	core.RegisterSuggester("ContentUnitCollectionSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeContentUnitCollectionSuggester(suggesterContext.DB, []string(nil))
+	})
+	core.RegisterSuggester("NewContentUnitsSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeContentUnitsSuggester(suggesterContext.DB, []core.SuggesterFilter(nil), core.Last)
+	})
+	core.RegisterSuggester("NewCollectionsSuggester", func(suggesterContext core.SuggesterContext) core.Suggester {
+		return MakeCollectionsSuggester(suggesterContext.DB, []core.SuggesterFilter(nil), core.Last)
 	})
 }

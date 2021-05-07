@@ -9,6 +9,7 @@ import (
 
 	"github.com/Bnei-Baruch/feed-api/api"
 	"github.com/Bnei-Baruch/feed-api/common"
+	"github.com/Bnei-Baruch/feed-api/data_models"
 	"github.com/Bnei-Baruch/feed-api/utils"
 	"github.com/Bnei-Baruch/feed-api/version"
 )
@@ -25,6 +26,14 @@ func init() {
 	serverCmd.PersistentFlags().StringVar(&bindAddress, "bind_address", "", "Bind address for server.")
 	viper.BindPFlag("server.bind-address", serverCmd.PersistentFlags().Lookup("bind_address"))
 	RootCmd.AddCommand(serverCmd)
+}
+
+// Set DataModels in context.
+func DataModelsMiddleware(dataModels *data_models.DataModels) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set("DATA_MODELS", dataModels)
+		c.Next()
+	}
 }
 
 func serverFn(cmd *cobra.Command, args []string) {
@@ -48,6 +57,7 @@ func serverFn(cmd *cobra.Command, args []string) {
 	router.Use(
 		utils.LoggerMiddleware(),
 		utils.DataStoresMiddleware(common.DB),
+		DataModelsMiddleware(data_models.MakeDataModels(common.DB)),
 		utils.ErrorHandlingMiddleware(),
 		cors.New(corsConfig),
 		utils.RecoveryMiddleware())
