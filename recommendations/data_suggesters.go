@@ -128,6 +128,7 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 				!utils.StringInSlice(uid, request.Options.SkipUids)
 		})
 		uids = utils.IntersectSorted(uids, dm.PersonsContentUnitsFilter.FilterValues([]string{"abcdefgh"}))
+		uids = utils.IntersectSorted(uids, dm.LanguagesContentUnitsFilter.FilterValues(request.Options.Languages))
 		suggesterNameParts := []string{"DataContentUnitsSuggester"}
 		for _, filter := range s.filters {
 			switch filter.FilterSelector {
