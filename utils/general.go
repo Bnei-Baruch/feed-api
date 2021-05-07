@@ -112,20 +112,17 @@ func UnionSorted(first []string, second []string) []string {
 	ret := []string(nil)
 	for firstIndex < len(first) || secondIndex < len(second) {
 		if firstIndex == len(first) {
-			ret = append(ret, second...)
+			return append(ret, second[secondIndex:]...)
 		} else if secondIndex == len(second) {
-			ret = append(ret, first...)
+			return append(ret, first[firstIndex:]...)
 		} else {
 			cmp := strings.Compare(first[firstIndex], second[secondIndex])
-			for cmp == 0 {
-				secondIndex++
+			if cmp == 0 {
 				firstIndex++
-				cmp = strings.Compare(first[firstIndex], second[secondIndex])
-			}
-			if cmp == 1 {
+			} else if cmp == 1 {
 				ret = append(ret, second[secondIndex])
 				secondIndex++
-			} else /* cmp == -1 */ {
+			} else if cmp == -1 {
 				ret = append(ret, first[firstIndex])
 				firstIndex++
 			}
