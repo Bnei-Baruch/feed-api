@@ -5,3 +5,6 @@ boiler-mode="debug"  # Either debug or something else.
 
 [mdb]
 url="postgres://localhost/mdb?sslmode=disable&user=postgres"
+
+[chronicles]
+url="postgres://localhost/chronicles?sslmode=disable&user=postgres"
