@@ -106,7 +106,7 @@ func LoadContentUnitRecommendInfo(uid string, suggesterContext core.SuggesterCon
 			first = false
 		}
 		suggesterContext.Cache["recommendInfo"] = &ContentUnitRecommendInfo{
-			data_models.ContentUnitInfo{typeId, uid, date, createdAt, true, false},
+			data_models.ContentUnitInfo{typeId, uid, date, createdAt, true, false, 0},
 			utils.NullStringSliceToStringSlice(tags),
 			utils.NullStringSliceToStringSlice(sources),
 		}
@@ -215,6 +215,23 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 			suggesterNameParts = append(suggesterNameParts, ";Rand")
 			rand.Seed(time.Now().UnixNano())
 			rand.Shuffle(len(uids), func(i, j int) { uids[i], uids[j] = uids[j], uids[i] })
+		case core.Popular:
+			suggesterNameParts = append(suggesterNameParts, ";Popular")
+			sort.SliceStable(uids, func(i, j int) bool {
+				var iWatch *data_models.ContentUnitsWatchDuration
+				if dm.ContentUnitsWatchDuration.Data(uids[i]) == nil {
+					iWatch = &data_models.ContentUnitsWatchDuration{uids[i], 0, 0}
+				} else {
+					iWatch = dm.ContentUnitsWatchDuration.Data(uids[i]).(*data_models.ContentUnitsWatchDuration)
+				}
+				var jWatch *data_models.ContentUnitsWatchDuration
+				if dm.ContentUnitsWatchDuration.Data(uids[j]) == nil {
+					jWatch = &data_models.ContentUnitsWatchDuration{uids[j], 0, 0}
+				} else {
+					jWatch = dm.ContentUnitsWatchDuration.Data(uids[j]).(*data_models.ContentUnitsWatchDuration)
+				}
+				return iWatch.Count > jWatch.Count
+			})
 		}
 		ret := []core.ContentItem(nil)
 		if request.MoreItems <= 0 {

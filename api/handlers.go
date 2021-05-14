@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	// "encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -11,6 +12,7 @@ import (
 	"github.com/Bnei-Baruch/feed-api/core"
 	"github.com/Bnei-Baruch/feed-api/data_models"
 	"github.com/Bnei-Baruch/feed-api/recommendations"
+	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
 // Responds with JSON of given response or aborts the request with the given error.
@@ -35,6 +37,7 @@ func MoreHandler(c *gin.Context) {
 
 	suggesterContext := core.SuggesterContext{
 		c.MustGet("MDB_DB").(*sql.DB),
+		c.MustGet("CHRONICLES_DB").(*sql.DB),
 		c.MustGet("DATA_MODELS").(*data_models.DataModels),
 		make(map[string]interface{}),
 	}
@@ -61,6 +64,7 @@ func RecommendHandler(c *gin.Context) {
 
 	suggesterContext := core.SuggesterContext{
 		c.MustGet("MDB_DB").(*sql.DB),
+		c.MustGet("CHRONICLES_DB").(*sql.DB),
 		c.MustGet("DATA_MODELS").(*data_models.DataModels),
 		make(map[string]interface{}),
 	}
@@ -122,9 +126,12 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 	//		}
 	//	}
 
+	start := time.Now()
 	if cis, err := recommend.Recommend(r); err != nil {
 		return nil, NewInternalError(err)
 	} else {
+		log.Infof("Recommend: %+v", time.Now().Sub(start))
+		utils.PrintProfile(true)
 		return &MoreResponse{Feed: cis}, nil
 	}
 }

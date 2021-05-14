@@ -14,32 +14,35 @@ import (
 )
 
 var (
-	DB *sql.DB
+	DB  *sql.DB // MDB
+	CDB *sql.DB // Chronicles
 )
 
 func Init() time.Time {
-	return InitWithDefault(nil)
+	return InitWithDefault()
 }
 
-func InitWithDefault(defaultDb *sql.DB) time.Time {
+func InitWithDefault() time.Time {
 	var err error
 	clock := time.Now()
 
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	//log.SetLevel(log.WarnLevel)
 
-	if defaultDb != nil {
-		DB = defaultDb
-	} else {
-		log.Info("Setting up connection to MDB")
-		DB, err = sql.Open("postgres", viper.GetString("mdb.url"))
-		utils.Must(err)
-		utils.Must(DB.Ping())
-	}
+	log.Info("Setting up connection to MDB")
+	DB, err = sql.Open("postgres", viper.GetString("mdb.url"))
+	utils.Must(err)
+	utils.Must(DB.Ping())
+
 	boil.SetDB(DB)
 	boil.DebugMode = viper.GetString("server.boiler-mode") == "debug"
 	log.Info("Initializing type registries")
 	utils.Must(mdb.InitTypeRegistries(DB))
+
+	log.Info("Setting up connection to Chronicles")
+	CDB, err = sql.Open("postgres", viper.GetString("chronicles.url"))
+	utils.Must(err)
+	utils.Must(CDB.Ping())
 
 	return clock
 }

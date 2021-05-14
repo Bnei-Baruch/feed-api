@@ -62,14 +62,15 @@ const (
 	Next
 	Prev
 	Rand
-	// (TBD) Popular
+	Popular
 )
 
 var ORDER_STRING_TO_VALUE = map[string]OrderSelectorEnum{
-	"OLast": Last,
-	"ONext": Next,
-	"OPrev": Prev,
-	"ORand": Rand,
+	"OLast":    Last,
+	"ONext":    Next,
+	"OPrev":    Prev,
+	"ORand":    Rand,
+	"OPopular": Popular,
 }
 
 type SuggesterSpec struct {
@@ -119,6 +120,7 @@ type Suggester interface {
 
 type SuggesterContext struct {
 	DB         *sql.DB
+	CDB        *sql.DB
 	DataModels *data_models.DataModels
 	Cache      map[string]interface{}
 }

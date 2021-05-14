@@ -5,7 +5,40 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
+	"time"
+
+	log "github.com/sirupsen/logrus"
 )
+
+type ProfileData struct {
+	Name     string
+	Count    int
+	Duration time.Duration
+}
+
+var PROFILE_MUTEX = sync.Mutex{}
+var PROFILE = make(map[string]*ProfileData)
+
+func Profile(name string, duration time.Duration) {
+	PROFILE_MUTEX.Lock()
+	defer PROFILE_MUTEX.Unlock()
+	if _, ok := PROFILE[name]; !ok {
+		PROFILE[name] = &ProfileData{name, 0, 0}
+	}
+	p := PROFILE[name]
+	p.Count++
+	p.Duration += duration
+}
+
+func PrintProfile(reset bool) {
+	for k, v := range PROFILE {
+		log.Infof("%s: %+v", k, v)
+	}
+	if reset {
+		PROFILE = make(map[string]*ProfileData)
+	}
+}
 
 // panic if err != nil
 func Must(err error) {
@@ -58,22 +91,40 @@ func MaxInt(x, y int) int {
 	return y
 }
 
-func StringInSlice(a string, list []string) bool {
+func StringInSlice(a string, list []string) (ret bool) {
+	/*start := time.Now()
+	defer func() {
+		Profile("StringInSlice", time.Now().Sub(start))
+		if len(list) > 3 {
+			log.Infof("StringInSlice: %d -> %t", len(list), ret)
+		}
+	}()*/
 	for _, b := range list {
 		if b == a {
-			return true
+			ret = true
+			return
 		}
 	}
-	return false
+	ret = false
+	return
 }
 
-func Int64InSlice(a int64, list []int64) bool {
+func Int64InSlice(a int64, list []int64) (ret bool) {
+	/*start := time.Now()
+	defer func() {
+		Profile("Int64InSlice", time.Now().Sub(start))
+		if len(list) > 3 {
+			defer log.Infof("Int64InSlice: %d -> %t", len(list), ret)
+		}
+	}()*/
 	for _, b := range list {
 		if b == a {
-			return true
+			ret = true
+			return
 		}
 	}
-	return false
+	ret = false
+	return
 }
 
 func InClause(prefix string, list []string) string {
@@ -88,10 +139,14 @@ func InClause(prefix string, list []string) string {
 	return inClause
 }
 
-func IntersectSorted(first []string, second []string) []string {
+func IntersectSorted(first []string, second []string) (ret []string) {
+	/*start := time.Now()
+	defer func() {
+		Profile("IntersectSorted", time.Now().Sub(start))
+		log.Infof("IntersectSorted: %d %d -> %d", len(first), len(second), len(ret))
+	}()*/
 	firstIndex := 0
 	secondIndex := 0
-	ret := []string(nil)
 	for firstIndex < len(first) && secondIndex < len(second) {
 		if cmp := strings.Compare(first[firstIndex], second[secondIndex]); cmp == 0 {
 			ret = append(ret, second[secondIndex])
@@ -103,21 +158,26 @@ func IntersectSorted(first []string, second []string) []string {
 			firstIndex++
 		}
 	}
-	return ret
+	return
 }
 
-func UnionSorted(first []string, second []string) []string {
+func UnionSorted(first []string, second []string) (ret []string) {
+	/*start := time.Now()
+	defer func() {
+		Profile("UnionSorted", time.Now().Sub(start))
+		defer log.Infof("UnionSorted: %d, %d -> %d", len(first), len(second), len(ret))
+	}()*/
 	firstIndex := 0
 	secondIndex := 0
-	ret := []string(nil)
 	for firstIndex < len(first) || secondIndex < len(second) {
 		if firstIndex == len(first) {
-			return append(ret, second[secondIndex:]...)
+			ret = append(ret, second[secondIndex:]...)
+			return
 		} else if secondIndex == len(second) {
-			return append(ret, first[firstIndex:]...)
+			ret = append(ret, first[firstIndex:]...)
+			return
 		} else {
-			cmp := strings.Compare(first[firstIndex], second[secondIndex])
-			if cmp == 0 {
+			if cmp := strings.Compare(first[firstIndex], second[secondIndex]); cmp == 0 {
 				firstIndex++
 			} else if cmp == 1 {
 				ret = append(ret, second[secondIndex])
@@ -128,16 +188,22 @@ func UnionSorted(first []string, second []string) []string {
 			}
 		}
 	}
-	return ret
+	return
 }
 
-func Filter(ss []string, test func(string) bool) (ret []string) {
+func Filter(ss []string, test func(string) bool) []string {
+	ret := make([]string, 0, len(ss))
+	/*start := time.Now()
+	defer func() {
+		Profile("Filter", time.Now().Sub(start))
+		defer log.Infof("Filter: %d -> %d", len(ss), len(ret))
+	}()*/
 	for _, s := range ss {
 		if test(s) {
 			ret = append(ret, s)
 		}
 	}
-	return
+	return ret
 }
 
 func NullStringSliceToStringSlice(in []sql.NullString) []string {
