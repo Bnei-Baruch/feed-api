@@ -12,7 +12,7 @@ type Recommender struct {
 	Suggester core.Suggester
 }
 
-func MakeRecommender(suggesterContext core.SuggesterContext) (*Recommender, error) {
+func MakeDefaultSuggester(suggesterContext core.SuggesterContext) (*core.Suggester, error) {
 	lessonsJSON := `
 		{
 			"name": "RoundRobinSuggester",
@@ -675,7 +675,7 @@ func MakeRecommender(suggesterContext core.SuggesterContext) (*Recommender, erro
 		if err := s.UnmarshalSpec(suggesterContext, spec); err != nil {
 			return nil, err
 		} else {
-			return &Recommender{s}, nil
+			return &s, nil
 		}
 	}
 
@@ -694,6 +694,14 @@ func MakeRecommender(suggesterContext core.SuggesterContext) (*Recommender, erro
 		MakeRandomContentTypesSuggester(db, []string{consts.CT_CLIP, consts.CT_LESSON_PART, consts.CT_VIDEO_PROGRAM_CHAPTER}, []string(nil) /* tagUids * /),
 	})}, nil*/
 
+}
+
+func MakeRecommender(suggesterContext core.SuggesterContext) (*Recommender, error) {
+	if s, err := MakeDefaultSuggester(suggesterContext); err != nil {
+		return nil, err
+	} else {
+		return &Recommender{*s}, err
+	}
 }
 
 func (recommender *Recommender) Recommend(r core.MoreRequest) ([]core.ContentItem, error) {

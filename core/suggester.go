@@ -89,8 +89,9 @@ type MoreOptions struct {
 	// Map from collection content type to Subscriptions.
 	Collections map[string]Subscriptions `json:"collections" form:"collections"`
 
-	Recommend Recommend      `json:"recommend" form:"recommend"`
-	Spec      *SuggesterSpec `json:"spec,omitempty" form:"spec,omitempty"`
+	Recommend Recommend        `json:"recommend" form:"recommend"`
+	Spec      *SuggesterSpec   `json:"spec,omitempty" form:"spec,omitempty"`
+	Specs     []*SuggesterSpec `json:"specs,omitempty" form:"specs,omitempty"`
 
 	Languages []string `json:"languages,omitempty" form:"languages,omitempty"`
 	SkipUids  []string `json:"skip_uids"`

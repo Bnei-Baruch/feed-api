@@ -26,7 +26,8 @@ func concludeRequest(c *gin.Context, resp interface{}, err *HttpError) {
 
 // More
 type MoreResponse struct {
-	Feed []core.ContentItem `json:"feed"`
+	Feed  []core.ContentItem   `json:"feed"`
+	Feeds [][]core.ContentItem `json:"feeds"`
 }
 
 func MoreHandler(c *gin.Context) {
@@ -55,6 +56,34 @@ func handleMore(suggesterContext core.SuggesterContext, r core.MoreRequest) (*Mo
 	}
 }
 
+// Views
+type ViewsRequest struct {
+	Uids []string `json:"uids,omitempty" form:"uids,omitempty"`
+}
+
+type ViewsResponse struct {
+	Views []int64 `json:"views,omitempty" form:"views,omitempty"`
+}
+
+func ViewsHandler(c *gin.Context) {
+	r := ViewsRequest{}
+	if c.Bind(&r) != nil {
+		return
+	}
+
+	resp := ViewsResponse{}
+	watch := c.MustGet("DATA_MODELS").(*data_models.DataModels).ContentUnitsWatchDuration
+	for _, uid := range r.Uids {
+		watchData := watch.Data(uid).(*data_models.ContentUnitsWatchDuration)
+		count := int64(-1)
+		if watchData != nil {
+			count = watchData.Count
+		}
+		resp.Views = append(resp.Views, count)
+	}
+	concludeRequest(c, resp, nil)
+}
+
 // Recommend
 func RecommendHandler(c *gin.Context) {
 	r := core.MoreRequest{}
@@ -73,24 +102,46 @@ func RecommendHandler(c *gin.Context) {
 	concludeRequest(c, resp, err)
 }
 
+func MakeAndUnmarshal(suggesterContext core.SuggesterContext, spec *core.SuggesterSpec) (*recommendations.Recommender, error) {
+	if spec.Name == "Default" {
+		return recommendations.MakeRecommender(suggesterContext)
+	}
+	if s, err := core.MakeSuggesterFromName(suggesterContext, spec.Name); err != nil {
+		return nil, err
+	} else {
+		if err := s.UnmarshalSpec(suggesterContext, *spec); err != nil {
+			return nil, err
+		} else {
+			return &recommendations.Recommender{s}, nil
+		}
+	}
+}
+
 func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest) (*MoreResponse, *HttpError) {
 	log.Infof("r: %+v", r)
 	log.Infof("Spec: %+v", r.Options.Spec)
+	log.Infof("Specs: %+v", r.Options.Specs)
 	var recommend *recommendations.Recommender
-	if r.Options.Spec == nil {
+	var recommends []*recommendations.Recommender
+	if r.Options.Spec == nil && r.Options.Specs == nil {
 		var err error
 		recommend, err = recommendations.MakeRecommender(suggesterContext)
 		if err != nil {
 			return nil, NewInternalError(err)
 		}
-	} else {
-		if s, err := core.MakeSuggesterFromName(suggesterContext, r.Options.Spec.Name); err != nil {
+	} else if r.Options.Specs == nil {
+		if rec, err := MakeAndUnmarshal(suggesterContext, r.Options.Spec); err != nil {
 			return nil, NewInternalError(err)
 		} else {
-			if err := s.UnmarshalSpec(suggesterContext, *r.Options.Spec); err != nil {
+			recommend = rec
+		}
+	} else {
+		for i, spec := range r.Options.Specs {
+			log.Infof("Spec %d: %+v", i, spec)
+			if rec, err := MakeAndUnmarshal(suggesterContext, spec); err != nil {
 				return nil, NewInternalError(err)
 			} else {
-				recommend = &recommendations.Recommender{s}
+				recommends = append(recommends, rec)
 			}
 		}
 	}
@@ -126,12 +177,29 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 	//		}
 	//	}
 
-	start := time.Now()
-	if cis, err := recommend.Recommend(r); err != nil {
-		return nil, NewInternalError(err)
+	if len(recommends) > 0 {
+		res := &MoreResponse{}
+		for i, rec := range recommends {
+			start := time.Now()
+			if cis, err := rec.Recommend(r); err != nil {
+				return nil, NewInternalError(err)
+			} else {
+				log.Infof("cis: %+v", cis)
+				log.Infof("Recommend[%d]: %+v", i, time.Now().Sub(start))
+				utils.PrintProfile(true)
+				res.Feeds = append(res.Feeds, cis)
+			}
+		}
+		log.Infof("res: %+v", res)
+		return res, nil
 	} else {
-		log.Infof("Recommend: %+v", time.Now().Sub(start))
-		utils.PrintProfile(true)
-		return &MoreResponse{Feed: cis}, nil
+		start := time.Now()
+		if cis, err := recommend.Recommend(r); err != nil {
+			return nil, NewInternalError(err)
+		} else {
+			log.Infof("Recommend: %+v", time.Now().Sub(start))
+			utils.PrintProfile(true)
+			return &MoreResponse{Feed: cis}, nil
+		}
 	}
 }
