@@ -50,7 +50,7 @@ func Must(err error) {
 func ToInterfaceSlice(s interface{}) []interface{} {
 	slice := reflect.ValueOf(s)
 	if slice.Kind() != reflect.Slice {
-		panic("Expected slice!")
+		panic(fmt.Sprintf("Expected slice! got: %+v", slice.Kind()))
 	}
 	c := slice.Len()
 	out := make([]interface{}, c)
@@ -85,6 +85,34 @@ func MinInt(x, y int) int {
 }
 
 func MaxInt(x, y int) int {
+	if x >= y {
+		return x
+	}
+	return y
+}
+
+func MinInt64(x, y int64) int64 {
+	if x < y {
+		return x
+	}
+	return y
+}
+
+func MaxInt64(x, y int64) int64 {
+	if x >= y {
+		return x
+	}
+	return y
+}
+
+func MinDuration(x, y time.Duration) time.Duration {
+	if x < y {
+		return x
+	}
+	return y
+}
+
+func MaxDuration(x, y time.Duration) time.Duration {
 	if x >= y {
 		return x
 	}
@@ -214,4 +242,12 @@ func NullStringSliceToStringSlice(in []sql.NullString) []string {
 		}
 	}
 	return out
+}
+
+func reverseAny(s interface{}) {
+	n := reflect.ValueOf(s).Len()
+	swap := reflect.Swapper(s)
+	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
+		swap(i, j)
+	}
 }

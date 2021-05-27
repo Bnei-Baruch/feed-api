@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Bnei-Baruch/sqlboiler/queries"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/volatiletech/sqlboiler/queries"
 
 	"github.com/Bnei-Baruch/feed-api/core"
 	"github.com/Bnei-Baruch/feed-api/data_models"
-	"github.com/Bnei-Baruch/feed-api/mdb"
+	"github.com/Bnei-Baruch/feed-api/databases/mdb"
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
@@ -83,7 +83,7 @@ func LoadContentUnitRecommendInfo(uid string, suggesterContext core.SuggesterCon
 			group by
 				cu.type_id, date, cu.created_at;
 		`, uid)
-		rows, err := queries.Raw(suggesterContext.DB, sqlStr).Query()
+		rows, err := queries.Raw(sqlStr).Query(suggesterContext.DB)
 		if err != nil {
 			return nil, err
 		}
@@ -216,7 +216,7 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 			rand.Seed(time.Now().UnixNano())
 			rand.Shuffle(len(uids), func(i, j int) { uids[i], uids[j] = uids[j], uids[i] })
 		case core.Popular:
-			return nil, errors.New("Now Implemented")
+			return nil, errors.New("Not Implemented")
 		}
 		ret := []core.ContentItem(nil)
 		if request.MoreItems <= 0 {
