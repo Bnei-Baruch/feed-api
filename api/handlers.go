@@ -2,6 +2,8 @@ package api
 
 import (
 	"database/sql"
+	"errors"
+
 	// "encoding/json"
 	"net/http"
 	"time"
@@ -38,7 +40,6 @@ func MoreHandler(c *gin.Context) {
 
 	suggesterContext := core.SuggesterContext{
 		c.MustGet("MDB_DB").(*sql.DB),
-		c.MustGet("CHRONICLES_DB").(*sql.DB),
 		c.MustGet("DATA_MODELS").(*data_models.DataModels),
 		make(map[string]interface{}),
 	}
@@ -72,16 +73,7 @@ func ViewsHandler(c *gin.Context) {
 	}
 
 	resp := ViewsResponse{}
-	watch := c.MustGet("DATA_MODELS").(*data_models.DataModels).ContentUnitsWatchDuration
-	for _, uid := range r.Uids {
-		watchData := watch.Data(uid).(*data_models.ContentUnitsWatchDuration)
-		count := int64(-1)
-		if watchData != nil {
-			count = watchData.Count
-		}
-		resp.Views = append(resp.Views, count)
-	}
-	concludeRequest(c, resp, nil)
+	concludeRequest(c, resp, NewInternalError(errors.New("Not Implemented")))
 }
 
 // Recommend
@@ -93,7 +85,6 @@ func RecommendHandler(c *gin.Context) {
 
 	suggesterContext := core.SuggesterContext{
 		c.MustGet("MDB_DB").(*sql.DB),
-		c.MustGet("CHRONICLES_DB").(*sql.DB),
 		c.MustGet("DATA_MODELS").(*data_models.DataModels),
 		make(map[string]interface{}),
 	}

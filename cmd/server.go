@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"database/sql"
-
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -38,14 +36,6 @@ func DataModelsMiddleware(dataModels *data_models.DataModels) gin.HandlerFunc {
 	}
 }
 
-// Set Chronicles in context.
-func ChroniclesMiddleware(chroniclesDB *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Set("CHRONICLES_DB", chroniclesDB)
-		c.Next()
-	}
-}
-
 func serverFn(cmd *cobra.Command, args []string) {
 	log.Infof("Starting feed api server version %s", version.Version)
 	common.Init()
@@ -67,8 +57,7 @@ func serverFn(cmd *cobra.Command, args []string) {
 	router.Use(
 		utils.LoggerMiddleware(),
 		utils.DataStoresMiddleware(common.DB),
-		ChroniclesMiddleware(common.CDB),
-		DataModelsMiddleware(data_models.MakeDataModels(common.DB, common.CDB)),
+		DataModelsMiddleware(data_models.MakeDataModels(common.DB)),
 		utils.ErrorHandlingMiddleware(),
 		cors.New(corsConfig),
 		utils.RecoveryMiddleware())

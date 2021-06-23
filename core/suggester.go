@@ -121,7 +121,6 @@ type Suggester interface {
 
 type SuggesterContext struct {
 	DB         *sql.DB
-	CDB        *sql.DB
 	DataModels *data_models.DataModels
 	Cache      map[string]interface{}
 }

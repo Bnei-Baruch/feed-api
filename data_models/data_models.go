@@ -185,45 +185,6 @@ func ScanCollectionInfo(rows *sql.Rows, datas map[string]interface{}) error {
 	}
 }
 
-type ContentUnitsWatchDuration struct {
-	Uid   string
-	Total time.Duration
-	Count int64
-}
-
-func ScanContentUnitsWatchDuration(contentUnitsInfo *MDBDataModel) ScanRows {
-	notFound := make(map[string]bool)
-	return func(rows *sql.Rows, datas map[string]interface{}) error {
-		var uid string
-		var currentDuration null.Float64
-		if err := rows.Scan(&uid, &currentDuration); err != nil {
-			return err
-		} else {
-			if !currentDuration.Valid {
-				return nil
-			}
-			if contentUnitsInfo.Data(uid) == nil {
-				if _, found := notFound[uid]; !found {
-					log.Warnf("Failed finding %s", uid)
-					notFound[uid] = true
-				}
-				return nil
-			}
-			info := contentUnitsInfo.Data(uid).(*ContentUnitInfo)
-			if currentDuration.Float64 > float64(0.1)*float64(info.Duration.Seconds()) {
-				return nil
-			}
-			if _, found := datas[uid]; !found {
-				datas[uid] = &ContentUnitsWatchDuration{uid, 0, 0}
-			}
-			watch := datas[uid].(*ContentUnitsWatchDuration)
-			watch.Total += time.Duration(currentDuration.Float64) * time.Second
-			watch.Count++
-			return nil
-		}
-	}
-}
-
 type RefreshModel interface {
 	Name() string
 	Refresh() error
@@ -246,12 +207,10 @@ type DataModels struct {
 
 	CollectionsInfo *MDBDataModel
 
-	ContentUnitsWatchDuration *MDBDataModel
-
 	models []RefreshModel
 }
 
-func MakeDataModels(db *sql.DB, cdb *sql.DB) *DataModels {
+func MakeDataModels(db *sql.DB) *DataModels {
 	lcuf := MakeMDBFilterModel(db, "LanguagesContentUnitsFilter", time.Duration(time.Minute*10), LANGUAGES_CONTENT_UNITS_SQL)
 	tcuf := MakeMDBFilterModel(db, "TagsContentUnitsFilter", time.Duration(time.Minute*10), TAGS_CONTENT_UNITS_SQL)
 	scuf := MakeMDBFilterModel(db, "SourcesContentUnitsFilter", time.Duration(time.Minute*10), SOURCES_CONTENT_UNITS_SQL)
@@ -260,8 +219,7 @@ func MakeDataModels(db *sql.DB, cdb *sql.DB) *DataModels {
 	cucf := MakeMDBFilterModel(db, "ContentUnitsCollectionsFilter", time.Duration(time.Minute*10), CONTENT_UNITS_COLLECTIONS_SQL)
 	cui := MakeMDBDataModel(db, "ContentUnitsInfo", time.Duration(time.Minute*10), fmt.Sprintf(CONTENT_UNITS_INFO_SQL, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID), ScanContentUnitInfo)
 	ci := MakeMDBDataModel(db, "CollectionsInfo", time.Duration(time.Minute*10), COLLECTIONS_INFO_SQL, ScanCollectionInfo)
-	cuwd := MakeMDBDataModel(cdb, "ContentUnitsWatchDuration", time.Duration(time.Hour), CONTENT_UNITS_WATCH_DURATION_SQL, ScanContentUnitsWatchDuration(cui))
-	models := []RefreshModel{lcuf, tcuf, scuf, pcuf, ccuf, cucf, cui, ci, cuwd}
+	models := []RefreshModel{lcuf, tcuf, scuf, pcuf, ccuf, cucf, cui, ci}
 
 	dataModels := &DataModels{
 		ticker:      time.NewTicker(time.Second),
@@ -275,7 +233,6 @@ func MakeDataModels(db *sql.DB, cdb *sql.DB) *DataModels {
 		ContentUnitsCollectionsFilter: cucf,
 		ContentUnitsInfo:              cui,
 		CollectionsInfo:               ci,
-		ContentUnitsWatchDuration:     cuwd,
 
 		models: models,
 	}
@@ -308,34 +265,11 @@ func (dataModels *DataModels) Refresh() error {
 		return err
 	}
 
-	logDebug := func(name string) {
-		if name == "ContentUnitsWatchDuration" {
-			m := dataModels.ContentUnitsWatchDuration.Datas
-			list := []*ContentUnitsWatchDuration(nil)
-			for _, v := range m {
-				list = append(list, v.(*ContentUnitsWatchDuration))
-			}
-			sort.SliceStable(list, func(i, j int) bool {
-				return list[i].Count > list[j].Count
-			})
-
-			log.Info("First 20")
-			for _, w := range list[:20] {
-				log.Infof("%+v", w)
-			}
-			log.Info("Last 20")
-			for _, w := range list[utils.MaxInt(0, len(list)-20):] {
-				log.Infof("%+v", w)
-			}
-		}
-	}
-
 	for _, dataModel := range dataModels.models {
 		if when, ok := dataModels.nextRefresh[dataModel.Name()]; !ok || when.Before(time.Now()) {
 			if err := refreshModel(dataModel); err != nil {
 				return err
 			}
-			logDebug(dataModel.Name())
 			dataModels.nextRefresh[dataModel.Name()] = time.Now().Add(dataModel.Interval())
 		}
 	}

@@ -14,8 +14,7 @@ import (
 )
 
 var (
-	DB  *sql.DB // MDB
-	CDB *sql.DB // Chronicles
+	DB *sql.DB // MDB
 )
 
 func Init() time.Time {
@@ -38,11 +37,6 @@ func InitWithDefault() time.Time {
 	boil.DebugMode = viper.GetString("server.boiler-mode") == "debug"
 	log.Info("Initializing type registries")
 	utils.Must(mdb.InitTypeRegistries(DB))
-
-	log.Info("Setting up connection to Chronicles")
-	CDB, err = sql.Open("postgres", viper.GetString("chronicles.url"))
-	utils.Must(err)
-	utils.Must(CDB.Ping())
 
 	return clock
 }
