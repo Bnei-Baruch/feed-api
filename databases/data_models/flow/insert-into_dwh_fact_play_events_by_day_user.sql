@@ -3,10 +3,11 @@ insert into dwh_fact_play_events_by_day_user
 (
   
 select 
+  max(a.event_stop_id) as event_stop_id_max,
   a.event_user_id,
   a.event_user_agent_type,
   a.event_language, 
-  cast(event_start_date as date) as event_start_date, event_unit_uid, 
+  cast(event_end_date as date) as event_end_date, event_unit_uid, 
 
   content_unit_name,
   content_unit_type_name,
@@ -26,7 +27,7 @@ select
   from (
   /** all play events only - play join stop **/
   select * from dblink('chronicles_conn', '
-    select 
+    select b.id as event_stop_id,
       a.user_id as event_user_id, 
       case when a.user_agent like ''%Mobile%'' then ''mobile'' else ''stationary'' end as event_user_agent_type,
       a.data->>''language'' as event_language,
@@ -48,9 +49,10 @@ select
     a.client_event_type=''player-play''
     /** for incremental loading **/ 
     /** and cast(a.created_at as date) between ''2021-05-01'' and ''2021-05-20'' **/
-		and a.id >= ''$prev-read-id''
+		and b.id >= ''$prev-read-id''
   ') as a(
-    event_user_id character varying(64),
+    event_stop_id character(27) COLLATE pg_catalog."POSIX", 
+	event_user_id character varying(64),
     event_user_agent_type text,
     event_language character varying,
     event_unit_uid character varying,
@@ -75,7 +77,6 @@ join
               and c.content_unit_language='he'
               )
 
-  group by cast(event_start_date as date), event_unit_uid, content_unit_name, content_unit_type_name, content_unit_created_at, content_unit_language
+  group by cast(event_end_date as date), event_unit_uid, content_unit_name, content_unit_type_name, content_unit_created_at, content_unit_language
   , event_language, event_user_id, a.event_user_agent_type
-
 )
