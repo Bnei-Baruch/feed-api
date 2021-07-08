@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS dwh_content_units_measures
     event_unit_uid               text COLLATE "default" NOT NULL,
     content_unit_type_name       character varying COLLATE "default",
     all_events_count             bigint,
-    unique_users_last10min_count bigint,
+    unique_users_curday_count    bigint,
     dwh_update_datetime          timestamp with time zone,
 
     CONSTRAINT dwh_content_units_measures_pkey PRIMARY KEY (event_unit_uid)
@@ -15,10 +15,11 @@ CREATE SEQUENCE IF NOT EXISTS dwh_fact_play_events_by_day_user_id_seq;
 DROP TABLE IF EXISTS dwh_fact_play_events_by_day_user;
 CREATE TABLE IF NOT EXISTS dwh_fact_play_events_by_day_user
 (
+    event_stop_id_max 			   character(27) COLLATE pg_catalog."POSIX" NOT NULL,
     event_user_id                  character varying COLLATE "default",
     event_user_agent_type          character varying COLLATE "default",
     event_language                 character varying COLLATE "default",
-    event_start_date               timestamp with time zone,
+    event_end_date                 timestamp with time zone,
     event_unit_uid                 text COLLATE "default",
     content_unit_name              character varying COLLATE "default",
     content_unit_type_name         character varying COLLATE "default",
