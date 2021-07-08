@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS dwh_content_units_measures
     event_unit_uid               text COLLATE "default" NOT NULL,
     content_unit_type_name       character varying COLLATE "default",
     all_events_count             bigint,
-    unique_users_last10min_count bigint,
+    unique_users_curday_count bigint,
     dwh_update_datetime          timestamp with time zone,
 
     CONSTRAINT dwh_content_units_measures_pkey PRIMARY KEY (event_unit_uid)
