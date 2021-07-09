@@ -297,6 +297,10 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 		models: models,
 	}
 
+	// Initialize sql models from existing data.
+	utils.Must(refreshModel(sqlInsertContentUnits))
+	utils.Must(refreshModel(sqlInsertEventsByDayUser))
+
 	go func() {
 		refresh := func() {
 			if err := dataModels.Refresh(); err != nil {
@@ -314,18 +318,18 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 	return dataModels
 }
 
-func (dataModels *DataModels) Refresh() error {
-	refreshModel := func(model RefreshModel) error {
-		start := time.Now()
-		err := model.Refresh()
-		end := time.Now()
-		log.Infof("Refreshed %s in %s", model.Name(), end.Sub(start))
-		if err != nil {
-			return errors.Wrap(err, model.Name())
-		}
-		return err
+func refreshModel(model RefreshModel) error {
+	start := time.Now()
+	err := model.Refresh()
+	end := time.Now()
+	log.Infof("Refreshed %s in %s", model.Name(), end.Sub(start))
+	if err != nil {
+		return errors.Wrap(err, model.Name())
 	}
+	return err
+}
 
+func (dataModels *DataModels) Refresh() error {
 	for _, dataModel := range dataModels.models {
 		if when, ok := dataModels.nextRefresh[dataModel.Name()]; !ok || when.Before(time.Now()) {
 			if err := refreshModel(dataModel); err != nil {

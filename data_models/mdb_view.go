@@ -32,11 +32,9 @@ type MdbView struct {
 
 func MakeMdbView(local *sql.DB, remote *sql.DB) *MdbView {
 	tables := createTablesInfo()
-	go func() {
-		if !events.DebugMode {
-			utils.Must(syncLocalMdb(tables, local, remote))
-		}
-	}()
+	if !events.DebugMode {
+		utils.Must(syncLocalMdb(tables, local, remote))
+	}
 
 	return &MdbView{
 		remote,
