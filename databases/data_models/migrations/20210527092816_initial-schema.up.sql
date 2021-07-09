@@ -4,36 +4,26 @@ CREATE TABLE IF NOT EXISTS dwh_content_units_measures
     event_unit_uid               text COLLATE "default" NOT NULL,
     content_unit_type_name       character varying COLLATE "default",
     all_events_count             bigint,
-    unique_users_curday_count    bigint,
+    unique_users_last10min_count bigint,
     dwh_update_datetime          timestamp with time zone,
 
     CONSTRAINT dwh_content_units_measures_pkey PRIMARY KEY (event_unit_uid)
 );
 
-CREATE SEQUENCE IF NOT EXISTS dwh_fact_play_events_by_day_user_id_seq;
 
-DROP TABLE IF EXISTS dwh_fact_play_events_by_day_user;
-CREATE TABLE IF NOT EXISTS dwh_fact_play_events_by_day_user
+DROP TABLE IF EXISTS dwh_fact_play_units_by_minutes;
+CREATE TABLE IF NOT EXISTS dwh_fact_play_units_by_minutes
 (
-    event_stop_id_max 			   character(27) COLLATE pg_catalog."POSIX" NOT NULL,
-    event_user_id                  character varying COLLATE "default",
-    event_user_agent_type          character varying COLLATE "default",
-    event_language                 character varying COLLATE "default",
-    event_end_date                 timestamp with time zone,
-    event_unit_uid                 text COLLATE "default",
-    content_unit_name              character varying COLLATE "default",
-    content_unit_type_name         character varying COLLATE "default",
-    content_unit_created_at        timestamp with time zone,
-    content_unit_language          character varying COLLATE "default",
-    content_unit_duration          numeric,
-    event_duration_sec             double precision,
-    event_current_duration_sec     double precision,
-    event_of_unit_duration_percent double precision,
-    event_count                    bigint,
-    dwh_update_datetime            timestamp with time zone,
-    id                             integer NOT NULL DEFAULT nextval('dwh_fact_play_events_by_day_user_id_seq'::regclass),
-
-    CONSTRAINT dwh_fact_play_events_by_day_user_pkey PRIMARY KEY (id)
+  event_unit_uid text COLLATE "default",, 
+  event_user_id character varying COLLATE "default",
+  event_language character varying COLLATE "default", 
+  event_user_agent_type character varying COLLATE "default",
+  event_end_minute timestamp with time zone,
+  event_end_id_max character(27) COLLATE pg_catalog."POSIX" NOT NULL,
+  event_count bigint,
+  event_duration_sec_sum double precision,
+  dwh_update_datetime timestamp with time zone,
+  CONSTRAINT dwh_fact_play_units_by_minutes PRIMARY KEY (event_end_id_max)
 )
 WITH (
     OIDS = FALSE
