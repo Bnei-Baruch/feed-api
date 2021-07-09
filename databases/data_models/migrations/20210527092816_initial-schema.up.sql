@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS dwh_content_units_measures
 DROP TABLE IF EXISTS dwh_fact_play_units_by_minutes;
 CREATE TABLE IF NOT EXISTS dwh_fact_play_units_by_minutes
 (
-  event_unit_uid text COLLATE "default",, 
+  event_unit_uid text COLLATE "default", 
   event_user_id character varying COLLATE "default",
   event_language character varying COLLATE "default", 
   event_user_agent_type character varying COLLATE "default",
