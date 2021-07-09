@@ -1,7 +1,3 @@
---run:
---CREATE EXTENSION dblink;
---select dblink_connect('mdb_conn', 'dbname=mdb user=postgres password=YjQ0MD');
-
 truncate table dwh_dim_content_units;
 insert into dwh_dim_content_units
 (

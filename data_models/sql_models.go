@@ -1,24 +1,24 @@
 package data_models
 
 import (
+	"context"
 	"database/sql"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/Bnei-Baruch/feed-api/databases/data_models/models"
 	"github.com/Bnei-Baruch/feed-api/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/queries"
+	"github.com/volatiletech/sqlboiler/queries/qm"
 )
 
-type ReadIdFunc func() string
-
 type SqlModels struct {
-	localChroniclesDb *sql.DB
-	modelsDb          *sql.DB
-	prevReadIdFunc    ReadIdFunc
+	modelsDb *sql.DB
 
 	sqlFiles []string
 	sqls     []string
@@ -36,12 +36,12 @@ func LoadSqls(path string, files []string) ([]string, error) {
 	return sqls, nil
 }
 
-func MakeSqlModels(sqlFiles []string, cDb *sql.DB, modelsDb *sql.DB, prevReadIdFunc ReadIdFunc) *SqlModels {
+func MakeSqlModels(sqlFiles []string, modelsDb *sql.DB) *SqlModels {
 	sqlsPath := viper.GetString("data_models.sqls_path")
 	sqls, err := LoadSqls(sqlsPath, sqlFiles)
 	utils.Must(err)
 
-	return &SqlModels{cDb, modelsDb, prevReadIdFunc, sqlFiles, sqls}
+	return &SqlModels{modelsDb, sqlFiles, sqls}
 }
 
 func (cm *SqlModels) Name() string {
@@ -51,9 +51,19 @@ func (cm *SqlModels) Name() string {
 func (cm *SqlModels) Refresh() error {
 	log.Info("Update sql models.")
 	params := make(map[string]string)
-	if cm.prevReadIdFunc != nil {
-		params["$prev-read-id"] = cm.prevReadIdFunc()
+
+	minutesPrevEndReadId := []struct {
+		IdMax null.String `boil:"id_max"`
+	}(nil)
+	if err := models.NewQuery(qm.Select("max(event_end_id_max) as id_max"), qm.From("dwh_fact_play_units_by_minutes")).Bind(context.TODO(), cm.modelsDb, &minutesPrevEndReadId); err != nil {
+		return err
 	}
+	if len(minutesPrevEndReadId) == 1 && minutesPrevEndReadId[0].IdMax.Valid {
+		params["$minutes-prev-read-id"] = minutesPrevEndReadId[0].IdMax.String
+	} else {
+		params["$minutes-read-id"] = ""
+	}
+
 	for i, sql := range cm.sqls {
 		//log.Infof("Before %s", sql)
 		for param, value := range params {

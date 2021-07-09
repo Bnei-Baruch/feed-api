@@ -142,8 +142,8 @@ const (
 		order by a.created_at;`
 
 	INSERT_CONTENT_UNITS          = "insert-into_dwh_dim_content_units.sql"
-	INSERT_EVENTS_BY_DAY_USER     = "insert-into_dwh_fact_play_events_by_day_user.sql"
 	INSERT_CONTENT_UNITS_MEASURES = "insert-into_dwh_content_units_measures.sql"
+	INSERT_EVENTS_BY_MINUTES      = "insert-into_dwh_fact_play_units_by_minutes.sql"
 )
 
 type ContentUnitInfo struct {
@@ -261,8 +261,8 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 	cui := MakeMDBDataModel(localMDB, "ContentUnitsInfo", time.Duration(time.Minute*10), fmt.Sprintf(CONTENT_UNITS_INFO_SQL, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID), ScanContentUnitInfo)
 	ci := MakeMDBDataModel(localMDB, "CollectionsInfo", time.Duration(time.Minute*10), COLLECTIONS_INFO_SQL, ScanCollectionInfo)
 	cwm := MakeChroniclesWindowModel(cDb, chroniclesUrl)
-	sqlInsertContentUnits := MakeSqlModels([]string{INSERT_CONTENT_UNITS}, cDb, modelsDb, nil)
-	sqlInsertEventsByDayUser := MakeSqlModels([]string{INSERT_EVENTS_BY_DAY_USER, INSERT_CONTENT_UNITS_MEASURES}, cDb, modelsDb, func() string { return cwm.PrevReadId() })
+	sqlInsertContentUnits := MakeSqlModels([]string{INSERT_CONTENT_UNITS}, modelsDb)
+	sqlInsertEventsByDayUser := MakeSqlModels([]string{INSERT_EVENTS_BY_MINUTES /*, INSERT_CONTENT_UNITS_MEASURES*/}, modelsDb)
 
 	models := []RefreshModel{
 		MakeChainModels([]RefreshModel{mv, sqlInsertContentUnits}),
@@ -297,6 +297,10 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 		models: models,
 	}
 
+	// Initialize sql models from existing data.
+	utils.Must(refreshModel(sqlInsertContentUnits))
+	utils.Must(refreshModel(sqlInsertEventsByDayUser))
+
 	go func() {
 		refresh := func() {
 			if err := dataModels.Refresh(); err != nil {
@@ -314,18 +318,18 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 	return dataModels
 }
 
-func (dataModels *DataModels) Refresh() error {
-	refreshModel := func(model RefreshModel) error {
-		start := time.Now()
-		err := model.Refresh()
-		end := time.Now()
-		log.Infof("Refreshed %s in %s", model.Name(), end.Sub(start))
-		if err != nil {
-			return errors.Wrap(err, model.Name())
-		}
-		return err
+func refreshModel(model RefreshModel) error {
+	start := time.Now()
+	err := model.Refresh()
+	end := time.Now()
+	log.Infof("Refreshed %s in %s", model.Name(), end.Sub(start))
+	if err != nil {
+		return errors.Wrap(err, model.Name())
 	}
+	return err
+}
 
+func (dataModels *DataModels) Refresh() error {
 	for _, dataModel := range dataModels.models {
 		if when, ok := dataModels.nextRefresh[dataModel.Name()]; !ok || when.Before(time.Now()) {
 			if err := refreshModel(dataModel); err != nil {

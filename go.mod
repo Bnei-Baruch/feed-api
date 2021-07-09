@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0 // indirect
+	github.com/ericlagergren/decimal v0.0.0-20210307182354-5f8425a47c58 // indirect
 	github.com/friendsofgo/errors v0.9.2
 	github.com/gin-contrib/cors v1.3.0
 	github.com/gin-gonic/gin v1.5.0

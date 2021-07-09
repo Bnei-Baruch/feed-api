@@ -14,16 +14,17 @@ CREATE TABLE IF NOT EXISTS dwh_content_units_measures
 DROP TABLE IF EXISTS dwh_fact_play_units_by_minutes;
 CREATE TABLE IF NOT EXISTS dwh_fact_play_units_by_minutes
 (
-  event_unit_uid text COLLATE "default", 
-  event_user_id character varying COLLATE "default",
-  event_language character varying COLLATE "default", 
-  event_user_agent_type character varying COLLATE "default",
-  event_end_minute timestamp with time zone,
-  event_end_id_max character(27) COLLATE pg_catalog."POSIX" NOT NULL,
-  event_count bigint,
+  event_unit_uid         text COLLATE "default", 
+  event_user_id          character varying COLLATE "default",
+  event_language         character varying COLLATE "default", 
+  event_user_agent_type  character varying COLLATE "default",
+  event_end_minute       timestamp with time zone,
+  event_end_id_max       character(27) COLLATE "POSIX" NOT NULL,
+  event_count            bigint,
   event_duration_sec_sum double precision,
-  dwh_update_datetime timestamp with time zone,
-  CONSTRAINT dwh_fact_play_units_by_minutes PRIMARY KEY (event_end_id_max)
+  dwh_update_datetime    timestamp with time zone,
+
+  CONSTRAINT dwh_fact_play_units_by_minutes_pkey PRIMARY KEY (event_end_id_max)
 )
 WITH (
     OIDS = FALSE
@@ -44,3 +45,4 @@ CREATE TABLE IF NOT EXISTS dwh_dim_content_units
 
     CONSTRAINT dwh_dim_content_units_pkey PRIMARY KEY (content_unit_uid, content_unit_language)
 );
+

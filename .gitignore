@@ -5,6 +5,7 @@
 *.swo
 *.swn
 config.toml
+sqlboiler.toml
 
 feed-api
 feed-api-linux*
