@@ -7,8 +7,9 @@ select
 
 event_unit_uid, 
 content_unit_type_name, 
-sum(event_count) as all_events_count,
+count(event_end_id_max) as all_events_count,
 count(distinct case when event_end_minute>= event_end_minute_max - (10* interval '1 minute') then event_user_id else null end) as unique_users_last10min_count,
+count(distinct event_user_id) as unique_users_count,	
 NOW() as dwh_update_datetime
 
 from public.dwh_fact_play_units_by_minutes f join dwh_dim_content_units d on (f.event_unit_uid=d.content_unit_uid)
