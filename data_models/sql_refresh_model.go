@@ -3,6 +3,7 @@ package data_models
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -17,7 +18,7 @@ import (
 	"github.com/volatiletech/sqlboiler/queries/qm"
 )
 
-type SqlModels struct {
+type SqlRefreshModel struct {
 	modelsDb *sql.DB
 
 	sqlFiles []string
@@ -36,19 +37,19 @@ func LoadSqls(path string, files []string) ([]string, error) {
 	return sqls, nil
 }
 
-func MakeSqlModels(sqlFiles []string, modelsDb *sql.DB) *SqlModels {
+func MakeSqlRefreshModel(sqlFiles []string, modelsDb *sql.DB) *SqlRefreshModel {
 	sqlsPath := viper.GetString("data_models.sqls_path")
 	sqls, err := LoadSqls(sqlsPath, sqlFiles)
 	utils.Must(err)
 
-	return &SqlModels{modelsDb, sqlFiles, sqls}
+	return &SqlRefreshModel{modelsDb, sqlFiles, sqls}
 }
 
-func (cm *SqlModels) Name() string {
-	return "SqlModels"
+func (cm *SqlRefreshModel) Name() string {
+	return "SqlRefreshModel"
 }
 
-func (cm *SqlModels) Refresh() error {
+func (cm *SqlRefreshModel) Refresh() error {
 	log.Info("Update sql models.")
 	params := make(map[string]string)
 
@@ -70,6 +71,7 @@ func (cm *SqlModels) Refresh() error {
 			sql = strings.ReplaceAll(sql, param, value)
 		}
 		//log.Infof("After %s", sql)
+		start := time.Now()
 		log.Infof("Running %s", cm.sqlFiles[i])
 		if result, err := queries.Raw(sql).Exec(cm.modelsDb); err != nil {
 			log.Warnf("Error running sqls: %+v", err)
@@ -77,11 +79,12 @@ func (cm *SqlModels) Refresh() error {
 		} else {
 			log.Infof("Updated sql %s, result: %+v", cm.sqlFiles[i], result)
 		}
+		utils.Profile(fmt.Sprintf("SqlDataModel: %s", cm.sqlFiles[i]), time.Now().Sub(start))
 	}
 	return nil
 }
 
-func (cm *SqlModels) Interval() time.Duration {
+func (cm *SqlRefreshModel) Interval() time.Duration {
 	// This should not be used - run automatically after chronicles window.
 	return time.Second
 }

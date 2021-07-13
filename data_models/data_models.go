@@ -244,8 +244,9 @@ type DataModels struct {
 	CollectionsInfo *MDBDataModel
 
 	ChroniclesWindowModel    *ChroniclesWindowModel
-	SqlInsertContentUnits    *SqlModels
-	SqlInsertEventsByDayUser *SqlModels
+	SqlInsertContentUnits    *SqlRefreshModel
+	SqlInsertEventsByDayUser *SqlRefreshModel
+	SqlDataModel             *SqlDataModel
 
 	models []RefreshModel
 }
@@ -261,8 +262,9 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 	cui := MakeMDBDataModel(localMDB, "ContentUnitsInfo", time.Duration(time.Minute*10), fmt.Sprintf(CONTENT_UNITS_INFO_SQL, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID), ScanContentUnitInfo)
 	ci := MakeMDBDataModel(localMDB, "CollectionsInfo", time.Duration(time.Minute*10), COLLECTIONS_INFO_SQL, ScanCollectionInfo)
 	cwm := MakeChroniclesWindowModel(cDb, chroniclesUrl)
-	sqlInsertContentUnits := MakeSqlModels([]string{INSERT_CONTENT_UNITS}, modelsDb)
-	sqlInsertEventsByDayUser := MakeSqlModels([]string{INSERT_EVENTS_BY_MINUTES /*, INSERT_CONTENT_UNITS_MEASURES*/}, modelsDb)
+	sqlInsertContentUnits := MakeSqlRefreshModel([]string{INSERT_CONTENT_UNITS}, modelsDb)
+	sqlInsertEventsByDayUser := MakeSqlRefreshModel([]string{INSERT_EVENTS_BY_MINUTES, INSERT_CONTENT_UNITS_MEASURES}, modelsDb)
+	sqlDataModel := MakeSqlDataModel(modelsDb)
 
 	models := []RefreshModel{
 		MakeChainModels([]RefreshModel{mv, sqlInsertContentUnits}),
@@ -293,6 +295,7 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 		ChroniclesWindowModel:         cwm,
 		SqlInsertContentUnits:         sqlInsertContentUnits,
 		SqlInsertEventsByDayUser:      sqlInsertEventsByDayUser,
+		SqlDataModel:                  sqlDataModel,
 
 		models: models,
 	}

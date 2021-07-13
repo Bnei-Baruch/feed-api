@@ -2,7 +2,6 @@ package api
 
 import (
 	"database/sql"
-	"errors"
 
 	// "encoding/json"
 	"net/http"
@@ -57,6 +56,31 @@ func handleMore(suggesterContext core.SuggesterContext, r core.MoreRequest) (*Mo
 	}
 }
 
+// Watching Now
+type WatchingNowRequest struct {
+	Uids []string `json:"uids,omitempty" form:"uids,omitempty"`
+}
+
+type WatchingNowResponse struct {
+	WatchingNow []int64 `json:"watching_now,omitempty" form:"watching_now,omitempty"`
+}
+
+func WatchingNowHandler(c *gin.Context) {
+	r := WatchingNowRequest{}
+	if c.Bind(&r) != nil {
+		return
+	}
+
+	dm := c.MustGet("DATA_MODELS").(*data_models.DataModels)
+	resp := WatchingNowResponse{}
+	if watchingNow, err := dm.SqlDataModel.WatchingNow(r.Uids); err != nil {
+		concludeRequest(c, resp, NewInternalError(err))
+	} else {
+		resp.WatchingNow = watchingNow
+		concludeRequest(c, resp, nil)
+	}
+}
+
 // Views
 type ViewsRequest struct {
 	Uids []string `json:"uids,omitempty" form:"uids,omitempty"`
@@ -72,8 +96,14 @@ func ViewsHandler(c *gin.Context) {
 		return
 	}
 
+	dm := c.MustGet("DATA_MODELS").(*data_models.DataModels)
 	resp := ViewsResponse{}
-	concludeRequest(c, resp, NewInternalError(errors.New("Not Implemented")))
+	if views, err := dm.SqlDataModel.Views(r.Uids); err != nil {
+		concludeRequest(c, resp, NewInternalError(err))
+	} else {
+		resp.Views = views
+		concludeRequest(c, resp, nil)
+	}
 }
 
 // Recommend
@@ -118,6 +148,7 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 		var err error
 		recommend, err = recommendations.MakeRecommender(suggesterContext)
 		if err != nil {
+
 			return nil, NewInternalError(err)
 		}
 	} else if r.Options.Specs == nil {
@@ -168,13 +199,26 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 	//		}
 	//	}
 
+	skipUidsMap := make(map[string]bool)
+	for _, uid := range r.Options.SkipUids {
+		skipUidsMap[uid] = true
+	}
+
 	if len(recommends) > 0 {
 		res := &MoreResponse{}
 		for i, rec := range recommends {
 			start := time.Now()
+			skipUids := []string(nil)
+			for uid, _ := range skipUidsMap {
+				skipUids = append(skipUids, uid)
+			}
+			r.Options.SkipUids = skipUids
 			if cis, err := rec.Recommend(r); err != nil {
 				return nil, NewInternalError(err)
 			} else {
+				for _, ci := range cis {
+					skipUidsMap[ci.UID] = true
+				}
 				log.Infof("cis: %+v", cis)
 				log.Infof("Recommend[%d]: %+v", i, time.Now().Sub(start))
 				utils.PrintProfile(true)

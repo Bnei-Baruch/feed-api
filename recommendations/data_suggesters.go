@@ -168,6 +168,20 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 			case core.SameSource:
 				suggesterNameParts = append(suggesterNameParts, ";SameSource:[", strings.Join(filter.Args, ","), "]")
 				uids = utils.IntersectSorted(uids, dm.SourcesContentUnitsFilter.FilterValues(recommendInfo.Sources))
+			case core.WatchingNowFilter:
+				suggesterNameParts = append(suggesterNameParts, ";WatchingNowFilter:[", strings.Join(filter.Args, ","), "]")
+				if watchingNow, err := dm.SqlDataModel.AllWatchingNow(); err != nil {
+					return nil, err
+				} else {
+					watchingNowUids := []string(nil)
+					for uid, count := range watchingNow {
+						if count > 0 {
+							watchingNowUids = append(watchingNowUids, uid)
+						}
+					}
+					sort.Strings(watchingNowUids)
+					uids = utils.IntersectSorted(uids, watchingNowUids)
+				}
 			default:
 				log.Errorf("Did not expect filter selector enum %d", filter.FilterSelector)
 			}
@@ -216,7 +230,15 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 			rand.Seed(time.Now().UnixNano())
 			rand.Shuffle(len(uids), func(i, j int) { uids[i], uids[j] = uids[j], uids[i] })
 		case core.Popular:
-			return nil, errors.New("Not Implemented")
+			suggesterNameParts = append(suggesterNameParts, ";Popular")
+			if err := dm.SqlDataModel.SortPopular(uids); err != nil {
+				return nil, err
+			}
+		case core.WatchingNow:
+			suggesterNameParts = append(suggesterNameParts, ";WatchingNow")
+			if err := dm.SqlDataModel.SortWatchingNow(uids); err != nil {
+				return nil, err
+			}
 		}
 		ret := []core.ContentItem(nil)
 		if request.MoreItems <= 0 {

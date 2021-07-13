@@ -33,7 +33,9 @@ type MdbView struct {
 func MakeMdbView(local *sql.DB, remote *sql.DB) *MdbView {
 	tables := createTablesInfo()
 	if !events.DebugMode {
-		utils.Must(syncLocalMdb(tables, local, remote))
+		go func() {
+			utils.Must(syncLocalMdb(tables, local, remote))
+		}()
 	}
 
 	return &MdbView{
@@ -982,8 +984,6 @@ func applyScope(scope map[string]*ScopeIds, tables []TableInfo, local *sql.DB, r
 			} else {
 				log.Infof("Deleted %d from %s", deleted, info.Name)
 			}
-		} else {
-			log.Infof("No ids for %s", info.Name)
 		}
 	}
 	log.Infof("Inserting...")
@@ -995,8 +995,6 @@ func applyScope(scope map[string]*ScopeIds, tables []TableInfo, local *sql.DB, r
 			} else {
 				log.Infof("Inserted %d to %s", inserted, info.Name)
 			}
-		} else {
-			log.Infof("No ids for %s", info.Name)
 		}
 	}
 	log.Infof("Finished syncing all tables.")
