@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/Bnei-Baruch/sqlboiler/queries"
+	"github.com/volatiletech/sqlboiler/queries"
 	"github.com/pkg/errors"
 
 	"github.com/Bnei-Baruch/feed-api/core"
-	"github.com/Bnei-Baruch/feed-api/mdb"
+	"github.com/Bnei-Baruch/feed-api/databases/mdb"
 )
 
 type ContentTypeSuggester struct {
@@ -65,13 +65,13 @@ func (s *ContentTypeSuggester) More(request core.MoreRequest) ([]core.ContentIte
 	if request.Options.Recommend.Uid == "" {
 		return []core.ContentItem(nil), nil
 	}
-	rows, err := queries.Raw(s.db, fmt.Sprintf(`
+	rows, err := queries.Raw(fmt.Sprintf(`
 		select cu.type_id
 		from
 		  content_units as cu
 		where
 		  cu.uid = '%s'
-	`, request.Options.Recommend.Uid)).Query()
+	`, request.Options.Recommend.Uid)).Query(s.db)
 	if err != nil {
 		return nil, err
 	}

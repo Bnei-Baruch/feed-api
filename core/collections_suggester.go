@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Bnei-Baruch/sqlboiler/queries"
+	"github.com/volatiletech/sqlboiler/queries"
 	"github.com/pkg/errors"
 
-	"github.com/Bnei-Baruch/feed-api/mdb"
+	"github.com/Bnei-Baruch/feed-api/databases/mdb"
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
@@ -161,7 +161,7 @@ func (suggester *CollectionSuggester) fetchCollection(currentLessonUIDs []string
 		mdb.CONTENT_TYPE_REGISTRY.ByName[suggester.contentType].ID,
 		COLLECTIONS_BY_FIRST_CONTENT_UNIT_CLAUSE,
 		moreItems)
-	rows, err := queries.Raw(suggester.db, query).Query()
+	rows, err := queries.Raw(query).Query(suggester.db)
 	if err != nil {
 		return nil, err
 	}

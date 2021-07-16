@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/Bnei-Baruch/sqlboiler/queries"
+	"github.com/volatiletech/sqlboiler/queries"
 
 	"github.com/Bnei-Baruch/feed-api/core"
-	"github.com/Bnei-Baruch/feed-api/mdb"
+	"github.com/Bnei-Baruch/feed-api/databases/mdb"
 )
 
 type GenerateSqlFunc func(request core.MoreRequest) string
@@ -23,7 +23,7 @@ func (s *SqlSuggester) More(request core.MoreRequest) ([]core.ContentItem, error
 	if query == "" {
 		return []core.ContentItem(nil), nil
 	}
-	rows, err := queries.Raw(s.db, query).Query()
+	rows, err := queries.Raw(query).Query(s.db)
 	if err != nil {
 		return nil, err
 	}

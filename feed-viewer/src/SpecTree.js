@@ -18,6 +18,7 @@ const TIME_SELECTOR_OPTIONS = [
   {key: "Prev", text: "Prev", value: 2, disabled: COLLECTIONS_SUGGESTERS},
   {key: "Rand", text: "Rand", value: 3},
   {key: "Popular", text: "Popular", value: 4, disabled: ['NewCollectionsSuggester', 'NewContentUnitsSuggester', 'DataCollectionsSuggester']},
+  {key: "WatchingNow", text: "WatchingNow", value: 5, disabled: ['NewCollectionsSuggester', 'NewContentUnitsSuggester', 'DataCollectionsSuggester']},
 ];
 
 const FITLER_SELECTOR_UNIT_CONTENT_TYPES = 0;
@@ -28,6 +29,7 @@ const FILTER_SELECTOR_COLLECTIONS = 4;
 const FITLER_SELECTOR_SAME_TAG = 5;
 const FILTER_SELECTOR_SAME_SOURCE = 6;
 const FILTER_SELECTOR_SAME_COLLECTION = 7;
+const FILTER_WATCHING_NOW = 8;
 
 const FILTER_SELECTOR_OPTIONS = [
   {key: FITLER_SELECTOR_UNIT_CONTENT_TYPES, text: "UnitContentTypes", value: FITLER_SELECTOR_UNIT_CONTENT_TYPES, disabled: COLLECTIONS_SUGGESTERS},
@@ -38,6 +40,7 @@ const FILTER_SELECTOR_OPTIONS = [
   {key: FITLER_SELECTOR_SAME_TAG, text: "SameTag", value: FITLER_SELECTOR_SAME_TAG, disabled: COLLECTIONS_SUGGESTERS},
   {key: FILTER_SELECTOR_SAME_SOURCE, text: "SameSource", value: FILTER_SELECTOR_SAME_SOURCE, disabled: COLLECTIONS_SUGGESTERS},
   {key: FILTER_SELECTOR_SAME_COLLECTION, text: "SameCollection", value: FILTER_SELECTOR_SAME_COLLECTION},
+  {key: FILTER_WATCHING_NOW, text: "WatchingNowFilter", value: FILTER_WATCHING_NOW},
 ];
 
 const SUGGESTERS = [
