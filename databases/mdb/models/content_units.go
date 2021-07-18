@@ -4,7 +4,6 @@
 package models
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -160,12 +159,12 @@ var (
 )
 
 // One returns a single contentUnit record from the query.
-func (q contentUnitQuery) One(ctx context.Context, exec boil.ContextExecutor) (*ContentUnit, error) {
+func (q contentUnitQuery) One(exec boil.Executor) (*ContentUnit, error) {
 	o := &ContentUnit{}
 
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Bind(ctx, exec, o)
+	err := q.Bind(nil, exec, o)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -177,10 +176,10 @@ func (q contentUnitQuery) One(ctx context.Context, exec boil.ContextExecutor) (*
 }
 
 // All returns all ContentUnit records from the query.
-func (q contentUnitQuery) All(ctx context.Context, exec boil.ContextExecutor) (ContentUnitSlice, error) {
+func (q contentUnitQuery) All(exec boil.Executor) (ContentUnitSlice, error) {
 	var o []*ContentUnit
 
-	err := q.Bind(ctx, exec, &o)
+	err := q.Bind(nil, exec, &o)
 	if err != nil {
 		return nil, errors.Wrap(err, "models: failed to assign all query results to ContentUnit slice")
 	}
@@ -189,13 +188,13 @@ func (q contentUnitQuery) All(ctx context.Context, exec boil.ContextExecutor) (C
 }
 
 // Count returns the count of all ContentUnit records in the query.
-func (q contentUnitQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q contentUnitQuery) Count(exec boil.Executor) (int64, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: failed to count content_units rows")
 	}
@@ -204,14 +203,14 @@ func (q contentUnitQuery) Count(ctx context.Context, exec boil.ContextExecutor) 
 }
 
 // Exists checks if the row exists in the table.
-func (q contentUnitQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+func (q contentUnitQuery) Exists(exec boil.Executor) (bool, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return false, errors.Wrap(err, "models: failed to check if content_units exists")
 	}
@@ -427,7 +426,7 @@ func (o *ContentUnit) Files(mods ...qm.QueryMod) fileQuery {
 
 // LoadType allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (contentUnitL) LoadType(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
+func (contentUnitL) LoadType(e boil.Executor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
 	var slice []*ContentUnit
 	var object *ContentUnit
 
@@ -471,7 +470,7 @@ func (contentUnitL) LoadType(ctx context.Context, e boil.ContextExecutor, singul
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load ContentType")
 	}
@@ -520,7 +519,7 @@ func (contentUnitL) LoadType(ctx context.Context, e boil.ContextExecutor, singul
 
 // LoadCollectionsContentUnits allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (contentUnitL) LoadCollectionsContentUnits(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
+func (contentUnitL) LoadCollectionsContentUnits(e boil.Executor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
 	var slice []*ContentUnit
 	var object *ContentUnit
 
@@ -562,7 +561,7 @@ func (contentUnitL) LoadCollectionsContentUnits(ctx context.Context, e boil.Cont
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load collections_content_units")
 	}
@@ -608,7 +607,7 @@ func (contentUnitL) LoadCollectionsContentUnits(ctx context.Context, e boil.Cont
 
 // LoadDerivedContentUnitDerivations allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (contentUnitL) LoadDerivedContentUnitDerivations(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
+func (contentUnitL) LoadDerivedContentUnitDerivations(e boil.Executor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
 	var slice []*ContentUnit
 	var object *ContentUnit
 
@@ -650,7 +649,7 @@ func (contentUnitL) LoadDerivedContentUnitDerivations(ctx context.Context, e boi
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load content_unit_derivations")
 	}
@@ -696,7 +695,7 @@ func (contentUnitL) LoadDerivedContentUnitDerivations(ctx context.Context, e boi
 
 // LoadSourceContentUnitDerivations allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (contentUnitL) LoadSourceContentUnitDerivations(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
+func (contentUnitL) LoadSourceContentUnitDerivations(e boil.Executor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
 	var slice []*ContentUnit
 	var object *ContentUnit
 
@@ -738,7 +737,7 @@ func (contentUnitL) LoadSourceContentUnitDerivations(ctx context.Context, e boil
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load content_unit_derivations")
 	}
@@ -784,7 +783,7 @@ func (contentUnitL) LoadSourceContentUnitDerivations(ctx context.Context, e boil
 
 // LoadContentUnitI18ns allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (contentUnitL) LoadContentUnitI18ns(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
+func (contentUnitL) LoadContentUnitI18ns(e boil.Executor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
 	var slice []*ContentUnit
 	var object *ContentUnit
 
@@ -826,7 +825,7 @@ func (contentUnitL) LoadContentUnitI18ns(ctx context.Context, e boil.ContextExec
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load content_unit_i18n")
 	}
@@ -872,7 +871,7 @@ func (contentUnitL) LoadContentUnitI18ns(ctx context.Context, e boil.ContextExec
 
 // LoadContentUnitsPersons allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (contentUnitL) LoadContentUnitsPersons(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
+func (contentUnitL) LoadContentUnitsPersons(e boil.Executor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
 	var slice []*ContentUnit
 	var object *ContentUnit
 
@@ -914,7 +913,7 @@ func (contentUnitL) LoadContentUnitsPersons(ctx context.Context, e boil.ContextE
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load content_units_persons")
 	}
@@ -960,7 +959,7 @@ func (contentUnitL) LoadContentUnitsPersons(ctx context.Context, e boil.ContextE
 
 // LoadPublishers allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (contentUnitL) LoadPublishers(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
+func (contentUnitL) LoadPublishers(e boil.Executor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
 	var slice []*ContentUnit
 	var object *ContentUnit
 
@@ -1007,7 +1006,7 @@ func (contentUnitL) LoadPublishers(ctx context.Context, e boil.ContextExecutor, 
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load publishers")
 	}
@@ -1068,7 +1067,7 @@ func (contentUnitL) LoadPublishers(ctx context.Context, e boil.ContextExecutor, 
 
 // LoadSources allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (contentUnitL) LoadSources(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
+func (contentUnitL) LoadSources(e boil.Executor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
 	var slice []*ContentUnit
 	var object *ContentUnit
 
@@ -1115,7 +1114,7 @@ func (contentUnitL) LoadSources(ctx context.Context, e boil.ContextExecutor, sin
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load sources")
 	}
@@ -1176,7 +1175,7 @@ func (contentUnitL) LoadSources(ctx context.Context, e boil.ContextExecutor, sin
 
 // LoadTags allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (contentUnitL) LoadTags(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
+func (contentUnitL) LoadTags(e boil.Executor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
 	var slice []*ContentUnit
 	var object *ContentUnit
 
@@ -1223,7 +1222,7 @@ func (contentUnitL) LoadTags(ctx context.Context, e boil.ContextExecutor, singul
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load tags")
 	}
@@ -1284,7 +1283,7 @@ func (contentUnitL) LoadTags(ctx context.Context, e boil.ContextExecutor, singul
 
 // LoadFiles allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (contentUnitL) LoadFiles(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
+func (contentUnitL) LoadFiles(e boil.Executor, singular bool, maybeContentUnit interface{}, mods queries.Applicator) error {
 	var slice []*ContentUnit
 	var object *ContentUnit
 
@@ -1326,7 +1325,7 @@ func (contentUnitL) LoadFiles(ctx context.Context, e boil.ContextExecutor, singu
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load files")
 	}
@@ -1373,10 +1372,10 @@ func (contentUnitL) LoadFiles(ctx context.Context, e boil.ContextExecutor, singu
 // SetType of the contentUnit to the related item.
 // Sets o.R.Type to related.
 // Adds o to related.R.TypeContentUnits.
-func (o *ContentUnit) SetType(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ContentType) error {
+func (o *ContentUnit) SetType(exec boil.Executor, insert bool, related *ContentType) error {
 	var err error
 	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
 			return errors.Wrap(err, "failed to insert into foreign table")
 		}
 	}
@@ -1388,12 +1387,11 @@ func (o *ContentUnit) SetType(ctx context.Context, exec boil.ContextExecutor, in
 	)
 	values := []interface{}{related.ID, o.ID}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -1421,12 +1419,12 @@ func (o *ContentUnit) SetType(ctx context.Context, exec boil.ContextExecutor, in
 // of the content_unit, optionally inserting them as new records.
 // Appends related to o.R.CollectionsContentUnits.
 // Sets related.R.ContentUnit appropriately.
-func (o *ContentUnit) AddCollectionsContentUnits(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*CollectionsContentUnit) error {
+func (o *ContentUnit) AddCollectionsContentUnits(exec boil.Executor, insert bool, related ...*CollectionsContentUnit) error {
 	var err error
 	for _, rel := range related {
 		if insert {
 			rel.ContentUnitID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
@@ -1437,12 +1435,11 @@ func (o *ContentUnit) AddCollectionsContentUnits(ctx context.Context, exec boil.
 			)
 			values := []interface{}{o.ID, rel.CollectionID, rel.ContentUnitID}
 
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
+			if boil.DebugMode {
+				fmt.Fprintln(boil.DebugWriter, updateQuery)
+				fmt.Fprintln(boil.DebugWriter, values)
 			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			if _, err = exec.Exec(updateQuery, values...); err != nil {
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
@@ -1474,12 +1471,12 @@ func (o *ContentUnit) AddCollectionsContentUnits(ctx context.Context, exec boil.
 // of the content_unit, optionally inserting them as new records.
 // Appends related to o.R.DerivedContentUnitDerivations.
 // Sets related.R.Derived appropriately.
-func (o *ContentUnit) AddDerivedContentUnitDerivations(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ContentUnitDerivation) error {
+func (o *ContentUnit) AddDerivedContentUnitDerivations(exec boil.Executor, insert bool, related ...*ContentUnitDerivation) error {
 	var err error
 	for _, rel := range related {
 		if insert {
 			rel.DerivedID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
@@ -1490,12 +1487,11 @@ func (o *ContentUnit) AddDerivedContentUnitDerivations(ctx context.Context, exec
 			)
 			values := []interface{}{o.ID, rel.SourceID, rel.DerivedID}
 
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
+			if boil.DebugMode {
+				fmt.Fprintln(boil.DebugWriter, updateQuery)
+				fmt.Fprintln(boil.DebugWriter, values)
 			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			if _, err = exec.Exec(updateQuery, values...); err != nil {
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
@@ -1527,12 +1523,12 @@ func (o *ContentUnit) AddDerivedContentUnitDerivations(ctx context.Context, exec
 // of the content_unit, optionally inserting them as new records.
 // Appends related to o.R.SourceContentUnitDerivations.
 // Sets related.R.Source appropriately.
-func (o *ContentUnit) AddSourceContentUnitDerivations(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ContentUnitDerivation) error {
+func (o *ContentUnit) AddSourceContentUnitDerivations(exec boil.Executor, insert bool, related ...*ContentUnitDerivation) error {
 	var err error
 	for _, rel := range related {
 		if insert {
 			rel.SourceID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
@@ -1543,12 +1539,11 @@ func (o *ContentUnit) AddSourceContentUnitDerivations(ctx context.Context, exec 
 			)
 			values := []interface{}{o.ID, rel.SourceID, rel.DerivedID}
 
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
+			if boil.DebugMode {
+				fmt.Fprintln(boil.DebugWriter, updateQuery)
+				fmt.Fprintln(boil.DebugWriter, values)
 			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			if _, err = exec.Exec(updateQuery, values...); err != nil {
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
@@ -1580,12 +1575,12 @@ func (o *ContentUnit) AddSourceContentUnitDerivations(ctx context.Context, exec 
 // of the content_unit, optionally inserting them as new records.
 // Appends related to o.R.ContentUnitI18ns.
 // Sets related.R.ContentUnit appropriately.
-func (o *ContentUnit) AddContentUnitI18ns(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ContentUnitI18n) error {
+func (o *ContentUnit) AddContentUnitI18ns(exec boil.Executor, insert bool, related ...*ContentUnitI18n) error {
 	var err error
 	for _, rel := range related {
 		if insert {
 			rel.ContentUnitID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
@@ -1596,12 +1591,11 @@ func (o *ContentUnit) AddContentUnitI18ns(ctx context.Context, exec boil.Context
 			)
 			values := []interface{}{o.ID, rel.ContentUnitID, rel.Language}
 
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
+			if boil.DebugMode {
+				fmt.Fprintln(boil.DebugWriter, updateQuery)
+				fmt.Fprintln(boil.DebugWriter, values)
 			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			if _, err = exec.Exec(updateQuery, values...); err != nil {
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
@@ -1633,12 +1627,12 @@ func (o *ContentUnit) AddContentUnitI18ns(ctx context.Context, exec boil.Context
 // of the content_unit, optionally inserting them as new records.
 // Appends related to o.R.ContentUnitsPersons.
 // Sets related.R.ContentUnit appropriately.
-func (o *ContentUnit) AddContentUnitsPersons(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ContentUnitsPerson) error {
+func (o *ContentUnit) AddContentUnitsPersons(exec boil.Executor, insert bool, related ...*ContentUnitsPerson) error {
 	var err error
 	for _, rel := range related {
 		if insert {
 			rel.ContentUnitID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
@@ -1649,12 +1643,11 @@ func (o *ContentUnit) AddContentUnitsPersons(ctx context.Context, exec boil.Cont
 			)
 			values := []interface{}{o.ID, rel.ContentUnitID, rel.PersonID}
 
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
+			if boil.DebugMode {
+				fmt.Fprintln(boil.DebugWriter, updateQuery)
+				fmt.Fprintln(boil.DebugWriter, values)
 			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			if _, err = exec.Exec(updateQuery, values...); err != nil {
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
@@ -1686,11 +1679,11 @@ func (o *ContentUnit) AddContentUnitsPersons(ctx context.Context, exec boil.Cont
 // of the content_unit, optionally inserting them as new records.
 // Appends related to o.R.Publishers.
 // Sets related.R.ContentUnits appropriately.
-func (o *ContentUnit) AddPublishers(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Publisher) error {
+func (o *ContentUnit) AddPublishers(exec boil.Executor, insert bool, related ...*Publisher) error {
 	var err error
 	for _, rel := range related {
 		if insert {
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		}
@@ -1700,12 +1693,11 @@ func (o *ContentUnit) AddPublishers(ctx context.Context, exec boil.ContextExecut
 		query := "insert into \"content_units_publishers\" (\"content_unit_id\", \"publisher_id\") values ($1, $2)"
 		values := []interface{}{o.ID, rel.ID}
 
-		if boil.IsDebug(ctx) {
-			writer := boil.DebugWriterFrom(ctx)
-			fmt.Fprintln(writer, query)
-			fmt.Fprintln(writer, values)
+		if boil.DebugMode {
+			fmt.Fprintln(boil.DebugWriter, query)
+			fmt.Fprintln(boil.DebugWriter, values)
 		}
-		_, err = exec.ExecContext(ctx, query, values...)
+		_, err = exec.Exec(query, values...)
 		if err != nil {
 			return errors.Wrap(err, "failed to insert into join table")
 		}
@@ -1736,15 +1728,14 @@ func (o *ContentUnit) AddPublishers(ctx context.Context, exec boil.ContextExecut
 // Sets o.R.ContentUnits's Publishers accordingly.
 // Replaces o.R.Publishers with related.
 // Sets related.R.ContentUnits's Publishers accordingly.
-func (o *ContentUnit) SetPublishers(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Publisher) error {
+func (o *ContentUnit) SetPublishers(exec boil.Executor, insert bool, related ...*Publisher) error {
 	query := "delete from \"content_units_publishers\" where \"content_unit_id\" = $1"
 	values := []interface{}{o.ID}
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err := exec.ExecContext(ctx, query, values...)
+	_, err := exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -1753,13 +1744,13 @@ func (o *ContentUnit) SetPublishers(ctx context.Context, exec boil.ContextExecut
 	if o.R != nil {
 		o.R.Publishers = nil
 	}
-	return o.AddPublishers(ctx, exec, insert, related...)
+	return o.AddPublishers(exec, insert, related...)
 }
 
 // RemovePublishers relationships from objects passed in.
 // Removes related items from R.Publishers (uses pointer comparison, removal does not keep order)
 // Sets related.R.ContentUnits.
-func (o *ContentUnit) RemovePublishers(ctx context.Context, exec boil.ContextExecutor, related ...*Publisher) error {
+func (o *ContentUnit) RemovePublishers(exec boil.Executor, related ...*Publisher) error {
 	var err error
 	query := fmt.Sprintf(
 		"delete from \"content_units_publishers\" where \"content_unit_id\" = $1 and \"publisher_id\" in (%s)",
@@ -1770,12 +1761,11 @@ func (o *ContentUnit) RemovePublishers(ctx context.Context, exec boil.ContextExe
 		values = append(values, rel.ID)
 	}
 
-	if true || boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err = exec.ExecContext(ctx, query, values...)
+	_, err = exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -1826,11 +1816,11 @@ func removePublishersFromContentUnitsSlice(o *ContentUnit, related []*Publisher)
 // of the content_unit, optionally inserting them as new records.
 // Appends related to o.R.Sources.
 // Sets related.R.ContentUnits appropriately.
-func (o *ContentUnit) AddSources(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Source) error {
+func (o *ContentUnit) AddSources(exec boil.Executor, insert bool, related ...*Source) error {
 	var err error
 	for _, rel := range related {
 		if insert {
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		}
@@ -1840,12 +1830,11 @@ func (o *ContentUnit) AddSources(ctx context.Context, exec boil.ContextExecutor,
 		query := "insert into \"content_units_sources\" (\"content_unit_id\", \"source_id\") values ($1, $2)"
 		values := []interface{}{o.ID, rel.ID}
 
-		if boil.IsDebug(ctx) {
-			writer := boil.DebugWriterFrom(ctx)
-			fmt.Fprintln(writer, query)
-			fmt.Fprintln(writer, values)
+		if boil.DebugMode {
+			fmt.Fprintln(boil.DebugWriter, query)
+			fmt.Fprintln(boil.DebugWriter, values)
 		}
-		_, err = exec.ExecContext(ctx, query, values...)
+		_, err = exec.Exec(query, values...)
 		if err != nil {
 			return errors.Wrap(err, "failed to insert into join table")
 		}
@@ -1876,15 +1865,14 @@ func (o *ContentUnit) AddSources(ctx context.Context, exec boil.ContextExecutor,
 // Sets o.R.ContentUnits's Sources accordingly.
 // Replaces o.R.Sources with related.
 // Sets related.R.ContentUnits's Sources accordingly.
-func (o *ContentUnit) SetSources(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Source) error {
+func (o *ContentUnit) SetSources(exec boil.Executor, insert bool, related ...*Source) error {
 	query := "delete from \"content_units_sources\" where \"content_unit_id\" = $1"
 	values := []interface{}{o.ID}
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err := exec.ExecContext(ctx, query, values...)
+	_, err := exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -1893,13 +1881,13 @@ func (o *ContentUnit) SetSources(ctx context.Context, exec boil.ContextExecutor,
 	if o.R != nil {
 		o.R.Sources = nil
 	}
-	return o.AddSources(ctx, exec, insert, related...)
+	return o.AddSources(exec, insert, related...)
 }
 
 // RemoveSources relationships from objects passed in.
 // Removes related items from R.Sources (uses pointer comparison, removal does not keep order)
 // Sets related.R.ContentUnits.
-func (o *ContentUnit) RemoveSources(ctx context.Context, exec boil.ContextExecutor, related ...*Source) error {
+func (o *ContentUnit) RemoveSources(exec boil.Executor, related ...*Source) error {
 	var err error
 	query := fmt.Sprintf(
 		"delete from \"content_units_sources\" where \"content_unit_id\" = $1 and \"source_id\" in (%s)",
@@ -1910,12 +1898,11 @@ func (o *ContentUnit) RemoveSources(ctx context.Context, exec boil.ContextExecut
 		values = append(values, rel.ID)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err = exec.ExecContext(ctx, query, values...)
+	_, err = exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -1966,11 +1953,11 @@ func removeSourcesFromContentUnitsSlice(o *ContentUnit, related []*Source) {
 // of the content_unit, optionally inserting them as new records.
 // Appends related to o.R.Tags.
 // Sets related.R.ContentUnits appropriately.
-func (o *ContentUnit) AddTags(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Tag) error {
+func (o *ContentUnit) AddTags(exec boil.Executor, insert bool, related ...*Tag) error {
 	var err error
 	for _, rel := range related {
 		if insert {
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		}
@@ -1980,12 +1967,11 @@ func (o *ContentUnit) AddTags(ctx context.Context, exec boil.ContextExecutor, in
 		query := "insert into \"content_units_tags\" (\"content_unit_id\", \"tag_id\") values ($1, $2)"
 		values := []interface{}{o.ID, rel.ID}
 
-		if boil.IsDebug(ctx) {
-			writer := boil.DebugWriterFrom(ctx)
-			fmt.Fprintln(writer, query)
-			fmt.Fprintln(writer, values)
+		if boil.DebugMode {
+			fmt.Fprintln(boil.DebugWriter, query)
+			fmt.Fprintln(boil.DebugWriter, values)
 		}
-		_, err = exec.ExecContext(ctx, query, values...)
+		_, err = exec.Exec(query, values...)
 		if err != nil {
 			return errors.Wrap(err, "failed to insert into join table")
 		}
@@ -2016,15 +2002,14 @@ func (o *ContentUnit) AddTags(ctx context.Context, exec boil.ContextExecutor, in
 // Sets o.R.ContentUnits's Tags accordingly.
 // Replaces o.R.Tags with related.
 // Sets related.R.ContentUnits's Tags accordingly.
-func (o *ContentUnit) SetTags(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Tag) error {
+func (o *ContentUnit) SetTags(exec boil.Executor, insert bool, related ...*Tag) error {
 	query := "delete from \"content_units_tags\" where \"content_unit_id\" = $1"
 	values := []interface{}{o.ID}
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err := exec.ExecContext(ctx, query, values...)
+	_, err := exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -2033,13 +2018,13 @@ func (o *ContentUnit) SetTags(ctx context.Context, exec boil.ContextExecutor, in
 	if o.R != nil {
 		o.R.Tags = nil
 	}
-	return o.AddTags(ctx, exec, insert, related...)
+	return o.AddTags(exec, insert, related...)
 }
 
 // RemoveTags relationships from objects passed in.
 // Removes related items from R.Tags (uses pointer comparison, removal does not keep order)
 // Sets related.R.ContentUnits.
-func (o *ContentUnit) RemoveTags(ctx context.Context, exec boil.ContextExecutor, related ...*Tag) error {
+func (o *ContentUnit) RemoveTags(exec boil.Executor, related ...*Tag) error {
 	var err error
 	query := fmt.Sprintf(
 		"delete from \"content_units_tags\" where \"content_unit_id\" = $1 and \"tag_id\" in (%s)",
@@ -2050,12 +2035,11 @@ func (o *ContentUnit) RemoveTags(ctx context.Context, exec boil.ContextExecutor,
 		values = append(values, rel.ID)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err = exec.ExecContext(ctx, query, values...)
+	_, err = exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -2106,12 +2090,12 @@ func removeTagsFromContentUnitsSlice(o *ContentUnit, related []*Tag) {
 // of the content_unit, optionally inserting them as new records.
 // Appends related to o.R.Files.
 // Sets related.R.ContentUnit appropriately.
-func (o *ContentUnit) AddFiles(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*File) error {
+func (o *ContentUnit) AddFiles(exec boil.Executor, insert bool, related ...*File) error {
 	var err error
 	for _, rel := range related {
 		if insert {
 			queries.Assign(&rel.ContentUnitID, o.ID)
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
@@ -2122,12 +2106,11 @@ func (o *ContentUnit) AddFiles(ctx context.Context, exec boil.ContextExecutor, i
 			)
 			values := []interface{}{o.ID, rel.ID}
 
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
+			if boil.DebugMode {
+				fmt.Fprintln(boil.DebugWriter, updateQuery)
+				fmt.Fprintln(boil.DebugWriter, values)
 			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			if _, err = exec.Exec(updateQuery, values...); err != nil {
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
@@ -2161,15 +2144,14 @@ func (o *ContentUnit) AddFiles(ctx context.Context, exec boil.ContextExecutor, i
 // Sets o.R.ContentUnit's Files accordingly.
 // Replaces o.R.Files with related.
 // Sets related.R.ContentUnit's Files accordingly.
-func (o *ContentUnit) SetFiles(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*File) error {
+func (o *ContentUnit) SetFiles(exec boil.Executor, insert bool, related ...*File) error {
 	query := "update \"files\" set \"content_unit_id\" = null where \"content_unit_id\" = $1"
 	values := []interface{}{o.ID}
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err := exec.ExecContext(ctx, query, values...)
+	_, err := exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -2186,20 +2168,20 @@ func (o *ContentUnit) SetFiles(ctx context.Context, exec boil.ContextExecutor, i
 
 		o.R.Files = nil
 	}
-	return o.AddFiles(ctx, exec, insert, related...)
+	return o.AddFiles(exec, insert, related...)
 }
 
 // RemoveFiles relationships from objects passed in.
 // Removes related items from R.Files (uses pointer comparison, removal does not keep order)
 // Sets related.R.ContentUnit.
-func (o *ContentUnit) RemoveFiles(ctx context.Context, exec boil.ContextExecutor, related ...*File) error {
+func (o *ContentUnit) RemoveFiles(exec boil.Executor, related ...*File) error {
 	var err error
 	for _, rel := range related {
 		queries.SetScanner(&rel.ContentUnitID, nil)
 		if rel.R != nil {
 			rel.R.ContentUnit = nil
 		}
-		if _, err = rel.Update(ctx, exec, boil.Whitelist("content_unit_id")); err != nil {
+		if _, err = rel.Update(exec, boil.Whitelist("content_unit_id")); err != nil {
 			return err
 		}
 	}
@@ -2233,7 +2215,7 @@ func ContentUnits(mods ...qm.QueryMod) contentUnitQuery {
 
 // FindContentUnit retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindContentUnit(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) (*ContentUnit, error) {
+func FindContentUnit(exec boil.Executor, iD int64, selectCols ...string) (*ContentUnit, error) {
 	contentUnitObj := &ContentUnit{}
 
 	sel := "*"
@@ -2246,7 +2228,7 @@ func FindContentUnit(ctx context.Context, exec boil.ContextExecutor, iD int64, s
 
 	q := queries.Raw(query, iD)
 
-	err := q.Bind(ctx, exec, contentUnitObj)
+	err := q.Bind(nil, exec, contentUnitObj)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -2259,7 +2241,7 @@ func FindContentUnit(ctx context.Context, exec boil.ContextExecutor, iD int64, s
 
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
-func (o *ContentUnit) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (o *ContentUnit) Insert(exec boil.Executor, columns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no content_units provided for insertion")
 	}
@@ -2307,16 +2289,15 @@ func (o *ContentUnit) Insert(ctx context.Context, exec boil.ContextExecutor, col
 	value := reflect.Indirect(reflect.ValueOf(o))
 	vals := queries.ValuesFromMapping(value, cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 
 	if err != nil {
@@ -2335,7 +2316,7 @@ func (o *ContentUnit) Insert(ctx context.Context, exec boil.ContextExecutor, col
 // Update uses an executor to update the ContentUnit.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
-func (o *ContentUnit) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
+func (o *ContentUnit) Update(exec boil.Executor, columns boil.Columns) (int64, error) {
 	var err error
 	key := makeCacheKey(columns, nil)
 	contentUnitUpdateCacheMut.RLock()
@@ -2364,13 +2345,12 @@ func (o *ContentUnit) Update(ctx context.Context, exec boil.ContextExecutor, col
 
 	values := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
 	var result sql.Result
-	result, err = exec.ExecContext(ctx, cache.query, values...)
+	result, err = exec.Exec(cache.query, values...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update content_units row")
 	}
@@ -2390,10 +2370,10 @@ func (o *ContentUnit) Update(ctx context.Context, exec boil.ContextExecutor, col
 }
 
 // UpdateAll updates all rows with the specified column values.
-func (q contentUnitQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (q contentUnitQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all for content_units")
 	}
@@ -2407,7 +2387,7 @@ func (q contentUnitQuery) UpdateAll(ctx context.Context, exec boil.ContextExecut
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
-func (o ContentUnitSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (o ContentUnitSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	ln := int64(len(o))
 	if ln == 0 {
 		return 0, nil
@@ -2437,12 +2417,11 @@ func (o ContentUnitSlice) UpdateAll(ctx context.Context, exec boil.ContextExecut
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, contentUnitPrimaryKeyColumns, len(o)))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all in contentUnit slice")
 	}
@@ -2456,7 +2435,7 @@ func (o ContentUnitSlice) UpdateAll(ctx context.Context, exec boil.ContextExecut
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *ContentUnit) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+func (o *ContentUnit) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no content_units provided for upsert")
 	}
@@ -2539,18 +2518,17 @@ func (o *ContentUnit) Upsert(ctx context.Context, exec boil.ContextExecutor, upd
 		returns = queries.PtrsFromMapping(value, cache.retMapping)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
 		if err == sql.ErrNoRows {
 			err = nil // Postgres doesn't return anything when there's no update
 		}
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 	if err != nil {
 		return errors.Wrap(err, "models: unable to upsert content_units")
@@ -2567,7 +2545,7 @@ func (o *ContentUnit) Upsert(ctx context.Context, exec boil.ContextExecutor, upd
 
 // Delete deletes a single ContentUnit record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *ContentUnit) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *ContentUnit) Delete(exec boil.Executor) (int64, error) {
 	if o == nil {
 		return 0, errors.New("models: no ContentUnit provided for delete")
 	}
@@ -2575,12 +2553,11 @@ func (o *ContentUnit) Delete(ctx context.Context, exec boil.ContextExecutor) (in
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), contentUnitPrimaryKeyMapping)
 	sql := "DELETE FROM \"content_units\" WHERE \"id\"=$1"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from content_units")
 	}
@@ -2594,14 +2571,14 @@ func (o *ContentUnit) Delete(ctx context.Context, exec boil.ContextExecutor) (in
 }
 
 // DeleteAll deletes all matching rows.
-func (q contentUnitQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q contentUnitQuery) DeleteAll(exec boil.Executor) (int64, error) {
 	if q.Query == nil {
 		return 0, errors.New("models: no contentUnitQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from content_units")
 	}
@@ -2615,7 +2592,7 @@ func (q contentUnitQuery) DeleteAll(ctx context.Context, exec boil.ContextExecut
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o ContentUnitSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o ContentUnitSlice) DeleteAll(exec boil.Executor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
@@ -2629,12 +2606,11 @@ func (o ContentUnitSlice) DeleteAll(ctx context.Context, exec boil.ContextExecut
 	sql := "DELETE FROM \"content_units\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, contentUnitPrimaryKeyColumns, len(o))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from contentUnit slice")
 	}
@@ -2649,8 +2625,8 @@ func (o ContentUnitSlice) DeleteAll(ctx context.Context, exec boil.ContextExecut
 
 // Reload refetches the object from the database
 // using the primary keys with an executor.
-func (o *ContentUnit) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindContentUnit(ctx, exec, o.ID)
+func (o *ContentUnit) Reload(exec boil.Executor) error {
+	ret, err := FindContentUnit(exec, o.ID)
 	if err != nil {
 		return err
 	}
@@ -2661,7 +2637,7 @@ func (o *ContentUnit) Reload(ctx context.Context, exec boil.ContextExecutor) err
 
 // ReloadAll refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
-func (o *ContentUnitSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
+func (o *ContentUnitSlice) ReloadAll(exec boil.Executor) error {
 	if o == nil || len(*o) == 0 {
 		return nil
 	}
@@ -2678,7 +2654,7 @@ func (o *ContentUnitSlice) ReloadAll(ctx context.Context, exec boil.ContextExecu
 
 	q := queries.Raw(sql, args...)
 
-	err := q.Bind(ctx, exec, &slice)
+	err := q.Bind(nil, exec, &slice)
 	if err != nil {
 		return errors.Wrap(err, "models: unable to reload all in ContentUnitSlice")
 	}
@@ -2689,16 +2665,15 @@ func (o *ContentUnitSlice) ReloadAll(ctx context.Context, exec boil.ContextExecu
 }
 
 // ContentUnitExists checks if the ContentUnit row exists.
-func ContentUnitExists(ctx context.Context, exec boil.ContextExecutor, iD int64) (bool, error) {
+func ContentUnitExists(exec boil.Executor, iD int64) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"content_units\" where \"id\"=$1 limit 1)"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, iD)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, iD)
 	}
-	row := exec.QueryRowContext(ctx, sql, iD)
+	row := exec.QueryRow(sql, iD)
 
 	err := row.Scan(&exists)
 	if err != nil {

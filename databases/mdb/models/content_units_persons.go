@@ -4,7 +4,6 @@
 package models
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -118,12 +117,12 @@ var (
 )
 
 // One returns a single contentUnitsPerson record from the query.
-func (q contentUnitsPersonQuery) One(ctx context.Context, exec boil.ContextExecutor) (*ContentUnitsPerson, error) {
+func (q contentUnitsPersonQuery) One(exec boil.Executor) (*ContentUnitsPerson, error) {
 	o := &ContentUnitsPerson{}
 
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Bind(ctx, exec, o)
+	err := q.Bind(nil, exec, o)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -135,10 +134,10 @@ func (q contentUnitsPersonQuery) One(ctx context.Context, exec boil.ContextExecu
 }
 
 // All returns all ContentUnitsPerson records from the query.
-func (q contentUnitsPersonQuery) All(ctx context.Context, exec boil.ContextExecutor) (ContentUnitsPersonSlice, error) {
+func (q contentUnitsPersonQuery) All(exec boil.Executor) (ContentUnitsPersonSlice, error) {
 	var o []*ContentUnitsPerson
 
-	err := q.Bind(ctx, exec, &o)
+	err := q.Bind(nil, exec, &o)
 	if err != nil {
 		return nil, errors.Wrap(err, "models: failed to assign all query results to ContentUnitsPerson slice")
 	}
@@ -147,13 +146,13 @@ func (q contentUnitsPersonQuery) All(ctx context.Context, exec boil.ContextExecu
 }
 
 // Count returns the count of all ContentUnitsPerson records in the query.
-func (q contentUnitsPersonQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q contentUnitsPersonQuery) Count(exec boil.Executor) (int64, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: failed to count content_units_persons rows")
 	}
@@ -162,14 +161,14 @@ func (q contentUnitsPersonQuery) Count(ctx context.Context, exec boil.ContextExe
 }
 
 // Exists checks if the row exists in the table.
-func (q contentUnitsPersonQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+func (q contentUnitsPersonQuery) Exists(exec boil.Executor) (bool, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return false, errors.Wrap(err, "models: failed to check if content_units_persons exists")
 	}
@@ -221,7 +220,7 @@ func (o *ContentUnitsPerson) Role(mods ...qm.QueryMod) contentRoleTypeQuery {
 
 // LoadContentUnit allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (contentUnitsPersonL) LoadContentUnit(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentUnitsPerson interface{}, mods queries.Applicator) error {
+func (contentUnitsPersonL) LoadContentUnit(e boil.Executor, singular bool, maybeContentUnitsPerson interface{}, mods queries.Applicator) error {
 	var slice []*ContentUnitsPerson
 	var object *ContentUnitsPerson
 
@@ -265,7 +264,7 @@ func (contentUnitsPersonL) LoadContentUnit(ctx context.Context, e boil.ContextEx
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load ContentUnit")
 	}
@@ -314,7 +313,7 @@ func (contentUnitsPersonL) LoadContentUnit(ctx context.Context, e boil.ContextEx
 
 // LoadPerson allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (contentUnitsPersonL) LoadPerson(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentUnitsPerson interface{}, mods queries.Applicator) error {
+func (contentUnitsPersonL) LoadPerson(e boil.Executor, singular bool, maybeContentUnitsPerson interface{}, mods queries.Applicator) error {
 	var slice []*ContentUnitsPerson
 	var object *ContentUnitsPerson
 
@@ -358,7 +357,7 @@ func (contentUnitsPersonL) LoadPerson(ctx context.Context, e boil.ContextExecuto
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load Person")
 	}
@@ -407,7 +406,7 @@ func (contentUnitsPersonL) LoadPerson(ctx context.Context, e boil.ContextExecuto
 
 // LoadRole allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (contentUnitsPersonL) LoadRole(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentUnitsPerson interface{}, mods queries.Applicator) error {
+func (contentUnitsPersonL) LoadRole(e boil.Executor, singular bool, maybeContentUnitsPerson interface{}, mods queries.Applicator) error {
 	var slice []*ContentUnitsPerson
 	var object *ContentUnitsPerson
 
@@ -451,7 +450,7 @@ func (contentUnitsPersonL) LoadRole(ctx context.Context, e boil.ContextExecutor,
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load ContentRoleType")
 	}
@@ -501,10 +500,10 @@ func (contentUnitsPersonL) LoadRole(ctx context.Context, e boil.ContextExecutor,
 // SetContentUnit of the contentUnitsPerson to the related item.
 // Sets o.R.ContentUnit to related.
 // Adds o to related.R.ContentUnitsPersons.
-func (o *ContentUnitsPerson) SetContentUnit(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ContentUnit) error {
+func (o *ContentUnitsPerson) SetContentUnit(exec boil.Executor, insert bool, related *ContentUnit) error {
 	var err error
 	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
 			return errors.Wrap(err, "failed to insert into foreign table")
 		}
 	}
@@ -516,12 +515,11 @@ func (o *ContentUnitsPerson) SetContentUnit(ctx context.Context, exec boil.Conte
 	)
 	values := []interface{}{related.ID, o.ContentUnitID, o.PersonID}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -548,10 +546,10 @@ func (o *ContentUnitsPerson) SetContentUnit(ctx context.Context, exec boil.Conte
 // SetPerson of the contentUnitsPerson to the related item.
 // Sets o.R.Person to related.
 // Adds o to related.R.ContentUnitsPersons.
-func (o *ContentUnitsPerson) SetPerson(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Person) error {
+func (o *ContentUnitsPerson) SetPerson(exec boil.Executor, insert bool, related *Person) error {
 	var err error
 	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
 			return errors.Wrap(err, "failed to insert into foreign table")
 		}
 	}
@@ -563,12 +561,11 @@ func (o *ContentUnitsPerson) SetPerson(ctx context.Context, exec boil.ContextExe
 	)
 	values := []interface{}{related.ID, o.ContentUnitID, o.PersonID}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -595,10 +592,10 @@ func (o *ContentUnitsPerson) SetPerson(ctx context.Context, exec boil.ContextExe
 // SetRole of the contentUnitsPerson to the related item.
 // Sets o.R.Role to related.
 // Adds o to related.R.RoleContentUnitsPersons.
-func (o *ContentUnitsPerson) SetRole(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ContentRoleType) error {
+func (o *ContentUnitsPerson) SetRole(exec boil.Executor, insert bool, related *ContentRoleType) error {
 	var err error
 	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
 			return errors.Wrap(err, "failed to insert into foreign table")
 		}
 	}
@@ -610,12 +607,11 @@ func (o *ContentUnitsPerson) SetRole(ctx context.Context, exec boil.ContextExecu
 	)
 	values := []interface{}{related.ID, o.ContentUnitID, o.PersonID}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -647,7 +643,7 @@ func ContentUnitsPersons(mods ...qm.QueryMod) contentUnitsPersonQuery {
 
 // FindContentUnitsPerson retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindContentUnitsPerson(ctx context.Context, exec boil.ContextExecutor, contentUnitID int64, personID int64, selectCols ...string) (*ContentUnitsPerson, error) {
+func FindContentUnitsPerson(exec boil.Executor, contentUnitID int64, personID int64, selectCols ...string) (*ContentUnitsPerson, error) {
 	contentUnitsPersonObj := &ContentUnitsPerson{}
 
 	sel := "*"
@@ -660,7 +656,7 @@ func FindContentUnitsPerson(ctx context.Context, exec boil.ContextExecutor, cont
 
 	q := queries.Raw(query, contentUnitID, personID)
 
-	err := q.Bind(ctx, exec, contentUnitsPersonObj)
+	err := q.Bind(nil, exec, contentUnitsPersonObj)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -673,7 +669,7 @@ func FindContentUnitsPerson(ctx context.Context, exec boil.ContextExecutor, cont
 
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
-func (o *ContentUnitsPerson) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (o *ContentUnitsPerson) Insert(exec boil.Executor, columns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no content_units_persons provided for insertion")
 	}
@@ -721,16 +717,15 @@ func (o *ContentUnitsPerson) Insert(ctx context.Context, exec boil.ContextExecut
 	value := reflect.Indirect(reflect.ValueOf(o))
 	vals := queries.ValuesFromMapping(value, cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 
 	if err != nil {
@@ -749,7 +744,7 @@ func (o *ContentUnitsPerson) Insert(ctx context.Context, exec boil.ContextExecut
 // Update uses an executor to update the ContentUnitsPerson.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
-func (o *ContentUnitsPerson) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
+func (o *ContentUnitsPerson) Update(exec boil.Executor, columns boil.Columns) (int64, error) {
 	var err error
 	key := makeCacheKey(columns, nil)
 	contentUnitsPersonUpdateCacheMut.RLock()
@@ -778,13 +773,12 @@ func (o *ContentUnitsPerson) Update(ctx context.Context, exec boil.ContextExecut
 
 	values := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
 	var result sql.Result
-	result, err = exec.ExecContext(ctx, cache.query, values...)
+	result, err = exec.Exec(cache.query, values...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update content_units_persons row")
 	}
@@ -804,10 +798,10 @@ func (o *ContentUnitsPerson) Update(ctx context.Context, exec boil.ContextExecut
 }
 
 // UpdateAll updates all rows with the specified column values.
-func (q contentUnitsPersonQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (q contentUnitsPersonQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all for content_units_persons")
 	}
@@ -821,7 +815,7 @@ func (q contentUnitsPersonQuery) UpdateAll(ctx context.Context, exec boil.Contex
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
-func (o ContentUnitsPersonSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (o ContentUnitsPersonSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	ln := int64(len(o))
 	if ln == 0 {
 		return 0, nil
@@ -851,12 +845,11 @@ func (o ContentUnitsPersonSlice) UpdateAll(ctx context.Context, exec boil.Contex
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, contentUnitsPersonPrimaryKeyColumns, len(o)))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all in contentUnitsPerson slice")
 	}
@@ -870,7 +863,7 @@ func (o ContentUnitsPersonSlice) UpdateAll(ctx context.Context, exec boil.Contex
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *ContentUnitsPerson) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+func (o *ContentUnitsPerson) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no content_units_persons provided for upsert")
 	}
@@ -953,18 +946,17 @@ func (o *ContentUnitsPerson) Upsert(ctx context.Context, exec boil.ContextExecut
 		returns = queries.PtrsFromMapping(value, cache.retMapping)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
 		if err == sql.ErrNoRows {
 			err = nil // Postgres doesn't return anything when there's no update
 		}
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 	if err != nil {
 		return errors.Wrap(err, "models: unable to upsert content_units_persons")
@@ -981,7 +973,7 @@ func (o *ContentUnitsPerson) Upsert(ctx context.Context, exec boil.ContextExecut
 
 // Delete deletes a single ContentUnitsPerson record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *ContentUnitsPerson) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *ContentUnitsPerson) Delete(exec boil.Executor) (int64, error) {
 	if o == nil {
 		return 0, errors.New("models: no ContentUnitsPerson provided for delete")
 	}
@@ -989,12 +981,11 @@ func (o *ContentUnitsPerson) Delete(ctx context.Context, exec boil.ContextExecut
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), contentUnitsPersonPrimaryKeyMapping)
 	sql := "DELETE FROM \"content_units_persons\" WHERE \"content_unit_id\"=$1 AND \"person_id\"=$2"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from content_units_persons")
 	}
@@ -1008,14 +999,14 @@ func (o *ContentUnitsPerson) Delete(ctx context.Context, exec boil.ContextExecut
 }
 
 // DeleteAll deletes all matching rows.
-func (q contentUnitsPersonQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q contentUnitsPersonQuery) DeleteAll(exec boil.Executor) (int64, error) {
 	if q.Query == nil {
 		return 0, errors.New("models: no contentUnitsPersonQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from content_units_persons")
 	}
@@ -1029,7 +1020,7 @@ func (q contentUnitsPersonQuery) DeleteAll(ctx context.Context, exec boil.Contex
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o ContentUnitsPersonSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o ContentUnitsPersonSlice) DeleteAll(exec boil.Executor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
@@ -1043,12 +1034,11 @@ func (o ContentUnitsPersonSlice) DeleteAll(ctx context.Context, exec boil.Contex
 	sql := "DELETE FROM \"content_units_persons\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, contentUnitsPersonPrimaryKeyColumns, len(o))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from contentUnitsPerson slice")
 	}
@@ -1063,8 +1053,8 @@ func (o ContentUnitsPersonSlice) DeleteAll(ctx context.Context, exec boil.Contex
 
 // Reload refetches the object from the database
 // using the primary keys with an executor.
-func (o *ContentUnitsPerson) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindContentUnitsPerson(ctx, exec, o.ContentUnitID, o.PersonID)
+func (o *ContentUnitsPerson) Reload(exec boil.Executor) error {
+	ret, err := FindContentUnitsPerson(exec, o.ContentUnitID, o.PersonID)
 	if err != nil {
 		return err
 	}
@@ -1075,7 +1065,7 @@ func (o *ContentUnitsPerson) Reload(ctx context.Context, exec boil.ContextExecut
 
 // ReloadAll refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
-func (o *ContentUnitsPersonSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
+func (o *ContentUnitsPersonSlice) ReloadAll(exec boil.Executor) error {
 	if o == nil || len(*o) == 0 {
 		return nil
 	}
@@ -1092,7 +1082,7 @@ func (o *ContentUnitsPersonSlice) ReloadAll(ctx context.Context, exec boil.Conte
 
 	q := queries.Raw(sql, args...)
 
-	err := q.Bind(ctx, exec, &slice)
+	err := q.Bind(nil, exec, &slice)
 	if err != nil {
 		return errors.Wrap(err, "models: unable to reload all in ContentUnitsPersonSlice")
 	}
@@ -1103,16 +1093,15 @@ func (o *ContentUnitsPersonSlice) ReloadAll(ctx context.Context, exec boil.Conte
 }
 
 // ContentUnitsPersonExists checks if the ContentUnitsPerson row exists.
-func ContentUnitsPersonExists(ctx context.Context, exec boil.ContextExecutor, contentUnitID int64, personID int64) (bool, error) {
+func ContentUnitsPersonExists(exec boil.Executor, contentUnitID int64, personID int64) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"content_units_persons\" where \"content_unit_id\"=$1 AND \"person_id\"=$2 limit 1)"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, contentUnitID, personID)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, contentUnitID, personID)
 	}
-	row := exec.QueryRowContext(ctx, sql, contentUnitID, personID)
+	row := exec.QueryRow(sql, contentUnitID, personID)
 
 	err := row.Scan(&exists)
 	if err != nil {

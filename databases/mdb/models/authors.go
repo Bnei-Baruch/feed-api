@@ -4,7 +4,6 @@
 package models
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -126,12 +125,12 @@ var (
 )
 
 // One returns a single author record from the query.
-func (q authorQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Author, error) {
+func (q authorQuery) One(exec boil.Executor) (*Author, error) {
 	o := &Author{}
 
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Bind(ctx, exec, o)
+	err := q.Bind(nil, exec, o)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -143,10 +142,10 @@ func (q authorQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Autho
 }
 
 // All returns all Author records from the query.
-func (q authorQuery) All(ctx context.Context, exec boil.ContextExecutor) (AuthorSlice, error) {
+func (q authorQuery) All(exec boil.Executor) (AuthorSlice, error) {
 	var o []*Author
 
-	err := q.Bind(ctx, exec, &o)
+	err := q.Bind(nil, exec, &o)
 	if err != nil {
 		return nil, errors.Wrap(err, "models: failed to assign all query results to Author slice")
 	}
@@ -155,13 +154,13 @@ func (q authorQuery) All(ctx context.Context, exec boil.ContextExecutor) (Author
 }
 
 // Count returns the count of all Author records in the query.
-func (q authorQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q authorQuery) Count(exec boil.Executor) (int64, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: failed to count authors rows")
 	}
@@ -170,14 +169,14 @@ func (q authorQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int6
 }
 
 // Exists checks if the row exists in the table.
-func (q authorQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+func (q authorQuery) Exists(exec boil.Executor) (bool, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return false, errors.Wrap(err, "models: failed to check if authors exists")
 	}
@@ -230,7 +229,7 @@ func (o *Author) Sources(mods ...qm.QueryMod) sourceQuery {
 
 // LoadAuthorI18ns allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (authorL) LoadAuthorI18ns(ctx context.Context, e boil.ContextExecutor, singular bool, maybeAuthor interface{}, mods queries.Applicator) error {
+func (authorL) LoadAuthorI18ns(e boil.Executor, singular bool, maybeAuthor interface{}, mods queries.Applicator) error {
 	var slice []*Author
 	var object *Author
 
@@ -272,7 +271,7 @@ func (authorL) LoadAuthorI18ns(ctx context.Context, e boil.ContextExecutor, sing
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load author_i18n")
 	}
@@ -318,7 +317,7 @@ func (authorL) LoadAuthorI18ns(ctx context.Context, e boil.ContextExecutor, sing
 
 // LoadSources allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (authorL) LoadSources(ctx context.Context, e boil.ContextExecutor, singular bool, maybeAuthor interface{}, mods queries.Applicator) error {
+func (authorL) LoadSources(e boil.Executor, singular bool, maybeAuthor interface{}, mods queries.Applicator) error {
 	var slice []*Author
 	var object *Author
 
@@ -365,7 +364,7 @@ func (authorL) LoadSources(ctx context.Context, e boil.ContextExecutor, singular
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load sources")
 	}
@@ -428,12 +427,12 @@ func (authorL) LoadSources(ctx context.Context, e boil.ContextExecutor, singular
 // of the author, optionally inserting them as new records.
 // Appends related to o.R.AuthorI18ns.
 // Sets related.R.Author appropriately.
-func (o *Author) AddAuthorI18ns(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*AuthorI18n) error {
+func (o *Author) AddAuthorI18ns(exec boil.Executor, insert bool, related ...*AuthorI18n) error {
 	var err error
 	for _, rel := range related {
 		if insert {
 			rel.AuthorID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
@@ -444,12 +443,11 @@ func (o *Author) AddAuthorI18ns(ctx context.Context, exec boil.ContextExecutor, 
 			)
 			values := []interface{}{o.ID, rel.AuthorID, rel.Language}
 
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
+			if boil.DebugMode {
+				fmt.Fprintln(boil.DebugWriter, updateQuery)
+				fmt.Fprintln(boil.DebugWriter, values)
 			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			if _, err = exec.Exec(updateQuery, values...); err != nil {
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
@@ -481,11 +479,11 @@ func (o *Author) AddAuthorI18ns(ctx context.Context, exec boil.ContextExecutor, 
 // of the author, optionally inserting them as new records.
 // Appends related to o.R.Sources.
 // Sets related.R.Authors appropriately.
-func (o *Author) AddSources(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Source) error {
+func (o *Author) AddSources(exec boil.Executor, insert bool, related ...*Source) error {
 	var err error
 	for _, rel := range related {
 		if insert {
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		}
@@ -495,12 +493,11 @@ func (o *Author) AddSources(ctx context.Context, exec boil.ContextExecutor, inse
 		query := "insert into \"authors_sources\" (\"author_id\", \"source_id\") values ($1, $2)"
 		values := []interface{}{o.ID, rel.ID}
 
-		if boil.IsDebug(ctx) {
-			writer := boil.DebugWriterFrom(ctx)
-			fmt.Fprintln(writer, query)
-			fmt.Fprintln(writer, values)
+		if boil.DebugMode {
+			fmt.Fprintln(boil.DebugWriter, query)
+			fmt.Fprintln(boil.DebugWriter, values)
 		}
-		_, err = exec.ExecContext(ctx, query, values...)
+		_, err = exec.Exec(query, values...)
 		if err != nil {
 			return errors.Wrap(err, "failed to insert into join table")
 		}
@@ -531,15 +528,14 @@ func (o *Author) AddSources(ctx context.Context, exec boil.ContextExecutor, inse
 // Sets o.R.Authors's Sources accordingly.
 // Replaces o.R.Sources with related.
 // Sets related.R.Authors's Sources accordingly.
-func (o *Author) SetSources(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Source) error {
+func (o *Author) SetSources(exec boil.Executor, insert bool, related ...*Source) error {
 	query := "delete from \"authors_sources\" where \"author_id\" = $1"
 	values := []interface{}{o.ID}
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err := exec.ExecContext(ctx, query, values...)
+	_, err := exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -548,13 +544,13 @@ func (o *Author) SetSources(ctx context.Context, exec boil.ContextExecutor, inse
 	if o.R != nil {
 		o.R.Sources = nil
 	}
-	return o.AddSources(ctx, exec, insert, related...)
+	return o.AddSources(exec, insert, related...)
 }
 
 // RemoveSources relationships from objects passed in.
 // Removes related items from R.Sources (uses pointer comparison, removal does not keep order)
 // Sets related.R.Authors.
-func (o *Author) RemoveSources(ctx context.Context, exec boil.ContextExecutor, related ...*Source) error {
+func (o *Author) RemoveSources(exec boil.Executor, related ...*Source) error {
 	var err error
 	query := fmt.Sprintf(
 		"delete from \"authors_sources\" where \"author_id\" = $1 and \"source_id\" in (%s)",
@@ -565,12 +561,11 @@ func (o *Author) RemoveSources(ctx context.Context, exec boil.ContextExecutor, r
 		values = append(values, rel.ID)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err = exec.ExecContext(ctx, query, values...)
+	_, err = exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -625,7 +620,7 @@ func Authors(mods ...qm.QueryMod) authorQuery {
 
 // FindAuthor retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindAuthor(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) (*Author, error) {
+func FindAuthor(exec boil.Executor, iD int64, selectCols ...string) (*Author, error) {
 	authorObj := &Author{}
 
 	sel := "*"
@@ -638,7 +633,7 @@ func FindAuthor(ctx context.Context, exec boil.ContextExecutor, iD int64, select
 
 	q := queries.Raw(query, iD)
 
-	err := q.Bind(ctx, exec, authorObj)
+	err := q.Bind(nil, exec, authorObj)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -651,7 +646,7 @@ func FindAuthor(ctx context.Context, exec boil.ContextExecutor, iD int64, select
 
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
-func (o *Author) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (o *Author) Insert(exec boil.Executor, columns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no authors provided for insertion")
 	}
@@ -699,16 +694,15 @@ func (o *Author) Insert(ctx context.Context, exec boil.ContextExecutor, columns 
 	value := reflect.Indirect(reflect.ValueOf(o))
 	vals := queries.ValuesFromMapping(value, cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 
 	if err != nil {
@@ -727,7 +721,7 @@ func (o *Author) Insert(ctx context.Context, exec boil.ContextExecutor, columns 
 // Update uses an executor to update the Author.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
-func (o *Author) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
+func (o *Author) Update(exec boil.Executor, columns boil.Columns) (int64, error) {
 	var err error
 	key := makeCacheKey(columns, nil)
 	authorUpdateCacheMut.RLock()
@@ -756,13 +750,12 @@ func (o *Author) Update(ctx context.Context, exec boil.ContextExecutor, columns 
 
 	values := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
 	var result sql.Result
-	result, err = exec.ExecContext(ctx, cache.query, values...)
+	result, err = exec.Exec(cache.query, values...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update authors row")
 	}
@@ -782,10 +775,10 @@ func (o *Author) Update(ctx context.Context, exec boil.ContextExecutor, columns 
 }
 
 // UpdateAll updates all rows with the specified column values.
-func (q authorQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (q authorQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all for authors")
 	}
@@ -799,7 +792,7 @@ func (q authorQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, c
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
-func (o AuthorSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (o AuthorSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	ln := int64(len(o))
 	if ln == 0 {
 		return 0, nil
@@ -829,12 +822,11 @@ func (o AuthorSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, c
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, authorPrimaryKeyColumns, len(o)))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all in author slice")
 	}
@@ -848,7 +840,7 @@ func (o AuthorSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, c
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *Author) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+func (o *Author) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no authors provided for upsert")
 	}
@@ -931,18 +923,17 @@ func (o *Author) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOn
 		returns = queries.PtrsFromMapping(value, cache.retMapping)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
 		if err == sql.ErrNoRows {
 			err = nil // Postgres doesn't return anything when there's no update
 		}
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 	if err != nil {
 		return errors.Wrap(err, "models: unable to upsert authors")
@@ -959,7 +950,7 @@ func (o *Author) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOn
 
 // Delete deletes a single Author record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *Author) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *Author) Delete(exec boil.Executor) (int64, error) {
 	if o == nil {
 		return 0, errors.New("models: no Author provided for delete")
 	}
@@ -967,12 +958,11 @@ func (o *Author) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, 
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), authorPrimaryKeyMapping)
 	sql := "DELETE FROM \"authors\" WHERE \"id\"=$1"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from authors")
 	}
@@ -986,14 +976,14 @@ func (o *Author) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, 
 }
 
 // DeleteAll deletes all matching rows.
-func (q authorQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q authorQuery) DeleteAll(exec boil.Executor) (int64, error) {
 	if q.Query == nil {
 		return 0, errors.New("models: no authorQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from authors")
 	}
@@ -1007,7 +997,7 @@ func (q authorQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o AuthorSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o AuthorSlice) DeleteAll(exec boil.Executor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
@@ -1021,12 +1011,11 @@ func (o AuthorSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (
 	sql := "DELETE FROM \"authors\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, authorPrimaryKeyColumns, len(o))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from author slice")
 	}
@@ -1041,8 +1030,8 @@ func (o AuthorSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (
 
 // Reload refetches the object from the database
 // using the primary keys with an executor.
-func (o *Author) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindAuthor(ctx, exec, o.ID)
+func (o *Author) Reload(exec boil.Executor) error {
+	ret, err := FindAuthor(exec, o.ID)
 	if err != nil {
 		return err
 	}
@@ -1053,7 +1042,7 @@ func (o *Author) Reload(ctx context.Context, exec boil.ContextExecutor) error {
 
 // ReloadAll refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
-func (o *AuthorSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
+func (o *AuthorSlice) ReloadAll(exec boil.Executor) error {
 	if o == nil || len(*o) == 0 {
 		return nil
 	}
@@ -1070,7 +1059,7 @@ func (o *AuthorSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) 
 
 	q := queries.Raw(sql, args...)
 
-	err := q.Bind(ctx, exec, &slice)
+	err := q.Bind(nil, exec, &slice)
 	if err != nil {
 		return errors.Wrap(err, "models: unable to reload all in AuthorSlice")
 	}
@@ -1081,16 +1070,15 @@ func (o *AuthorSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) 
 }
 
 // AuthorExists checks if the Author row exists.
-func AuthorExists(ctx context.Context, exec boil.ContextExecutor, iD int64) (bool, error) {
+func AuthorExists(exec boil.Executor, iD int64) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"authors\" where \"id\"=$1 limit 1)"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, iD)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, iD)
 	}
-	row := exec.QueryRowContext(ctx, sql, iD)
+	row := exec.QueryRow(sql, iD)
 
 	err := row.Scan(&exists)
 	if err != nil {

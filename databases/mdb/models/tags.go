@@ -4,7 +4,6 @@
 package models
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -132,12 +131,12 @@ var (
 )
 
 // One returns a single tag record from the query.
-func (q tagQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Tag, error) {
+func (q tagQuery) One(exec boil.Executor) (*Tag, error) {
 	o := &Tag{}
 
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Bind(ctx, exec, o)
+	err := q.Bind(nil, exec, o)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -149,10 +148,10 @@ func (q tagQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Tag, err
 }
 
 // All returns all Tag records from the query.
-func (q tagQuery) All(ctx context.Context, exec boil.ContextExecutor) (TagSlice, error) {
+func (q tagQuery) All(exec boil.Executor) (TagSlice, error) {
 	var o []*Tag
 
-	err := q.Bind(ctx, exec, &o)
+	err := q.Bind(nil, exec, &o)
 	if err != nil {
 		return nil, errors.Wrap(err, "models: failed to assign all query results to Tag slice")
 	}
@@ -161,13 +160,13 @@ func (q tagQuery) All(ctx context.Context, exec boil.ContextExecutor) (TagSlice,
 }
 
 // Count returns the count of all Tag records in the query.
-func (q tagQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q tagQuery) Count(exec boil.Executor) (int64, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: failed to count tags rows")
 	}
@@ -176,14 +175,14 @@ func (q tagQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, 
 }
 
 // Exists checks if the row exists in the table.
-func (q tagQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+func (q tagQuery) Exists(exec boil.Executor) (bool, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return false, errors.Wrap(err, "models: failed to check if tags exists")
 	}
@@ -271,7 +270,7 @@ func (o *Tag) ParentTags(mods ...qm.QueryMod) tagQuery {
 
 // LoadParent allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (tagL) LoadParent(ctx context.Context, e boil.ContextExecutor, singular bool, maybeTag interface{}, mods queries.Applicator) error {
+func (tagL) LoadParent(e boil.Executor, singular bool, maybeTag interface{}, mods queries.Applicator) error {
 	var slice []*Tag
 	var object *Tag
 
@@ -319,7 +318,7 @@ func (tagL) LoadParent(ctx context.Context, e boil.ContextExecutor, singular boo
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load Tag")
 	}
@@ -368,7 +367,7 @@ func (tagL) LoadParent(ctx context.Context, e boil.ContextExecutor, singular boo
 
 // LoadContentUnits allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (tagL) LoadContentUnits(ctx context.Context, e boil.ContextExecutor, singular bool, maybeTag interface{}, mods queries.Applicator) error {
+func (tagL) LoadContentUnits(e boil.Executor, singular bool, maybeTag interface{}, mods queries.Applicator) error {
 	var slice []*Tag
 	var object *Tag
 
@@ -415,7 +414,7 @@ func (tagL) LoadContentUnits(ctx context.Context, e boil.ContextExecutor, singul
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load content_units")
 	}
@@ -476,7 +475,7 @@ func (tagL) LoadContentUnits(ctx context.Context, e boil.ContextExecutor, singul
 
 // LoadTagI18ns allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (tagL) LoadTagI18ns(ctx context.Context, e boil.ContextExecutor, singular bool, maybeTag interface{}, mods queries.Applicator) error {
+func (tagL) LoadTagI18ns(e boil.Executor, singular bool, maybeTag interface{}, mods queries.Applicator) error {
 	var slice []*Tag
 	var object *Tag
 
@@ -518,7 +517,7 @@ func (tagL) LoadTagI18ns(ctx context.Context, e boil.ContextExecutor, singular b
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load tag_i18n")
 	}
@@ -564,7 +563,7 @@ func (tagL) LoadTagI18ns(ctx context.Context, e boil.ContextExecutor, singular b
 
 // LoadParentTags allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (tagL) LoadParentTags(ctx context.Context, e boil.ContextExecutor, singular bool, maybeTag interface{}, mods queries.Applicator) error {
+func (tagL) LoadParentTags(e boil.Executor, singular bool, maybeTag interface{}, mods queries.Applicator) error {
 	var slice []*Tag
 	var object *Tag
 
@@ -606,7 +605,7 @@ func (tagL) LoadParentTags(ctx context.Context, e boil.ContextExecutor, singular
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load tags")
 	}
@@ -653,10 +652,10 @@ func (tagL) LoadParentTags(ctx context.Context, e boil.ContextExecutor, singular
 // SetParent of the tag to the related item.
 // Sets o.R.Parent to related.
 // Adds o to related.R.ParentTags.
-func (o *Tag) SetParent(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Tag) error {
+func (o *Tag) SetParent(exec boil.Executor, insert bool, related *Tag) error {
 	var err error
 	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
 			return errors.Wrap(err, "failed to insert into foreign table")
 		}
 	}
@@ -668,12 +667,11 @@ func (o *Tag) SetParent(ctx context.Context, exec boil.ContextExecutor, insert b
 	)
 	values := []interface{}{related.ID, o.ID}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -700,11 +698,11 @@ func (o *Tag) SetParent(ctx context.Context, exec boil.ContextExecutor, insert b
 // RemoveParent relationship.
 // Sets o.R.Parent to nil.
 // Removes o from all passed in related items' relationships struct (Optional).
-func (o *Tag) RemoveParent(ctx context.Context, exec boil.ContextExecutor, related *Tag) error {
+func (o *Tag) RemoveParent(exec boil.Executor, related *Tag) error {
 	var err error
 
 	queries.SetScanner(&o.ParentID, nil)
-	if _, err = o.Update(ctx, exec, boil.Whitelist("parent_id")); err != nil {
+	if _, err = o.Update(exec, boil.Whitelist("parent_id")); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -734,11 +732,11 @@ func (o *Tag) RemoveParent(ctx context.Context, exec boil.ContextExecutor, relat
 // of the tag, optionally inserting them as new records.
 // Appends related to o.R.ContentUnits.
 // Sets related.R.Tags appropriately.
-func (o *Tag) AddContentUnits(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ContentUnit) error {
+func (o *Tag) AddContentUnits(exec boil.Executor, insert bool, related ...*ContentUnit) error {
 	var err error
 	for _, rel := range related {
 		if insert {
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		}
@@ -748,12 +746,11 @@ func (o *Tag) AddContentUnits(ctx context.Context, exec boil.ContextExecutor, in
 		query := "insert into \"content_units_tags\" (\"tag_id\", \"content_unit_id\") values ($1, $2)"
 		values := []interface{}{o.ID, rel.ID}
 
-		if boil.IsDebug(ctx) {
-			writer := boil.DebugWriterFrom(ctx)
-			fmt.Fprintln(writer, query)
-			fmt.Fprintln(writer, values)
+		if boil.DebugMode {
+			fmt.Fprintln(boil.DebugWriter, query)
+			fmt.Fprintln(boil.DebugWriter, values)
 		}
-		_, err = exec.ExecContext(ctx, query, values...)
+		_, err = exec.Exec(query, values...)
 		if err != nil {
 			return errors.Wrap(err, "failed to insert into join table")
 		}
@@ -784,15 +781,14 @@ func (o *Tag) AddContentUnits(ctx context.Context, exec boil.ContextExecutor, in
 // Sets o.R.Tags's ContentUnits accordingly.
 // Replaces o.R.ContentUnits with related.
 // Sets related.R.Tags's ContentUnits accordingly.
-func (o *Tag) SetContentUnits(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ContentUnit) error {
+func (o *Tag) SetContentUnits(exec boil.Executor, insert bool, related ...*ContentUnit) error {
 	query := "delete from \"content_units_tags\" where \"tag_id\" = $1"
 	values := []interface{}{o.ID}
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err := exec.ExecContext(ctx, query, values...)
+	_, err := exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -801,13 +797,13 @@ func (o *Tag) SetContentUnits(ctx context.Context, exec boil.ContextExecutor, in
 	if o.R != nil {
 		o.R.ContentUnits = nil
 	}
-	return o.AddContentUnits(ctx, exec, insert, related...)
+	return o.AddContentUnits(exec, insert, related...)
 }
 
 // RemoveContentUnits relationships from objects passed in.
 // Removes related items from R.ContentUnits (uses pointer comparison, removal does not keep order)
 // Sets related.R.Tags.
-func (o *Tag) RemoveContentUnits(ctx context.Context, exec boil.ContextExecutor, related ...*ContentUnit) error {
+func (o *Tag) RemoveContentUnits(exec boil.Executor, related ...*ContentUnit) error {
 	var err error
 	query := fmt.Sprintf(
 		"delete from \"content_units_tags\" where \"tag_id\" = $1 and \"content_unit_id\" in (%s)",
@@ -818,12 +814,11 @@ func (o *Tag) RemoveContentUnits(ctx context.Context, exec boil.ContextExecutor,
 		values = append(values, rel.ID)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err = exec.ExecContext(ctx, query, values...)
+	_, err = exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -874,12 +869,12 @@ func removeContentUnitsFromTagsSlice(o *Tag, related []*ContentUnit) {
 // of the tag, optionally inserting them as new records.
 // Appends related to o.R.TagI18ns.
 // Sets related.R.Tag appropriately.
-func (o *Tag) AddTagI18ns(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TagI18n) error {
+func (o *Tag) AddTagI18ns(exec boil.Executor, insert bool, related ...*TagI18n) error {
 	var err error
 	for _, rel := range related {
 		if insert {
 			rel.TagID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
@@ -890,12 +885,11 @@ func (o *Tag) AddTagI18ns(ctx context.Context, exec boil.ContextExecutor, insert
 			)
 			values := []interface{}{o.ID, rel.TagID, rel.Language}
 
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
+			if boil.DebugMode {
+				fmt.Fprintln(boil.DebugWriter, updateQuery)
+				fmt.Fprintln(boil.DebugWriter, values)
 			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			if _, err = exec.Exec(updateQuery, values...); err != nil {
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
@@ -927,12 +921,12 @@ func (o *Tag) AddTagI18ns(ctx context.Context, exec boil.ContextExecutor, insert
 // of the tag, optionally inserting them as new records.
 // Appends related to o.R.ParentTags.
 // Sets related.R.Parent appropriately.
-func (o *Tag) AddParentTags(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Tag) error {
+func (o *Tag) AddParentTags(exec boil.Executor, insert bool, related ...*Tag) error {
 	var err error
 	for _, rel := range related {
 		if insert {
 			queries.Assign(&rel.ParentID, o.ID)
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
@@ -943,12 +937,11 @@ func (o *Tag) AddParentTags(ctx context.Context, exec boil.ContextExecutor, inse
 			)
 			values := []interface{}{o.ID, rel.ID}
 
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
+			if boil.DebugMode {
+				fmt.Fprintln(boil.DebugWriter, updateQuery)
+				fmt.Fprintln(boil.DebugWriter, values)
 			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			if _, err = exec.Exec(updateQuery, values...); err != nil {
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
@@ -982,15 +975,14 @@ func (o *Tag) AddParentTags(ctx context.Context, exec boil.ContextExecutor, inse
 // Sets o.R.Parent's ParentTags accordingly.
 // Replaces o.R.ParentTags with related.
 // Sets related.R.Parent's ParentTags accordingly.
-func (o *Tag) SetParentTags(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Tag) error {
+func (o *Tag) SetParentTags(exec boil.Executor, insert bool, related ...*Tag) error {
 	query := "update \"tags\" set \"parent_id\" = null where \"parent_id\" = $1"
 	values := []interface{}{o.ID}
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err := exec.ExecContext(ctx, query, values...)
+	_, err := exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -1007,20 +999,20 @@ func (o *Tag) SetParentTags(ctx context.Context, exec boil.ContextExecutor, inse
 
 		o.R.ParentTags = nil
 	}
-	return o.AddParentTags(ctx, exec, insert, related...)
+	return o.AddParentTags(exec, insert, related...)
 }
 
 // RemoveParentTags relationships from objects passed in.
 // Removes related items from R.ParentTags (uses pointer comparison, removal does not keep order)
 // Sets related.R.Parent.
-func (o *Tag) RemoveParentTags(ctx context.Context, exec boil.ContextExecutor, related ...*Tag) error {
+func (o *Tag) RemoveParentTags(exec boil.Executor, related ...*Tag) error {
 	var err error
 	for _, rel := range related {
 		queries.SetScanner(&rel.ParentID, nil)
 		if rel.R != nil {
 			rel.R.Parent = nil
 		}
-		if _, err = rel.Update(ctx, exec, boil.Whitelist("parent_id")); err != nil {
+		if _, err = rel.Update(exec, boil.Whitelist("parent_id")); err != nil {
 			return err
 		}
 	}
@@ -1054,7 +1046,7 @@ func Tags(mods ...qm.QueryMod) tagQuery {
 
 // FindTag retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindTag(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) (*Tag, error) {
+func FindTag(exec boil.Executor, iD int64, selectCols ...string) (*Tag, error) {
 	tagObj := &Tag{}
 
 	sel := "*"
@@ -1067,7 +1059,7 @@ func FindTag(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCol
 
 	q := queries.Raw(query, iD)
 
-	err := q.Bind(ctx, exec, tagObj)
+	err := q.Bind(nil, exec, tagObj)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -1080,7 +1072,7 @@ func FindTag(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCol
 
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
-func (o *Tag) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (o *Tag) Insert(exec boil.Executor, columns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no tags provided for insertion")
 	}
@@ -1128,16 +1120,15 @@ func (o *Tag) Insert(ctx context.Context, exec boil.ContextExecutor, columns boi
 	value := reflect.Indirect(reflect.ValueOf(o))
 	vals := queries.ValuesFromMapping(value, cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 
 	if err != nil {
@@ -1156,7 +1147,7 @@ func (o *Tag) Insert(ctx context.Context, exec boil.ContextExecutor, columns boi
 // Update uses an executor to update the Tag.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
-func (o *Tag) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
+func (o *Tag) Update(exec boil.Executor, columns boil.Columns) (int64, error) {
 	var err error
 	key := makeCacheKey(columns, nil)
 	tagUpdateCacheMut.RLock()
@@ -1185,13 +1176,12 @@ func (o *Tag) Update(ctx context.Context, exec boil.ContextExecutor, columns boi
 
 	values := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
 	var result sql.Result
-	result, err = exec.ExecContext(ctx, cache.query, values...)
+	result, err = exec.Exec(cache.query, values...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update tags row")
 	}
@@ -1211,10 +1201,10 @@ func (o *Tag) Update(ctx context.Context, exec boil.ContextExecutor, columns boi
 }
 
 // UpdateAll updates all rows with the specified column values.
-func (q tagQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (q tagQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all for tags")
 	}
@@ -1228,7 +1218,7 @@ func (q tagQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
-func (o TagSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (o TagSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	ln := int64(len(o))
 	if ln == 0 {
 		return 0, nil
@@ -1258,12 +1248,11 @@ func (o TagSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, tagPrimaryKeyColumns, len(o)))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all in tag slice")
 	}
@@ -1277,7 +1266,7 @@ func (o TagSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+func (o *Tag) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no tags provided for upsert")
 	}
@@ -1360,18 +1349,17 @@ func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 		returns = queries.PtrsFromMapping(value, cache.retMapping)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
 		if err == sql.ErrNoRows {
 			err = nil // Postgres doesn't return anything when there's no update
 		}
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 	if err != nil {
 		return errors.Wrap(err, "models: unable to upsert tags")
@@ -1388,7 +1376,7 @@ func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 
 // Delete deletes a single Tag record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *Tag) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *Tag) Delete(exec boil.Executor) (int64, error) {
 	if o == nil {
 		return 0, errors.New("models: no Tag provided for delete")
 	}
@@ -1396,12 +1384,11 @@ func (o *Tag) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, err
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), tagPrimaryKeyMapping)
 	sql := "DELETE FROM \"tags\" WHERE \"id\"=$1"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from tags")
 	}
@@ -1415,14 +1402,14 @@ func (o *Tag) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, err
 }
 
 // DeleteAll deletes all matching rows.
-func (q tagQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q tagQuery) DeleteAll(exec boil.Executor) (int64, error) {
 	if q.Query == nil {
 		return 0, errors.New("models: no tagQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from tags")
 	}
@@ -1436,7 +1423,7 @@ func (q tagQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o TagSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o TagSlice) DeleteAll(exec boil.Executor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
@@ -1450,12 +1437,11 @@ func (o TagSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int
 	sql := "DELETE FROM \"tags\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, tagPrimaryKeyColumns, len(o))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from tag slice")
 	}
@@ -1470,8 +1456,8 @@ func (o TagSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int
 
 // Reload refetches the object from the database
 // using the primary keys with an executor.
-func (o *Tag) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindTag(ctx, exec, o.ID)
+func (o *Tag) Reload(exec boil.Executor) error {
+	ret, err := FindTag(exec, o.ID)
 	if err != nil {
 		return err
 	}
@@ -1482,7 +1468,7 @@ func (o *Tag) Reload(ctx context.Context, exec boil.ContextExecutor) error {
 
 // ReloadAll refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
-func (o *TagSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
+func (o *TagSlice) ReloadAll(exec boil.Executor) error {
 	if o == nil || len(*o) == 0 {
 		return nil
 	}
@@ -1499,7 +1485,7 @@ func (o *TagSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) err
 
 	q := queries.Raw(sql, args...)
 
-	err := q.Bind(ctx, exec, &slice)
+	err := q.Bind(nil, exec, &slice)
 	if err != nil {
 		return errors.Wrap(err, "models: unable to reload all in TagSlice")
 	}
@@ -1510,16 +1496,15 @@ func (o *TagSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) err
 }
 
 // TagExists checks if the Tag row exists.
-func TagExists(ctx context.Context, exec boil.ContextExecutor, iD int64) (bool, error) {
+func TagExists(exec boil.Executor, iD int64) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"tags\" where \"id\"=$1 limit 1)"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, iD)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, iD)
 	}
-	row := exec.QueryRowContext(ctx, sql, iD)
+	row := exec.QueryRow(sql, iD)
 
 	err := row.Scan(&exists)
 	if err != nil {

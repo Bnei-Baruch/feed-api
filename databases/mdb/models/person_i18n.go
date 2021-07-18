@@ -4,7 +4,6 @@
 package models
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -136,12 +135,12 @@ var (
 )
 
 // One returns a single personI18n record from the query.
-func (q personI18nQuery) One(ctx context.Context, exec boil.ContextExecutor) (*PersonI18n, error) {
+func (q personI18nQuery) One(exec boil.Executor) (*PersonI18n, error) {
 	o := &PersonI18n{}
 
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Bind(ctx, exec, o)
+	err := q.Bind(nil, exec, o)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -153,10 +152,10 @@ func (q personI18nQuery) One(ctx context.Context, exec boil.ContextExecutor) (*P
 }
 
 // All returns all PersonI18n records from the query.
-func (q personI18nQuery) All(ctx context.Context, exec boil.ContextExecutor) (PersonI18nSlice, error) {
+func (q personI18nQuery) All(exec boil.Executor) (PersonI18nSlice, error) {
 	var o []*PersonI18n
 
-	err := q.Bind(ctx, exec, &o)
+	err := q.Bind(nil, exec, &o)
 	if err != nil {
 		return nil, errors.Wrap(err, "models: failed to assign all query results to PersonI18n slice")
 	}
@@ -165,13 +164,13 @@ func (q personI18nQuery) All(ctx context.Context, exec boil.ContextExecutor) (Pe
 }
 
 // Count returns the count of all PersonI18n records in the query.
-func (q personI18nQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q personI18nQuery) Count(exec boil.Executor) (int64, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: failed to count person_i18n rows")
 	}
@@ -180,14 +179,14 @@ func (q personI18nQuery) Count(ctx context.Context, exec boil.ContextExecutor) (
 }
 
 // Exists checks if the row exists in the table.
-func (q personI18nQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+func (q personI18nQuery) Exists(exec boil.Executor) (bool, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return false, errors.Wrap(err, "models: failed to check if person_i18n exists")
 	}
@@ -225,7 +224,7 @@ func (o *PersonI18n) User(mods ...qm.QueryMod) userQuery {
 
 // LoadPerson allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (personI18nL) LoadPerson(ctx context.Context, e boil.ContextExecutor, singular bool, maybePersonI18n interface{}, mods queries.Applicator) error {
+func (personI18nL) LoadPerson(e boil.Executor, singular bool, maybePersonI18n interface{}, mods queries.Applicator) error {
 	var slice []*PersonI18n
 	var object *PersonI18n
 
@@ -269,7 +268,7 @@ func (personI18nL) LoadPerson(ctx context.Context, e boil.ContextExecutor, singu
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load Person")
 	}
@@ -318,7 +317,7 @@ func (personI18nL) LoadPerson(ctx context.Context, e boil.ContextExecutor, singu
 
 // LoadUser allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (personI18nL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular bool, maybePersonI18n interface{}, mods queries.Applicator) error {
+func (personI18nL) LoadUser(e boil.Executor, singular bool, maybePersonI18n interface{}, mods queries.Applicator) error {
 	var slice []*PersonI18n
 	var object *PersonI18n
 
@@ -366,7 +365,7 @@ func (personI18nL) LoadUser(ctx context.Context, e boil.ContextExecutor, singula
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load User")
 	}
@@ -416,10 +415,10 @@ func (personI18nL) LoadUser(ctx context.Context, e boil.ContextExecutor, singula
 // SetPerson of the personI18n to the related item.
 // Sets o.R.Person to related.
 // Adds o to related.R.PersonI18ns.
-func (o *PersonI18n) SetPerson(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Person) error {
+func (o *PersonI18n) SetPerson(exec boil.Executor, insert bool, related *Person) error {
 	var err error
 	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
 			return errors.Wrap(err, "failed to insert into foreign table")
 		}
 	}
@@ -431,12 +430,11 @@ func (o *PersonI18n) SetPerson(ctx context.Context, exec boil.ContextExecutor, i
 	)
 	values := []interface{}{related.ID, o.PersonID, o.Language}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -463,10 +461,10 @@ func (o *PersonI18n) SetPerson(ctx context.Context, exec boil.ContextExecutor, i
 // SetUser of the personI18n to the related item.
 // Sets o.R.User to related.
 // Adds o to related.R.PersonI18ns.
-func (o *PersonI18n) SetUser(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) error {
+func (o *PersonI18n) SetUser(exec boil.Executor, insert bool, related *User) error {
 	var err error
 	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
 			return errors.Wrap(err, "failed to insert into foreign table")
 		}
 	}
@@ -478,12 +476,11 @@ func (o *PersonI18n) SetUser(ctx context.Context, exec boil.ContextExecutor, ins
 	)
 	values := []interface{}{related.ID, o.PersonID, o.Language}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -510,11 +507,11 @@ func (o *PersonI18n) SetUser(ctx context.Context, exec boil.ContextExecutor, ins
 // RemoveUser relationship.
 // Sets o.R.User to nil.
 // Removes o from all passed in related items' relationships struct (Optional).
-func (o *PersonI18n) RemoveUser(ctx context.Context, exec boil.ContextExecutor, related *User) error {
+func (o *PersonI18n) RemoveUser(exec boil.Executor, related *User) error {
 	var err error
 
 	queries.SetScanner(&o.UserID, nil)
-	if _, err = o.Update(ctx, exec, boil.Whitelist("user_id")); err != nil {
+	if _, err = o.Update(exec, boil.Whitelist("user_id")); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -548,7 +545,7 @@ func PersonI18ns(mods ...qm.QueryMod) personI18nQuery {
 
 // FindPersonI18n retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindPersonI18n(ctx context.Context, exec boil.ContextExecutor, personID int64, language string, selectCols ...string) (*PersonI18n, error) {
+func FindPersonI18n(exec boil.Executor, personID int64, language string, selectCols ...string) (*PersonI18n, error) {
 	personI18nObj := &PersonI18n{}
 
 	sel := "*"
@@ -561,7 +558,7 @@ func FindPersonI18n(ctx context.Context, exec boil.ContextExecutor, personID int
 
 	q := queries.Raw(query, personID, language)
 
-	err := q.Bind(ctx, exec, personI18nObj)
+	err := q.Bind(nil, exec, personI18nObj)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -574,7 +571,7 @@ func FindPersonI18n(ctx context.Context, exec boil.ContextExecutor, personID int
 
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
-func (o *PersonI18n) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (o *PersonI18n) Insert(exec boil.Executor, columns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no person_i18n provided for insertion")
 	}
@@ -622,16 +619,15 @@ func (o *PersonI18n) Insert(ctx context.Context, exec boil.ContextExecutor, colu
 	value := reflect.Indirect(reflect.ValueOf(o))
 	vals := queries.ValuesFromMapping(value, cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 
 	if err != nil {
@@ -650,7 +646,7 @@ func (o *PersonI18n) Insert(ctx context.Context, exec boil.ContextExecutor, colu
 // Update uses an executor to update the PersonI18n.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
-func (o *PersonI18n) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
+func (o *PersonI18n) Update(exec boil.Executor, columns boil.Columns) (int64, error) {
 	var err error
 	key := makeCacheKey(columns, nil)
 	personI18nUpdateCacheMut.RLock()
@@ -679,13 +675,12 @@ func (o *PersonI18n) Update(ctx context.Context, exec boil.ContextExecutor, colu
 
 	values := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
 	var result sql.Result
-	result, err = exec.ExecContext(ctx, cache.query, values...)
+	result, err = exec.Exec(cache.query, values...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update person_i18n row")
 	}
@@ -705,10 +700,10 @@ func (o *PersonI18n) Update(ctx context.Context, exec boil.ContextExecutor, colu
 }
 
 // UpdateAll updates all rows with the specified column values.
-func (q personI18nQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (q personI18nQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all for person_i18n")
 	}
@@ -722,7 +717,7 @@ func (q personI18nQuery) UpdateAll(ctx context.Context, exec boil.ContextExecuto
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
-func (o PersonI18nSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (o PersonI18nSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	ln := int64(len(o))
 	if ln == 0 {
 		return 0, nil
@@ -752,12 +747,11 @@ func (o PersonI18nSlice) UpdateAll(ctx context.Context, exec boil.ContextExecuto
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, personI18nPrimaryKeyColumns, len(o)))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all in personI18n slice")
 	}
@@ -771,7 +765,7 @@ func (o PersonI18nSlice) UpdateAll(ctx context.Context, exec boil.ContextExecuto
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *PersonI18n) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+func (o *PersonI18n) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no person_i18n provided for upsert")
 	}
@@ -854,18 +848,17 @@ func (o *PersonI18n) Upsert(ctx context.Context, exec boil.ContextExecutor, upda
 		returns = queries.PtrsFromMapping(value, cache.retMapping)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
 		if err == sql.ErrNoRows {
 			err = nil // Postgres doesn't return anything when there's no update
 		}
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 	if err != nil {
 		return errors.Wrap(err, "models: unable to upsert person_i18n")
@@ -882,7 +875,7 @@ func (o *PersonI18n) Upsert(ctx context.Context, exec boil.ContextExecutor, upda
 
 // Delete deletes a single PersonI18n record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *PersonI18n) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *PersonI18n) Delete(exec boil.Executor) (int64, error) {
 	if o == nil {
 		return 0, errors.New("models: no PersonI18n provided for delete")
 	}
@@ -890,12 +883,11 @@ func (o *PersonI18n) Delete(ctx context.Context, exec boil.ContextExecutor) (int
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), personI18nPrimaryKeyMapping)
 	sql := "DELETE FROM \"person_i18n\" WHERE \"person_id\"=$1 AND \"language\"=$2"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from person_i18n")
 	}
@@ -909,14 +901,14 @@ func (o *PersonI18n) Delete(ctx context.Context, exec boil.ContextExecutor) (int
 }
 
 // DeleteAll deletes all matching rows.
-func (q personI18nQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q personI18nQuery) DeleteAll(exec boil.Executor) (int64, error) {
 	if q.Query == nil {
 		return 0, errors.New("models: no personI18nQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from person_i18n")
 	}
@@ -930,7 +922,7 @@ func (q personI18nQuery) DeleteAll(ctx context.Context, exec boil.ContextExecuto
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o PersonI18nSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o PersonI18nSlice) DeleteAll(exec boil.Executor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
@@ -944,12 +936,11 @@ func (o PersonI18nSlice) DeleteAll(ctx context.Context, exec boil.ContextExecuto
 	sql := "DELETE FROM \"person_i18n\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, personI18nPrimaryKeyColumns, len(o))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from personI18n slice")
 	}
@@ -964,8 +955,8 @@ func (o PersonI18nSlice) DeleteAll(ctx context.Context, exec boil.ContextExecuto
 
 // Reload refetches the object from the database
 // using the primary keys with an executor.
-func (o *PersonI18n) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindPersonI18n(ctx, exec, o.PersonID, o.Language)
+func (o *PersonI18n) Reload(exec boil.Executor) error {
+	ret, err := FindPersonI18n(exec, o.PersonID, o.Language)
 	if err != nil {
 		return err
 	}
@@ -976,7 +967,7 @@ func (o *PersonI18n) Reload(ctx context.Context, exec boil.ContextExecutor) erro
 
 // ReloadAll refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
-func (o *PersonI18nSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
+func (o *PersonI18nSlice) ReloadAll(exec boil.Executor) error {
 	if o == nil || len(*o) == 0 {
 		return nil
 	}
@@ -993,7 +984,7 @@ func (o *PersonI18nSlice) ReloadAll(ctx context.Context, exec boil.ContextExecut
 
 	q := queries.Raw(sql, args...)
 
-	err := q.Bind(ctx, exec, &slice)
+	err := q.Bind(nil, exec, &slice)
 	if err != nil {
 		return errors.Wrap(err, "models: unable to reload all in PersonI18nSlice")
 	}
@@ -1004,16 +995,15 @@ func (o *PersonI18nSlice) ReloadAll(ctx context.Context, exec boil.ContextExecut
 }
 
 // PersonI18nExists checks if the PersonI18n row exists.
-func PersonI18nExists(ctx context.Context, exec boil.ContextExecutor, personID int64, language string) (bool, error) {
+func PersonI18nExists(exec boil.Executor, personID int64, language string) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"person_i18n\" where \"person_id\"=$1 AND \"language\"=$2 limit 1)"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, personID, language)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, personID, language)
 	}
-	row := exec.QueryRowContext(ctx, sql, personID, language)
+	row := exec.QueryRow(sql, personID, language)
 
 	err := row.Scan(&exists)
 	if err != nil {

@@ -4,7 +4,6 @@
 package models
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -107,12 +106,12 @@ var (
 )
 
 // One returns a single sourceType record from the query.
-func (q sourceTypeQuery) One(ctx context.Context, exec boil.ContextExecutor) (*SourceType, error) {
+func (q sourceTypeQuery) One(exec boil.Executor) (*SourceType, error) {
 	o := &SourceType{}
 
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Bind(ctx, exec, o)
+	err := q.Bind(nil, exec, o)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -124,10 +123,10 @@ func (q sourceTypeQuery) One(ctx context.Context, exec boil.ContextExecutor) (*S
 }
 
 // All returns all SourceType records from the query.
-func (q sourceTypeQuery) All(ctx context.Context, exec boil.ContextExecutor) (SourceTypeSlice, error) {
+func (q sourceTypeQuery) All(exec boil.Executor) (SourceTypeSlice, error) {
 	var o []*SourceType
 
-	err := q.Bind(ctx, exec, &o)
+	err := q.Bind(nil, exec, &o)
 	if err != nil {
 		return nil, errors.Wrap(err, "models: failed to assign all query results to SourceType slice")
 	}
@@ -136,13 +135,13 @@ func (q sourceTypeQuery) All(ctx context.Context, exec boil.ContextExecutor) (So
 }
 
 // Count returns the count of all SourceType records in the query.
-func (q sourceTypeQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q sourceTypeQuery) Count(exec boil.Executor) (int64, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: failed to count source_types rows")
 	}
@@ -151,14 +150,14 @@ func (q sourceTypeQuery) Count(ctx context.Context, exec boil.ContextExecutor) (
 }
 
 // Exists checks if the row exists in the table.
-func (q sourceTypeQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+func (q sourceTypeQuery) Exists(exec boil.Executor) (bool, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return false, errors.Wrap(err, "models: failed to check if source_types exists")
 	}
@@ -189,7 +188,7 @@ func (o *SourceType) TypeSources(mods ...qm.QueryMod) sourceQuery {
 
 // LoadTypeSources allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (sourceTypeL) LoadTypeSources(ctx context.Context, e boil.ContextExecutor, singular bool, maybeSourceType interface{}, mods queries.Applicator) error {
+func (sourceTypeL) LoadTypeSources(e boil.Executor, singular bool, maybeSourceType interface{}, mods queries.Applicator) error {
 	var slice []*SourceType
 	var object *SourceType
 
@@ -231,7 +230,7 @@ func (sourceTypeL) LoadTypeSources(ctx context.Context, e boil.ContextExecutor, 
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load sources")
 	}
@@ -279,12 +278,12 @@ func (sourceTypeL) LoadTypeSources(ctx context.Context, e boil.ContextExecutor, 
 // of the source_type, optionally inserting them as new records.
 // Appends related to o.R.TypeSources.
 // Sets related.R.Type appropriately.
-func (o *SourceType) AddTypeSources(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Source) error {
+func (o *SourceType) AddTypeSources(exec boil.Executor, insert bool, related ...*Source) error {
 	var err error
 	for _, rel := range related {
 		if insert {
 			rel.TypeID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
@@ -295,12 +294,11 @@ func (o *SourceType) AddTypeSources(ctx context.Context, exec boil.ContextExecut
 			)
 			values := []interface{}{o.ID, rel.ID}
 
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
+			if boil.DebugMode {
+				fmt.Fprintln(boil.DebugWriter, updateQuery)
+				fmt.Fprintln(boil.DebugWriter, values)
 			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			if _, err = exec.Exec(updateQuery, values...); err != nil {
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
@@ -336,7 +334,7 @@ func SourceTypes(mods ...qm.QueryMod) sourceTypeQuery {
 
 // FindSourceType retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindSourceType(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) (*SourceType, error) {
+func FindSourceType(exec boil.Executor, iD int64, selectCols ...string) (*SourceType, error) {
 	sourceTypeObj := &SourceType{}
 
 	sel := "*"
@@ -349,7 +347,7 @@ func FindSourceType(ctx context.Context, exec boil.ContextExecutor, iD int64, se
 
 	q := queries.Raw(query, iD)
 
-	err := q.Bind(ctx, exec, sourceTypeObj)
+	err := q.Bind(nil, exec, sourceTypeObj)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -362,7 +360,7 @@ func FindSourceType(ctx context.Context, exec boil.ContextExecutor, iD int64, se
 
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
-func (o *SourceType) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (o *SourceType) Insert(exec boil.Executor, columns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no source_types provided for insertion")
 	}
@@ -410,16 +408,15 @@ func (o *SourceType) Insert(ctx context.Context, exec boil.ContextExecutor, colu
 	value := reflect.Indirect(reflect.ValueOf(o))
 	vals := queries.ValuesFromMapping(value, cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 
 	if err != nil {
@@ -438,7 +435,7 @@ func (o *SourceType) Insert(ctx context.Context, exec boil.ContextExecutor, colu
 // Update uses an executor to update the SourceType.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
-func (o *SourceType) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
+func (o *SourceType) Update(exec boil.Executor, columns boil.Columns) (int64, error) {
 	var err error
 	key := makeCacheKey(columns, nil)
 	sourceTypeUpdateCacheMut.RLock()
@@ -467,13 +464,12 @@ func (o *SourceType) Update(ctx context.Context, exec boil.ContextExecutor, colu
 
 	values := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
 	var result sql.Result
-	result, err = exec.ExecContext(ctx, cache.query, values...)
+	result, err = exec.Exec(cache.query, values...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update source_types row")
 	}
@@ -493,10 +489,10 @@ func (o *SourceType) Update(ctx context.Context, exec boil.ContextExecutor, colu
 }
 
 // UpdateAll updates all rows with the specified column values.
-func (q sourceTypeQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (q sourceTypeQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all for source_types")
 	}
@@ -510,7 +506,7 @@ func (q sourceTypeQuery) UpdateAll(ctx context.Context, exec boil.ContextExecuto
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
-func (o SourceTypeSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (o SourceTypeSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	ln := int64(len(o))
 	if ln == 0 {
 		return 0, nil
@@ -540,12 +536,11 @@ func (o SourceTypeSlice) UpdateAll(ctx context.Context, exec boil.ContextExecuto
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, sourceTypePrimaryKeyColumns, len(o)))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all in sourceType slice")
 	}
@@ -559,7 +554,7 @@ func (o SourceTypeSlice) UpdateAll(ctx context.Context, exec boil.ContextExecuto
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *SourceType) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+func (o *SourceType) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no source_types provided for upsert")
 	}
@@ -642,18 +637,17 @@ func (o *SourceType) Upsert(ctx context.Context, exec boil.ContextExecutor, upda
 		returns = queries.PtrsFromMapping(value, cache.retMapping)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
 		if err == sql.ErrNoRows {
 			err = nil // Postgres doesn't return anything when there's no update
 		}
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 	if err != nil {
 		return errors.Wrap(err, "models: unable to upsert source_types")
@@ -670,7 +664,7 @@ func (o *SourceType) Upsert(ctx context.Context, exec boil.ContextExecutor, upda
 
 // Delete deletes a single SourceType record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *SourceType) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *SourceType) Delete(exec boil.Executor) (int64, error) {
 	if o == nil {
 		return 0, errors.New("models: no SourceType provided for delete")
 	}
@@ -678,12 +672,11 @@ func (o *SourceType) Delete(ctx context.Context, exec boil.ContextExecutor) (int
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), sourceTypePrimaryKeyMapping)
 	sql := "DELETE FROM \"source_types\" WHERE \"id\"=$1"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from source_types")
 	}
@@ -697,14 +690,14 @@ func (o *SourceType) Delete(ctx context.Context, exec boil.ContextExecutor) (int
 }
 
 // DeleteAll deletes all matching rows.
-func (q sourceTypeQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q sourceTypeQuery) DeleteAll(exec boil.Executor) (int64, error) {
 	if q.Query == nil {
 		return 0, errors.New("models: no sourceTypeQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from source_types")
 	}
@@ -718,7 +711,7 @@ func (q sourceTypeQuery) DeleteAll(ctx context.Context, exec boil.ContextExecuto
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o SourceTypeSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o SourceTypeSlice) DeleteAll(exec boil.Executor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
@@ -732,12 +725,11 @@ func (o SourceTypeSlice) DeleteAll(ctx context.Context, exec boil.ContextExecuto
 	sql := "DELETE FROM \"source_types\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, sourceTypePrimaryKeyColumns, len(o))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from sourceType slice")
 	}
@@ -752,8 +744,8 @@ func (o SourceTypeSlice) DeleteAll(ctx context.Context, exec boil.ContextExecuto
 
 // Reload refetches the object from the database
 // using the primary keys with an executor.
-func (o *SourceType) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindSourceType(ctx, exec, o.ID)
+func (o *SourceType) Reload(exec boil.Executor) error {
+	ret, err := FindSourceType(exec, o.ID)
 	if err != nil {
 		return err
 	}
@@ -764,7 +756,7 @@ func (o *SourceType) Reload(ctx context.Context, exec boil.ContextExecutor) erro
 
 // ReloadAll refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
-func (o *SourceTypeSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
+func (o *SourceTypeSlice) ReloadAll(exec boil.Executor) error {
 	if o == nil || len(*o) == 0 {
 		return nil
 	}
@@ -781,7 +773,7 @@ func (o *SourceTypeSlice) ReloadAll(ctx context.Context, exec boil.ContextExecut
 
 	q := queries.Raw(sql, args...)
 
-	err := q.Bind(ctx, exec, &slice)
+	err := q.Bind(nil, exec, &slice)
 	if err != nil {
 		return errors.Wrap(err, "models: unable to reload all in SourceTypeSlice")
 	}
@@ -792,16 +784,15 @@ func (o *SourceTypeSlice) ReloadAll(ctx context.Context, exec boil.ContextExecut
 }
 
 // SourceTypeExists checks if the SourceType row exists.
-func SourceTypeExists(ctx context.Context, exec boil.ContextExecutor, iD int64) (bool, error) {
+func SourceTypeExists(exec boil.Executor, iD int64) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"source_types\" where \"id\"=$1 limit 1)"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, iD)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, iD)
 	}
-	row := exec.QueryRowContext(ctx, sql, iD)
+	row := exec.QueryRow(sql, iD)
 
 	err := row.Scan(&exists)
 	if err != nil {

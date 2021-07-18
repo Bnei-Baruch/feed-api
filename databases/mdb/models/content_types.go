@@ -4,7 +4,6 @@
 package models
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -116,12 +115,12 @@ var (
 )
 
 // One returns a single contentType record from the query.
-func (q contentTypeQuery) One(ctx context.Context, exec boil.ContextExecutor) (*ContentType, error) {
+func (q contentTypeQuery) One(exec boil.Executor) (*ContentType, error) {
 	o := &ContentType{}
 
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Bind(ctx, exec, o)
+	err := q.Bind(nil, exec, o)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -133,10 +132,10 @@ func (q contentTypeQuery) One(ctx context.Context, exec boil.ContextExecutor) (*
 }
 
 // All returns all ContentType records from the query.
-func (q contentTypeQuery) All(ctx context.Context, exec boil.ContextExecutor) (ContentTypeSlice, error) {
+func (q contentTypeQuery) All(exec boil.Executor) (ContentTypeSlice, error) {
 	var o []*ContentType
 
-	err := q.Bind(ctx, exec, &o)
+	err := q.Bind(nil, exec, &o)
 	if err != nil {
 		return nil, errors.Wrap(err, "models: failed to assign all query results to ContentType slice")
 	}
@@ -145,13 +144,13 @@ func (q contentTypeQuery) All(ctx context.Context, exec boil.ContextExecutor) (C
 }
 
 // Count returns the count of all ContentType records in the query.
-func (q contentTypeQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q contentTypeQuery) Count(exec boil.Executor) (int64, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: failed to count content_types rows")
 	}
@@ -160,14 +159,14 @@ func (q contentTypeQuery) Count(ctx context.Context, exec boil.ContextExecutor) 
 }
 
 // Exists checks if the row exists in the table.
-func (q contentTypeQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+func (q contentTypeQuery) Exists(exec boil.Executor) (bool, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return false, errors.Wrap(err, "models: failed to check if content_types exists")
 	}
@@ -219,7 +218,7 @@ func (o *ContentType) TypeContentUnits(mods ...qm.QueryMod) contentUnitQuery {
 
 // LoadTypeCollections allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (contentTypeL) LoadTypeCollections(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentType interface{}, mods queries.Applicator) error {
+func (contentTypeL) LoadTypeCollections(e boil.Executor, singular bool, maybeContentType interface{}, mods queries.Applicator) error {
 	var slice []*ContentType
 	var object *ContentType
 
@@ -261,7 +260,7 @@ func (contentTypeL) LoadTypeCollections(ctx context.Context, e boil.ContextExecu
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load collections")
 	}
@@ -307,7 +306,7 @@ func (contentTypeL) LoadTypeCollections(ctx context.Context, e boil.ContextExecu
 
 // LoadTypeContentUnits allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (contentTypeL) LoadTypeContentUnits(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentType interface{}, mods queries.Applicator) error {
+func (contentTypeL) LoadTypeContentUnits(e boil.Executor, singular bool, maybeContentType interface{}, mods queries.Applicator) error {
 	var slice []*ContentType
 	var object *ContentType
 
@@ -349,7 +348,7 @@ func (contentTypeL) LoadTypeContentUnits(ctx context.Context, e boil.ContextExec
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load content_units")
 	}
@@ -397,12 +396,12 @@ func (contentTypeL) LoadTypeContentUnits(ctx context.Context, e boil.ContextExec
 // of the content_type, optionally inserting them as new records.
 // Appends related to o.R.TypeCollections.
 // Sets related.R.Type appropriately.
-func (o *ContentType) AddTypeCollections(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Collection) error {
+func (o *ContentType) AddTypeCollections(exec boil.Executor, insert bool, related ...*Collection) error {
 	var err error
 	for _, rel := range related {
 		if insert {
 			rel.TypeID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
@@ -413,12 +412,11 @@ func (o *ContentType) AddTypeCollections(ctx context.Context, exec boil.ContextE
 			)
 			values := []interface{}{o.ID, rel.ID}
 
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
+			if boil.DebugMode {
+				fmt.Fprintln(boil.DebugWriter, updateQuery)
+				fmt.Fprintln(boil.DebugWriter, values)
 			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			if _, err = exec.Exec(updateQuery, values...); err != nil {
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
@@ -450,12 +448,12 @@ func (o *ContentType) AddTypeCollections(ctx context.Context, exec boil.ContextE
 // of the content_type, optionally inserting them as new records.
 // Appends related to o.R.TypeContentUnits.
 // Sets related.R.Type appropriately.
-func (o *ContentType) AddTypeContentUnits(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ContentUnit) error {
+func (o *ContentType) AddTypeContentUnits(exec boil.Executor, insert bool, related ...*ContentUnit) error {
 	var err error
 	for _, rel := range related {
 		if insert {
 			rel.TypeID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
@@ -466,12 +464,11 @@ func (o *ContentType) AddTypeContentUnits(ctx context.Context, exec boil.Context
 			)
 			values := []interface{}{o.ID, rel.ID}
 
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
+			if boil.DebugMode {
+				fmt.Fprintln(boil.DebugWriter, updateQuery)
+				fmt.Fprintln(boil.DebugWriter, values)
 			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			if _, err = exec.Exec(updateQuery, values...); err != nil {
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
@@ -507,7 +504,7 @@ func ContentTypes(mods ...qm.QueryMod) contentTypeQuery {
 
 // FindContentType retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindContentType(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) (*ContentType, error) {
+func FindContentType(exec boil.Executor, iD int64, selectCols ...string) (*ContentType, error) {
 	contentTypeObj := &ContentType{}
 
 	sel := "*"
@@ -520,7 +517,7 @@ func FindContentType(ctx context.Context, exec boil.ContextExecutor, iD int64, s
 
 	q := queries.Raw(query, iD)
 
-	err := q.Bind(ctx, exec, contentTypeObj)
+	err := q.Bind(nil, exec, contentTypeObj)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -533,7 +530,7 @@ func FindContentType(ctx context.Context, exec boil.ContextExecutor, iD int64, s
 
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
-func (o *ContentType) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (o *ContentType) Insert(exec boil.Executor, columns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no content_types provided for insertion")
 	}
@@ -581,16 +578,15 @@ func (o *ContentType) Insert(ctx context.Context, exec boil.ContextExecutor, col
 	value := reflect.Indirect(reflect.ValueOf(o))
 	vals := queries.ValuesFromMapping(value, cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 
 	if err != nil {
@@ -609,7 +605,7 @@ func (o *ContentType) Insert(ctx context.Context, exec boil.ContextExecutor, col
 // Update uses an executor to update the ContentType.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
-func (o *ContentType) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
+func (o *ContentType) Update(exec boil.Executor, columns boil.Columns) (int64, error) {
 	var err error
 	key := makeCacheKey(columns, nil)
 	contentTypeUpdateCacheMut.RLock()
@@ -638,13 +634,12 @@ func (o *ContentType) Update(ctx context.Context, exec boil.ContextExecutor, col
 
 	values := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
 	var result sql.Result
-	result, err = exec.ExecContext(ctx, cache.query, values...)
+	result, err = exec.Exec(cache.query, values...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update content_types row")
 	}
@@ -664,10 +659,10 @@ func (o *ContentType) Update(ctx context.Context, exec boil.ContextExecutor, col
 }
 
 // UpdateAll updates all rows with the specified column values.
-func (q contentTypeQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (q contentTypeQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all for content_types")
 	}
@@ -681,7 +676,7 @@ func (q contentTypeQuery) UpdateAll(ctx context.Context, exec boil.ContextExecut
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
-func (o ContentTypeSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (o ContentTypeSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	ln := int64(len(o))
 	if ln == 0 {
 		return 0, nil
@@ -711,12 +706,11 @@ func (o ContentTypeSlice) UpdateAll(ctx context.Context, exec boil.ContextExecut
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, contentTypePrimaryKeyColumns, len(o)))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all in contentType slice")
 	}
@@ -730,7 +724,7 @@ func (o ContentTypeSlice) UpdateAll(ctx context.Context, exec boil.ContextExecut
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *ContentType) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+func (o *ContentType) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no content_types provided for upsert")
 	}
@@ -813,18 +807,17 @@ func (o *ContentType) Upsert(ctx context.Context, exec boil.ContextExecutor, upd
 		returns = queries.PtrsFromMapping(value, cache.retMapping)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
 		if err == sql.ErrNoRows {
 			err = nil // Postgres doesn't return anything when there's no update
 		}
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 	if err != nil {
 		return errors.Wrap(err, "models: unable to upsert content_types")
@@ -841,7 +834,7 @@ func (o *ContentType) Upsert(ctx context.Context, exec boil.ContextExecutor, upd
 
 // Delete deletes a single ContentType record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *ContentType) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *ContentType) Delete(exec boil.Executor) (int64, error) {
 	if o == nil {
 		return 0, errors.New("models: no ContentType provided for delete")
 	}
@@ -849,12 +842,11 @@ func (o *ContentType) Delete(ctx context.Context, exec boil.ContextExecutor) (in
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), contentTypePrimaryKeyMapping)
 	sql := "DELETE FROM \"content_types\" WHERE \"id\"=$1"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from content_types")
 	}
@@ -868,14 +860,14 @@ func (o *ContentType) Delete(ctx context.Context, exec boil.ContextExecutor) (in
 }
 
 // DeleteAll deletes all matching rows.
-func (q contentTypeQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q contentTypeQuery) DeleteAll(exec boil.Executor) (int64, error) {
 	if q.Query == nil {
 		return 0, errors.New("models: no contentTypeQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from content_types")
 	}
@@ -889,7 +881,7 @@ func (q contentTypeQuery) DeleteAll(ctx context.Context, exec boil.ContextExecut
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o ContentTypeSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o ContentTypeSlice) DeleteAll(exec boil.Executor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
@@ -903,12 +895,11 @@ func (o ContentTypeSlice) DeleteAll(ctx context.Context, exec boil.ContextExecut
 	sql := "DELETE FROM \"content_types\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, contentTypePrimaryKeyColumns, len(o))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from contentType slice")
 	}
@@ -923,8 +914,8 @@ func (o ContentTypeSlice) DeleteAll(ctx context.Context, exec boil.ContextExecut
 
 // Reload refetches the object from the database
 // using the primary keys with an executor.
-func (o *ContentType) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindContentType(ctx, exec, o.ID)
+func (o *ContentType) Reload(exec boil.Executor) error {
+	ret, err := FindContentType(exec, o.ID)
 	if err != nil {
 		return err
 	}
@@ -935,7 +926,7 @@ func (o *ContentType) Reload(ctx context.Context, exec boil.ContextExecutor) err
 
 // ReloadAll refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
-func (o *ContentTypeSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
+func (o *ContentTypeSlice) ReloadAll(exec boil.Executor) error {
 	if o == nil || len(*o) == 0 {
 		return nil
 	}
@@ -952,7 +943,7 @@ func (o *ContentTypeSlice) ReloadAll(ctx context.Context, exec boil.ContextExecu
 
 	q := queries.Raw(sql, args...)
 
-	err := q.Bind(ctx, exec, &slice)
+	err := q.Bind(nil, exec, &slice)
 	if err != nil {
 		return errors.Wrap(err, "models: unable to reload all in ContentTypeSlice")
 	}
@@ -963,16 +954,15 @@ func (o *ContentTypeSlice) ReloadAll(ctx context.Context, exec boil.ContextExecu
 }
 
 // ContentTypeExists checks if the ContentType row exists.
-func ContentTypeExists(ctx context.Context, exec boil.ContextExecutor, iD int64) (bool, error) {
+func ContentTypeExists(exec boil.Executor, iD int64) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"content_types\" where \"id\"=$1 limit 1)"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, iD)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, iD)
 	}
-	row := exec.QueryRowContext(ctx, sql, iD)
+	row := exec.QueryRow(sql, iD)
 
 	err := row.Scan(&exists)
 	if err != nil {

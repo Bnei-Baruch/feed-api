@@ -4,7 +4,6 @@
 package models
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -113,12 +112,12 @@ var (
 )
 
 // One returns a single contentRoleType record from the query.
-func (q contentRoleTypeQuery) One(ctx context.Context, exec boil.ContextExecutor) (*ContentRoleType, error) {
+func (q contentRoleTypeQuery) One(exec boil.Executor) (*ContentRoleType, error) {
 	o := &ContentRoleType{}
 
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Bind(ctx, exec, o)
+	err := q.Bind(nil, exec, o)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -130,10 +129,10 @@ func (q contentRoleTypeQuery) One(ctx context.Context, exec boil.ContextExecutor
 }
 
 // All returns all ContentRoleType records from the query.
-func (q contentRoleTypeQuery) All(ctx context.Context, exec boil.ContextExecutor) (ContentRoleTypeSlice, error) {
+func (q contentRoleTypeQuery) All(exec boil.Executor) (ContentRoleTypeSlice, error) {
 	var o []*ContentRoleType
 
-	err := q.Bind(ctx, exec, &o)
+	err := q.Bind(nil, exec, &o)
 	if err != nil {
 		return nil, errors.Wrap(err, "models: failed to assign all query results to ContentRoleType slice")
 	}
@@ -142,13 +141,13 @@ func (q contentRoleTypeQuery) All(ctx context.Context, exec boil.ContextExecutor
 }
 
 // Count returns the count of all ContentRoleType records in the query.
-func (q contentRoleTypeQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q contentRoleTypeQuery) Count(exec boil.Executor) (int64, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: failed to count content_role_types rows")
 	}
@@ -157,14 +156,14 @@ func (q contentRoleTypeQuery) Count(ctx context.Context, exec boil.ContextExecut
 }
 
 // Exists checks if the row exists in the table.
-func (q contentRoleTypeQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+func (q contentRoleTypeQuery) Exists(exec boil.Executor) (bool, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return false, errors.Wrap(err, "models: failed to check if content_role_types exists")
 	}
@@ -195,7 +194,7 @@ func (o *ContentRoleType) RoleContentUnitsPersons(mods ...qm.QueryMod) contentUn
 
 // LoadRoleContentUnitsPersons allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (contentRoleTypeL) LoadRoleContentUnitsPersons(ctx context.Context, e boil.ContextExecutor, singular bool, maybeContentRoleType interface{}, mods queries.Applicator) error {
+func (contentRoleTypeL) LoadRoleContentUnitsPersons(e boil.Executor, singular bool, maybeContentRoleType interface{}, mods queries.Applicator) error {
 	var slice []*ContentRoleType
 	var object *ContentRoleType
 
@@ -237,7 +236,7 @@ func (contentRoleTypeL) LoadRoleContentUnitsPersons(ctx context.Context, e boil.
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load content_units_persons")
 	}
@@ -285,12 +284,12 @@ func (contentRoleTypeL) LoadRoleContentUnitsPersons(ctx context.Context, e boil.
 // of the content_role_type, optionally inserting them as new records.
 // Appends related to o.R.RoleContentUnitsPersons.
 // Sets related.R.Role appropriately.
-func (o *ContentRoleType) AddRoleContentUnitsPersons(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ContentUnitsPerson) error {
+func (o *ContentRoleType) AddRoleContentUnitsPersons(exec boil.Executor, insert bool, related ...*ContentUnitsPerson) error {
 	var err error
 	for _, rel := range related {
 		if insert {
 			rel.RoleID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		} else {
@@ -301,12 +300,11 @@ func (o *ContentRoleType) AddRoleContentUnitsPersons(ctx context.Context, exec b
 			)
 			values := []interface{}{o.ID, rel.ContentUnitID, rel.PersonID}
 
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
+			if boil.DebugMode {
+				fmt.Fprintln(boil.DebugWriter, updateQuery)
+				fmt.Fprintln(boil.DebugWriter, values)
 			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			if _, err = exec.Exec(updateQuery, values...); err != nil {
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
@@ -342,7 +340,7 @@ func ContentRoleTypes(mods ...qm.QueryMod) contentRoleTypeQuery {
 
 // FindContentRoleType retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindContentRoleType(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) (*ContentRoleType, error) {
+func FindContentRoleType(exec boil.Executor, iD int64, selectCols ...string) (*ContentRoleType, error) {
 	contentRoleTypeObj := &ContentRoleType{}
 
 	sel := "*"
@@ -355,7 +353,7 @@ func FindContentRoleType(ctx context.Context, exec boil.ContextExecutor, iD int6
 
 	q := queries.Raw(query, iD)
 
-	err := q.Bind(ctx, exec, contentRoleTypeObj)
+	err := q.Bind(nil, exec, contentRoleTypeObj)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -368,7 +366,7 @@ func FindContentRoleType(ctx context.Context, exec boil.ContextExecutor, iD int6
 
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
-func (o *ContentRoleType) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (o *ContentRoleType) Insert(exec boil.Executor, columns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no content_role_types provided for insertion")
 	}
@@ -416,16 +414,15 @@ func (o *ContentRoleType) Insert(ctx context.Context, exec boil.ContextExecutor,
 	value := reflect.Indirect(reflect.ValueOf(o))
 	vals := queries.ValuesFromMapping(value, cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 
 	if err != nil {
@@ -444,7 +441,7 @@ func (o *ContentRoleType) Insert(ctx context.Context, exec boil.ContextExecutor,
 // Update uses an executor to update the ContentRoleType.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
-func (o *ContentRoleType) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
+func (o *ContentRoleType) Update(exec boil.Executor, columns boil.Columns) (int64, error) {
 	var err error
 	key := makeCacheKey(columns, nil)
 	contentRoleTypeUpdateCacheMut.RLock()
@@ -473,13 +470,12 @@ func (o *ContentRoleType) Update(ctx context.Context, exec boil.ContextExecutor,
 
 	values := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
 	var result sql.Result
-	result, err = exec.ExecContext(ctx, cache.query, values...)
+	result, err = exec.Exec(cache.query, values...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update content_role_types row")
 	}
@@ -499,10 +495,10 @@ func (o *ContentRoleType) Update(ctx context.Context, exec boil.ContextExecutor,
 }
 
 // UpdateAll updates all rows with the specified column values.
-func (q contentRoleTypeQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (q contentRoleTypeQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all for content_role_types")
 	}
@@ -516,7 +512,7 @@ func (q contentRoleTypeQuery) UpdateAll(ctx context.Context, exec boil.ContextEx
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
-func (o ContentRoleTypeSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (o ContentRoleTypeSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	ln := int64(len(o))
 	if ln == 0 {
 		return 0, nil
@@ -546,12 +542,11 @@ func (o ContentRoleTypeSlice) UpdateAll(ctx context.Context, exec boil.ContextEx
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, contentRoleTypePrimaryKeyColumns, len(o)))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all in contentRoleType slice")
 	}
@@ -565,7 +560,7 @@ func (o ContentRoleTypeSlice) UpdateAll(ctx context.Context, exec boil.ContextEx
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *ContentRoleType) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+func (o *ContentRoleType) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no content_role_types provided for upsert")
 	}
@@ -648,18 +643,17 @@ func (o *ContentRoleType) Upsert(ctx context.Context, exec boil.ContextExecutor,
 		returns = queries.PtrsFromMapping(value, cache.retMapping)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
 		if err == sql.ErrNoRows {
 			err = nil // Postgres doesn't return anything when there's no update
 		}
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 	if err != nil {
 		return errors.Wrap(err, "models: unable to upsert content_role_types")
@@ -676,7 +670,7 @@ func (o *ContentRoleType) Upsert(ctx context.Context, exec boil.ContextExecutor,
 
 // Delete deletes a single ContentRoleType record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *ContentRoleType) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *ContentRoleType) Delete(exec boil.Executor) (int64, error) {
 	if o == nil {
 		return 0, errors.New("models: no ContentRoleType provided for delete")
 	}
@@ -684,12 +678,11 @@ func (o *ContentRoleType) Delete(ctx context.Context, exec boil.ContextExecutor)
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), contentRoleTypePrimaryKeyMapping)
 	sql := "DELETE FROM \"content_role_types\" WHERE \"id\"=$1"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from content_role_types")
 	}
@@ -703,14 +696,14 @@ func (o *ContentRoleType) Delete(ctx context.Context, exec boil.ContextExecutor)
 }
 
 // DeleteAll deletes all matching rows.
-func (q contentRoleTypeQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q contentRoleTypeQuery) DeleteAll(exec boil.Executor) (int64, error) {
 	if q.Query == nil {
 		return 0, errors.New("models: no contentRoleTypeQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from content_role_types")
 	}
@@ -724,7 +717,7 @@ func (q contentRoleTypeQuery) DeleteAll(ctx context.Context, exec boil.ContextEx
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o ContentRoleTypeSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o ContentRoleTypeSlice) DeleteAll(exec boil.Executor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
@@ -738,12 +731,11 @@ func (o ContentRoleTypeSlice) DeleteAll(ctx context.Context, exec boil.ContextEx
 	sql := "DELETE FROM \"content_role_types\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, contentRoleTypePrimaryKeyColumns, len(o))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from contentRoleType slice")
 	}
@@ -758,8 +750,8 @@ func (o ContentRoleTypeSlice) DeleteAll(ctx context.Context, exec boil.ContextEx
 
 // Reload refetches the object from the database
 // using the primary keys with an executor.
-func (o *ContentRoleType) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindContentRoleType(ctx, exec, o.ID)
+func (o *ContentRoleType) Reload(exec boil.Executor) error {
+	ret, err := FindContentRoleType(exec, o.ID)
 	if err != nil {
 		return err
 	}
@@ -770,7 +762,7 @@ func (o *ContentRoleType) Reload(ctx context.Context, exec boil.ContextExecutor)
 
 // ReloadAll refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
-func (o *ContentRoleTypeSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
+func (o *ContentRoleTypeSlice) ReloadAll(exec boil.Executor) error {
 	if o == nil || len(*o) == 0 {
 		return nil
 	}
@@ -787,7 +779,7 @@ func (o *ContentRoleTypeSlice) ReloadAll(ctx context.Context, exec boil.ContextE
 
 	q := queries.Raw(sql, args...)
 
-	err := q.Bind(ctx, exec, &slice)
+	err := q.Bind(nil, exec, &slice)
 	if err != nil {
 		return errors.Wrap(err, "models: unable to reload all in ContentRoleTypeSlice")
 	}
@@ -798,16 +790,15 @@ func (o *ContentRoleTypeSlice) ReloadAll(ctx context.Context, exec boil.ContextE
 }
 
 // ContentRoleTypeExists checks if the ContentRoleType row exists.
-func ContentRoleTypeExists(ctx context.Context, exec boil.ContextExecutor, iD int64) (bool, error) {
+func ContentRoleTypeExists(exec boil.Executor, iD int64) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"content_role_types\" where \"id\"=$1 limit 1)"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, iD)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, iD)
 	}
-	row := exec.QueryRowContext(ctx, sql, iD)
+	row := exec.QueryRow(sql, iD)
 
 	err := row.Scan(&exists)
 	if err != nil {

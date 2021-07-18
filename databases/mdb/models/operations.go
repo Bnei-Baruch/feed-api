@@ -4,7 +4,6 @@
 package models
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -144,12 +143,12 @@ var (
 )
 
 // One returns a single operation record from the query.
-func (q operationQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Operation, error) {
+func (q operationQuery) One(exec boil.Executor) (*Operation, error) {
 	o := &Operation{}
 
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Bind(ctx, exec, o)
+	err := q.Bind(nil, exec, o)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -161,10 +160,10 @@ func (q operationQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Op
 }
 
 // All returns all Operation records from the query.
-func (q operationQuery) All(ctx context.Context, exec boil.ContextExecutor) (OperationSlice, error) {
+func (q operationQuery) All(exec boil.Executor) (OperationSlice, error) {
 	var o []*Operation
 
-	err := q.Bind(ctx, exec, &o)
+	err := q.Bind(nil, exec, &o)
 	if err != nil {
 		return nil, errors.Wrap(err, "models: failed to assign all query results to Operation slice")
 	}
@@ -173,13 +172,13 @@ func (q operationQuery) All(ctx context.Context, exec boil.ContextExecutor) (Ope
 }
 
 // Count returns the count of all Operation records in the query.
-func (q operationQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q operationQuery) Count(exec boil.Executor) (int64, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: failed to count operations rows")
 	}
@@ -188,14 +187,14 @@ func (q operationQuery) Count(ctx context.Context, exec boil.ContextExecutor) (i
 }
 
 // Exists checks if the row exists in the table.
-func (q operationQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+func (q operationQuery) Exists(exec boil.Executor) (bool, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return false, errors.Wrap(err, "models: failed to check if operations exists")
 	}
@@ -255,7 +254,7 @@ func (o *Operation) Files(mods ...qm.QueryMod) fileQuery {
 
 // LoadType allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (operationL) LoadType(ctx context.Context, e boil.ContextExecutor, singular bool, maybeOperation interface{}, mods queries.Applicator) error {
+func (operationL) LoadType(e boil.Executor, singular bool, maybeOperation interface{}, mods queries.Applicator) error {
 	var slice []*Operation
 	var object *Operation
 
@@ -299,7 +298,7 @@ func (operationL) LoadType(ctx context.Context, e boil.ContextExecutor, singular
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load OperationType")
 	}
@@ -348,7 +347,7 @@ func (operationL) LoadType(ctx context.Context, e boil.ContextExecutor, singular
 
 // LoadUser allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (operationL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular bool, maybeOperation interface{}, mods queries.Applicator) error {
+func (operationL) LoadUser(e boil.Executor, singular bool, maybeOperation interface{}, mods queries.Applicator) error {
 	var slice []*Operation
 	var object *Operation
 
@@ -396,7 +395,7 @@ func (operationL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load User")
 	}
@@ -445,7 +444,7 @@ func (operationL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular
 
 // LoadFiles allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (operationL) LoadFiles(ctx context.Context, e boil.ContextExecutor, singular bool, maybeOperation interface{}, mods queries.Applicator) error {
+func (operationL) LoadFiles(e boil.Executor, singular bool, maybeOperation interface{}, mods queries.Applicator) error {
 	var slice []*Operation
 	var object *Operation
 
@@ -492,7 +491,7 @@ func (operationL) LoadFiles(ctx context.Context, e boil.ContextExecutor, singula
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load files")
 	}
@@ -554,10 +553,10 @@ func (operationL) LoadFiles(ctx context.Context, e boil.ContextExecutor, singula
 // SetType of the operation to the related item.
 // Sets o.R.Type to related.
 // Adds o to related.R.TypeOperations.
-func (o *Operation) SetType(ctx context.Context, exec boil.ContextExecutor, insert bool, related *OperationType) error {
+func (o *Operation) SetType(exec boil.Executor, insert bool, related *OperationType) error {
 	var err error
 	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
 			return errors.Wrap(err, "failed to insert into foreign table")
 		}
 	}
@@ -569,12 +568,11 @@ func (o *Operation) SetType(ctx context.Context, exec boil.ContextExecutor, inse
 	)
 	values := []interface{}{related.ID, o.ID}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -601,10 +599,10 @@ func (o *Operation) SetType(ctx context.Context, exec boil.ContextExecutor, inse
 // SetUser of the operation to the related item.
 // Sets o.R.User to related.
 // Adds o to related.R.Operations.
-func (o *Operation) SetUser(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) error {
+func (o *Operation) SetUser(exec boil.Executor, insert bool, related *User) error {
 	var err error
 	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
 			return errors.Wrap(err, "failed to insert into foreign table")
 		}
 	}
@@ -616,12 +614,11 @@ func (o *Operation) SetUser(ctx context.Context, exec boil.ContextExecutor, inse
 	)
 	values := []interface{}{related.ID, o.ID}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -648,11 +645,11 @@ func (o *Operation) SetUser(ctx context.Context, exec boil.ContextExecutor, inse
 // RemoveUser relationship.
 // Sets o.R.User to nil.
 // Removes o from all passed in related items' relationships struct (Optional).
-func (o *Operation) RemoveUser(ctx context.Context, exec boil.ContextExecutor, related *User) error {
+func (o *Operation) RemoveUser(exec boil.Executor, related *User) error {
 	var err error
 
 	queries.SetScanner(&o.UserID, nil)
-	if _, err = o.Update(ctx, exec, boil.Whitelist("user_id")); err != nil {
+	if _, err = o.Update(exec, boil.Whitelist("user_id")); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -682,11 +679,11 @@ func (o *Operation) RemoveUser(ctx context.Context, exec boil.ContextExecutor, r
 // of the operation, optionally inserting them as new records.
 // Appends related to o.R.Files.
 // Sets related.R.Operations appropriately.
-func (o *Operation) AddFiles(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*File) error {
+func (o *Operation) AddFiles(exec boil.Executor, insert bool, related ...*File) error {
 	var err error
 	for _, rel := range related {
 		if insert {
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+			if err = rel.Insert(exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
 		}
@@ -696,12 +693,11 @@ func (o *Operation) AddFiles(ctx context.Context, exec boil.ContextExecutor, ins
 		query := "insert into \"files_operations\" (\"operation_id\", \"file_id\") values ($1, $2)"
 		values := []interface{}{o.ID, rel.ID}
 
-		if boil.IsDebug(ctx) {
-			writer := boil.DebugWriterFrom(ctx)
-			fmt.Fprintln(writer, query)
-			fmt.Fprintln(writer, values)
+		if boil.DebugMode {
+			fmt.Fprintln(boil.DebugWriter, query)
+			fmt.Fprintln(boil.DebugWriter, values)
 		}
-		_, err = exec.ExecContext(ctx, query, values...)
+		_, err = exec.Exec(query, values...)
 		if err != nil {
 			return errors.Wrap(err, "failed to insert into join table")
 		}
@@ -732,15 +728,14 @@ func (o *Operation) AddFiles(ctx context.Context, exec boil.ContextExecutor, ins
 // Sets o.R.Operations's Files accordingly.
 // Replaces o.R.Files with related.
 // Sets related.R.Operations's Files accordingly.
-func (o *Operation) SetFiles(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*File) error {
+func (o *Operation) SetFiles(exec boil.Executor, insert bool, related ...*File) error {
 	query := "delete from \"files_operations\" where \"operation_id\" = $1"
 	values := []interface{}{o.ID}
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err := exec.ExecContext(ctx, query, values...)
+	_, err := exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -749,13 +744,13 @@ func (o *Operation) SetFiles(ctx context.Context, exec boil.ContextExecutor, ins
 	if o.R != nil {
 		o.R.Files = nil
 	}
-	return o.AddFiles(ctx, exec, insert, related...)
+	return o.AddFiles(exec, insert, related...)
 }
 
 // RemoveFiles relationships from objects passed in.
 // Removes related items from R.Files (uses pointer comparison, removal does not keep order)
 // Sets related.R.Operations.
-func (o *Operation) RemoveFiles(ctx context.Context, exec boil.ContextExecutor, related ...*File) error {
+func (o *Operation) RemoveFiles(exec boil.Executor, related ...*File) error {
 	var err error
 	query := fmt.Sprintf(
 		"delete from \"files_operations\" where \"operation_id\" = $1 and \"file_id\" in (%s)",
@@ -766,12 +761,11 @@ func (o *Operation) RemoveFiles(ctx context.Context, exec boil.ContextExecutor, 
 		values = append(values, rel.ID)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	_, err = exec.ExecContext(ctx, query, values...)
+	_, err = exec.Exec(query, values...)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove relationships before set")
 	}
@@ -826,7 +820,7 @@ func Operations(mods ...qm.QueryMod) operationQuery {
 
 // FindOperation retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindOperation(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) (*Operation, error) {
+func FindOperation(exec boil.Executor, iD int64, selectCols ...string) (*Operation, error) {
 	operationObj := &Operation{}
 
 	sel := "*"
@@ -839,7 +833,7 @@ func FindOperation(ctx context.Context, exec boil.ContextExecutor, iD int64, sel
 
 	q := queries.Raw(query, iD)
 
-	err := q.Bind(ctx, exec, operationObj)
+	err := q.Bind(nil, exec, operationObj)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -852,7 +846,7 @@ func FindOperation(ctx context.Context, exec boil.ContextExecutor, iD int64, sel
 
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
-func (o *Operation) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (o *Operation) Insert(exec boil.Executor, columns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no operations provided for insertion")
 	}
@@ -900,16 +894,15 @@ func (o *Operation) Insert(ctx context.Context, exec boil.ContextExecutor, colum
 	value := reflect.Indirect(reflect.ValueOf(o))
 	vals := queries.ValuesFromMapping(value, cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 
 	if err != nil {
@@ -928,7 +921,7 @@ func (o *Operation) Insert(ctx context.Context, exec boil.ContextExecutor, colum
 // Update uses an executor to update the Operation.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
-func (o *Operation) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
+func (o *Operation) Update(exec boil.Executor, columns boil.Columns) (int64, error) {
 	var err error
 	key := makeCacheKey(columns, nil)
 	operationUpdateCacheMut.RLock()
@@ -957,13 +950,12 @@ func (o *Operation) Update(ctx context.Context, exec boil.ContextExecutor, colum
 
 	values := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
 	var result sql.Result
-	result, err = exec.ExecContext(ctx, cache.query, values...)
+	result, err = exec.Exec(cache.query, values...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update operations row")
 	}
@@ -983,10 +975,10 @@ func (o *Operation) Update(ctx context.Context, exec boil.ContextExecutor, colum
 }
 
 // UpdateAll updates all rows with the specified column values.
-func (q operationQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (q operationQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all for operations")
 	}
@@ -1000,7 +992,7 @@ func (q operationQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
-func (o OperationSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (o OperationSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	ln := int64(len(o))
 	if ln == 0 {
 		return 0, nil
@@ -1030,12 +1022,11 @@ func (o OperationSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, operationPrimaryKeyColumns, len(o)))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all in operation slice")
 	}
@@ -1049,7 +1040,7 @@ func (o OperationSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *Operation) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+func (o *Operation) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no operations provided for upsert")
 	}
@@ -1132,18 +1123,17 @@ func (o *Operation) Upsert(ctx context.Context, exec boil.ContextExecutor, updat
 		returns = queries.PtrsFromMapping(value, cache.retMapping)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
 		if err == sql.ErrNoRows {
 			err = nil // Postgres doesn't return anything when there's no update
 		}
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 	if err != nil {
 		return errors.Wrap(err, "models: unable to upsert operations")
@@ -1160,7 +1150,7 @@ func (o *Operation) Upsert(ctx context.Context, exec boil.ContextExecutor, updat
 
 // Delete deletes a single Operation record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *Operation) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *Operation) Delete(exec boil.Executor) (int64, error) {
 	if o == nil {
 		return 0, errors.New("models: no Operation provided for delete")
 	}
@@ -1168,12 +1158,11 @@ func (o *Operation) Delete(ctx context.Context, exec boil.ContextExecutor) (int6
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), operationPrimaryKeyMapping)
 	sql := "DELETE FROM \"operations\" WHERE \"id\"=$1"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from operations")
 	}
@@ -1187,14 +1176,14 @@ func (o *Operation) Delete(ctx context.Context, exec boil.ContextExecutor) (int6
 }
 
 // DeleteAll deletes all matching rows.
-func (q operationQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q operationQuery) DeleteAll(exec boil.Executor) (int64, error) {
 	if q.Query == nil {
 		return 0, errors.New("models: no operationQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from operations")
 	}
@@ -1208,7 +1197,7 @@ func (q operationQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o OperationSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o OperationSlice) DeleteAll(exec boil.Executor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
@@ -1222,12 +1211,11 @@ func (o OperationSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor
 	sql := "DELETE FROM \"operations\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, operationPrimaryKeyColumns, len(o))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from operation slice")
 	}
@@ -1242,8 +1230,8 @@ func (o OperationSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor
 
 // Reload refetches the object from the database
 // using the primary keys with an executor.
-func (o *Operation) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindOperation(ctx, exec, o.ID)
+func (o *Operation) Reload(exec boil.Executor) error {
+	ret, err := FindOperation(exec, o.ID)
 	if err != nil {
 		return err
 	}
@@ -1254,7 +1242,7 @@ func (o *Operation) Reload(ctx context.Context, exec boil.ContextExecutor) error
 
 // ReloadAll refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
-func (o *OperationSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
+func (o *OperationSlice) ReloadAll(exec boil.Executor) error {
 	if o == nil || len(*o) == 0 {
 		return nil
 	}
@@ -1271,7 +1259,7 @@ func (o *OperationSlice) ReloadAll(ctx context.Context, exec boil.ContextExecuto
 
 	q := queries.Raw(sql, args...)
 
-	err := q.Bind(ctx, exec, &slice)
+	err := q.Bind(nil, exec, &slice)
 	if err != nil {
 		return errors.Wrap(err, "models: unable to reload all in OperationSlice")
 	}
@@ -1282,16 +1270,15 @@ func (o *OperationSlice) ReloadAll(ctx context.Context, exec boil.ContextExecuto
 }
 
 // OperationExists checks if the Operation row exists.
-func OperationExists(ctx context.Context, exec boil.ContextExecutor, iD int64) (bool, error) {
+func OperationExists(exec boil.Executor, iD int64) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"operations\" where \"id\"=$1 limit 1)"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, iD)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, iD)
 	}
-	row := exec.QueryRowContext(ctx, sql, iD)
+	row := exec.QueryRow(sql, iD)
 
 	err := row.Scan(&exists)
 	if err != nil {

@@ -4,7 +4,6 @@
 package models
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -136,12 +135,12 @@ var (
 )
 
 // One returns a single publisherI18n record from the query.
-func (q publisherI18nQuery) One(ctx context.Context, exec boil.ContextExecutor) (*PublisherI18n, error) {
+func (q publisherI18nQuery) One(exec boil.Executor) (*PublisherI18n, error) {
 	o := &PublisherI18n{}
 
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Bind(ctx, exec, o)
+	err := q.Bind(nil, exec, o)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -153,10 +152,10 @@ func (q publisherI18nQuery) One(ctx context.Context, exec boil.ContextExecutor) 
 }
 
 // All returns all PublisherI18n records from the query.
-func (q publisherI18nQuery) All(ctx context.Context, exec boil.ContextExecutor) (PublisherI18nSlice, error) {
+func (q publisherI18nQuery) All(exec boil.Executor) (PublisherI18nSlice, error) {
 	var o []*PublisherI18n
 
-	err := q.Bind(ctx, exec, &o)
+	err := q.Bind(nil, exec, &o)
 	if err != nil {
 		return nil, errors.Wrap(err, "models: failed to assign all query results to PublisherI18n slice")
 	}
@@ -165,13 +164,13 @@ func (q publisherI18nQuery) All(ctx context.Context, exec boil.ContextExecutor) 
 }
 
 // Count returns the count of all PublisherI18n records in the query.
-func (q publisherI18nQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q publisherI18nQuery) Count(exec boil.Executor) (int64, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: failed to count publisher_i18n rows")
 	}
@@ -180,14 +179,14 @@ func (q publisherI18nQuery) Count(ctx context.Context, exec boil.ContextExecutor
 }
 
 // Exists checks if the row exists in the table.
-func (q publisherI18nQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+func (q publisherI18nQuery) Exists(exec boil.Executor) (bool, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
 		return false, errors.Wrap(err, "models: failed to check if publisher_i18n exists")
 	}
@@ -225,7 +224,7 @@ func (o *PublisherI18n) User(mods ...qm.QueryMod) userQuery {
 
 // LoadPublisher allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (publisherI18nL) LoadPublisher(ctx context.Context, e boil.ContextExecutor, singular bool, maybePublisherI18n interface{}, mods queries.Applicator) error {
+func (publisherI18nL) LoadPublisher(e boil.Executor, singular bool, maybePublisherI18n interface{}, mods queries.Applicator) error {
 	var slice []*PublisherI18n
 	var object *PublisherI18n
 
@@ -269,7 +268,7 @@ func (publisherI18nL) LoadPublisher(ctx context.Context, e boil.ContextExecutor,
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load Publisher")
 	}
@@ -318,7 +317,7 @@ func (publisherI18nL) LoadPublisher(ctx context.Context, e boil.ContextExecutor,
 
 // LoadUser allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (publisherI18nL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular bool, maybePublisherI18n interface{}, mods queries.Applicator) error {
+func (publisherI18nL) LoadUser(e boil.Executor, singular bool, maybePublisherI18n interface{}, mods queries.Applicator) error {
 	var slice []*PublisherI18n
 	var object *PublisherI18n
 
@@ -366,7 +365,7 @@ func (publisherI18nL) LoadUser(ctx context.Context, e boil.ContextExecutor, sing
 		mods.Apply(query)
 	}
 
-	results, err := query.QueryContext(ctx, e)
+	results, err := query.Query(e)
 	if err != nil {
 		return errors.Wrap(err, "failed to eager load User")
 	}
@@ -416,10 +415,10 @@ func (publisherI18nL) LoadUser(ctx context.Context, e boil.ContextExecutor, sing
 // SetPublisher of the publisherI18n to the related item.
 // Sets o.R.Publisher to related.
 // Adds o to related.R.PublisherI18ns.
-func (o *PublisherI18n) SetPublisher(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Publisher) error {
+func (o *PublisherI18n) SetPublisher(exec boil.Executor, insert bool, related *Publisher) error {
 	var err error
 	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
 			return errors.Wrap(err, "failed to insert into foreign table")
 		}
 	}
@@ -431,12 +430,11 @@ func (o *PublisherI18n) SetPublisher(ctx context.Context, exec boil.ContextExecu
 	)
 	values := []interface{}{related.ID, o.PublisherID, o.Language}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -463,10 +461,10 @@ func (o *PublisherI18n) SetPublisher(ctx context.Context, exec boil.ContextExecu
 // SetUser of the publisherI18n to the related item.
 // Sets o.R.User to related.
 // Adds o to related.R.PublisherI18ns.
-func (o *PublisherI18n) SetUser(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) error {
+func (o *PublisherI18n) SetUser(exec boil.Executor, insert bool, related *User) error {
 	var err error
 	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
 			return errors.Wrap(err, "failed to insert into foreign table")
 		}
 	}
@@ -478,12 +476,11 @@ func (o *PublisherI18n) SetUser(ctx context.Context, exec boil.ContextExecutor, 
 	)
 	values := []interface{}{related.ID, o.PublisherID, o.Language}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -510,11 +507,11 @@ func (o *PublisherI18n) SetUser(ctx context.Context, exec boil.ContextExecutor, 
 // RemoveUser relationship.
 // Sets o.R.User to nil.
 // Removes o from all passed in related items' relationships struct (Optional).
-func (o *PublisherI18n) RemoveUser(ctx context.Context, exec boil.ContextExecutor, related *User) error {
+func (o *PublisherI18n) RemoveUser(exec boil.Executor, related *User) error {
 	var err error
 
 	queries.SetScanner(&o.UserID, nil)
-	if _, err = o.Update(ctx, exec, boil.Whitelist("user_id")); err != nil {
+	if _, err = o.Update(exec, boil.Whitelist("user_id")); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
@@ -548,7 +545,7 @@ func PublisherI18ns(mods ...qm.QueryMod) publisherI18nQuery {
 
 // FindPublisherI18n retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindPublisherI18n(ctx context.Context, exec boil.ContextExecutor, publisherID int64, language string, selectCols ...string) (*PublisherI18n, error) {
+func FindPublisherI18n(exec boil.Executor, publisherID int64, language string, selectCols ...string) (*PublisherI18n, error) {
 	publisherI18nObj := &PublisherI18n{}
 
 	sel := "*"
@@ -561,7 +558,7 @@ func FindPublisherI18n(ctx context.Context, exec boil.ContextExecutor, publisher
 
 	q := queries.Raw(query, publisherID, language)
 
-	err := q.Bind(ctx, exec, publisherI18nObj)
+	err := q.Bind(nil, exec, publisherI18nObj)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -574,7 +571,7 @@ func FindPublisherI18n(ctx context.Context, exec boil.ContextExecutor, publisher
 
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
-func (o *PublisherI18n) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (o *PublisherI18n) Insert(exec boil.Executor, columns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no publisher_i18n provided for insertion")
 	}
@@ -622,16 +619,15 @@ func (o *PublisherI18n) Insert(ctx context.Context, exec boil.ContextExecutor, c
 	value := reflect.Indirect(reflect.ValueOf(o))
 	vals := queries.ValuesFromMapping(value, cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 
 	if err != nil {
@@ -650,7 +646,7 @@ func (o *PublisherI18n) Insert(ctx context.Context, exec boil.ContextExecutor, c
 // Update uses an executor to update the PublisherI18n.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
-func (o *PublisherI18n) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
+func (o *PublisherI18n) Update(exec boil.Executor, columns boil.Columns) (int64, error) {
 	var err error
 	key := makeCacheKey(columns, nil)
 	publisherI18nUpdateCacheMut.RLock()
@@ -679,13 +675,12 @@ func (o *PublisherI18n) Update(ctx context.Context, exec boil.ContextExecutor, c
 
 	values := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
 	var result sql.Result
-	result, err = exec.ExecContext(ctx, cache.query, values...)
+	result, err = exec.Exec(cache.query, values...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update publisher_i18n row")
 	}
@@ -705,10 +700,10 @@ func (o *PublisherI18n) Update(ctx context.Context, exec boil.ContextExecutor, c
 }
 
 // UpdateAll updates all rows with the specified column values.
-func (q publisherI18nQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (q publisherI18nQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all for publisher_i18n")
 	}
@@ -722,7 +717,7 @@ func (q publisherI18nQuery) UpdateAll(ctx context.Context, exec boil.ContextExec
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
-func (o PublisherI18nSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (o PublisherI18nSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	ln := int64(len(o))
 	if ln == 0 {
 		return 0, nil
@@ -752,12 +747,11 @@ func (o PublisherI18nSlice) UpdateAll(ctx context.Context, exec boil.ContextExec
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, publisherI18nPrimaryKeyColumns, len(o)))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to update all in publisherI18n slice")
 	}
@@ -771,7 +765,7 @@ func (o PublisherI18nSlice) UpdateAll(ctx context.Context, exec boil.ContextExec
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *PublisherI18n) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+func (o *PublisherI18n) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no publisher_i18n provided for upsert")
 	}
@@ -854,18 +848,17 @@ func (o *PublisherI18n) Upsert(ctx context.Context, exec boil.ContextExecutor, u
 		returns = queries.PtrsFromMapping(value, cache.retMapping)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
 	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
 		if err == sql.ErrNoRows {
 			err = nil // Postgres doesn't return anything when there's no update
 		}
 	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
+		_, err = exec.Exec(cache.query, vals...)
 	}
 	if err != nil {
 		return errors.Wrap(err, "models: unable to upsert publisher_i18n")
@@ -882,7 +875,7 @@ func (o *PublisherI18n) Upsert(ctx context.Context, exec boil.ContextExecutor, u
 
 // Delete deletes a single PublisherI18n record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *PublisherI18n) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *PublisherI18n) Delete(exec boil.Executor) (int64, error) {
 	if o == nil {
 		return 0, errors.New("models: no PublisherI18n provided for delete")
 	}
@@ -890,12 +883,11 @@ func (o *PublisherI18n) Delete(ctx context.Context, exec boil.ContextExecutor) (
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), publisherI18nPrimaryKeyMapping)
 	sql := "DELETE FROM \"publisher_i18n\" WHERE \"publisher_id\"=$1 AND \"language\"=$2"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from publisher_i18n")
 	}
@@ -909,14 +901,14 @@ func (o *PublisherI18n) Delete(ctx context.Context, exec boil.ContextExecutor) (
 }
 
 // DeleteAll deletes all matching rows.
-func (q publisherI18nQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q publisherI18nQuery) DeleteAll(exec boil.Executor) (int64, error) {
 	if q.Query == nil {
 		return 0, errors.New("models: no publisherI18nQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from publisher_i18n")
 	}
@@ -930,7 +922,7 @@ func (q publisherI18nQuery) DeleteAll(ctx context.Context, exec boil.ContextExec
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o PublisherI18nSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o PublisherI18nSlice) DeleteAll(exec boil.Executor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
@@ -944,12 +936,11 @@ func (o PublisherI18nSlice) DeleteAll(ctx context.Context, exec boil.ContextExec
 	sql := "DELETE FROM \"publisher_i18n\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, publisherI18nPrimaryKeyColumns, len(o))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete all from publisherI18n slice")
 	}
@@ -964,8 +955,8 @@ func (o PublisherI18nSlice) DeleteAll(ctx context.Context, exec boil.ContextExec
 
 // Reload refetches the object from the database
 // using the primary keys with an executor.
-func (o *PublisherI18n) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindPublisherI18n(ctx, exec, o.PublisherID, o.Language)
+func (o *PublisherI18n) Reload(exec boil.Executor) error {
+	ret, err := FindPublisherI18n(exec, o.PublisherID, o.Language)
 	if err != nil {
 		return err
 	}
@@ -976,7 +967,7 @@ func (o *PublisherI18n) Reload(ctx context.Context, exec boil.ContextExecutor) e
 
 // ReloadAll refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
-func (o *PublisherI18nSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
+func (o *PublisherI18nSlice) ReloadAll(exec boil.Executor) error {
 	if o == nil || len(*o) == 0 {
 		return nil
 	}
@@ -993,7 +984,7 @@ func (o *PublisherI18nSlice) ReloadAll(ctx context.Context, exec boil.ContextExe
 
 	q := queries.Raw(sql, args...)
 
-	err := q.Bind(ctx, exec, &slice)
+	err := q.Bind(nil, exec, &slice)
 	if err != nil {
 		return errors.Wrap(err, "models: unable to reload all in PublisherI18nSlice")
 	}
@@ -1004,16 +995,15 @@ func (o *PublisherI18nSlice) ReloadAll(ctx context.Context, exec boil.ContextExe
 }
 
 // PublisherI18nExists checks if the PublisherI18n row exists.
-func PublisherI18nExists(ctx context.Context, exec boil.ContextExecutor, publisherID int64, language string) (bool, error) {
+func PublisherI18nExists(exec boil.Executor, publisherID int64, language string) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"publisher_i18n\" where \"publisher_id\"=$1 AND \"language\"=$2 limit 1)"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, publisherID, language)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, publisherID, language)
 	}
-	row := exec.QueryRowContext(ctx, sql, publisherID, language)
+	row := exec.QueryRow(sql, publisherID, language)
 
 	err := row.Scan(&exists)
 	if err != nil {
