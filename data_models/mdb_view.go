@@ -712,7 +712,7 @@ func addContentUnitScopeSingleSide(contentUnitIds []int64, scope map[string]*Sco
 	}
 
 	if withFiles {
-		if files, err := models.Files(qm.Select("id"), qm.WhereIn("content_unit_id in ?", utils.ToInterfaceSlice(contentUnitIds)...)).All(context.TODO(), exec); err != nil {
+		if files, err := models.Files(qm.Select("id"), qm.WhereIn("content_unit_id in ?", utils.ToInterfaceSlice(contentUnitIds)...)).All(exec); err != nil {
 			return err
 		} else {
 			fileIds := []int64(nil)
@@ -736,7 +736,7 @@ func addFileScopeParentsOnly(fileIds []int64, scope map[string]*ScopeIds, exec *
 	fileIdsMap := make(map[int64]bool)
 	for len(children) > 0 {
 		log.Infof("Children: %+v", children)
-		if files, err := models.Files(qm.Select("id, parent_id"), qm.WhereIn("id in ?", utils.ToInterfaceSlice(children)...)).All(context.TODO(), exec); err != nil {
+		if files, err := models.Files(qm.Select("id, parent_id"), qm.WhereIn("id in ?", utils.ToInterfaceSlice(children)...)).All(exec); err != nil {
 			return nil, err
 		} else {
 			for _, file := range files {
@@ -801,7 +801,7 @@ func addFileScopeSingleSide(fileIds []int64, scope map[string]*ScopeIds, exec *s
 	}
 
 	units := make(map[int64]bool)
-	if files, err := models.Files(qm.Select("content_unit_id"), qm.WhereIn("id in ?", utils.ToInterfaceSlice(withParents)...)).All(context.TODO(), exec); err != nil {
+	if files, err := models.Files(qm.Select("content_unit_id"), qm.WhereIn("id in ?", utils.ToInterfaceSlice(withParents)...)).All(exec); err != nil {
 		return withParents, nil, errors.Wrap(err, "Faile fetching local files")
 	} else {
 		for _, file := range files {

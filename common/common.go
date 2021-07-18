@@ -3,6 +3,9 @@ package common
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
+	"regexp"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -67,6 +70,15 @@ func Init() time.Time {
 	return InitWithDefault()
 }
 
+func GetUserPasswordFromConnectionString(cs string) (string, string, error) {
+	re := regexp.MustCompile(`postgres://(.*):(.*)@`)
+	match := re.FindStringSubmatch(cs)
+	if len(match) != 3 {
+		return "", "", errors.New("Unpexpected connection string.")
+	}
+	return match[1], match[2], nil
+}
+
 func InitModelsDb() (db *sql.DB, err error) {
 	log.Info("Setting up connection to Models")
 	if db, err = sql.Open("postgres", viper.GetString("data_models.url")); err != nil {
@@ -75,14 +87,23 @@ func InitModelsDb() (db *sql.DB, err error) {
 	if err = db.Ping(); err != nil {
 		return
 	}
-	if _, err = queries.Raw("select dblink_connect('mdb_conn', 'dbname=mdb user=postgres password=YjQ0MD');").Exec(db); err != nil {
+	var username, password string
+	if username, password, err = GetUserPasswordFromConnectionString(viper.GetString("mdb.local_url")); err != nil {
 		return
+	} else {
+		if _, err = queries.Raw(fmt.Sprintf("select dblink_connect('mdb_conn', 'dbname=mdb user=%s password=%s');", username, password)).Exec(db); err != nil {
+			return
+		}
+		log.Infof("mdb_conn dblink_connected")
 	}
-	log.Infof("mdb_conn dblink_connect")
-	if _, err = queries.Raw("select dblink_connect('chronicles_conn', 'dbname=chronicles user=postgres password=YjQ0MD');").Exec(db); err != nil {
+	if username, password, err = GetUserPasswordFromConnectionString(viper.GetString("chronicles.local_url")); err != nil {
 		return
+	} else {
+		if _, err = queries.Raw(fmt.Sprintf("select dblink_connect('chronicles_conn', 'dbname=chronicles user=%s password=%s');", username, password)).Exec(db); err != nil {
+			return
+		}
+		log.Infof("chronicles_conn dblink_connected")
 	}
-	log.Infof("chronicles_conn dblink_connect")
 	return
 }
 
