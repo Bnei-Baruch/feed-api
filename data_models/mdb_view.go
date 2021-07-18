@@ -555,10 +555,10 @@ func createTablesInfo() []TableInfo {
 		TableInfo{T_FILES, []string{"id"}, func() interface{} { return &[]*models.File{} }, func(mods ...qm.QueryMod) Bindable { return models.Files(mods...) }},
 
 		// Operations
-		TableInfo{T_OPERATIONS, []string{"id"}, func() interface{} { return &[]*models.Operation{} }, func(mods ...qm.QueryMod) Bindable { return models.Operations(mods...) }},
+		// TableInfo{T_OPERATIONS, []string{"id"}, func() interface{} { return &[]*models.Operation{} }, func(mods ...qm.QueryMod) Bindable { return models.Operations(mods...) }},
 
 		// Storages
-		TableInfo{T_STORAGES, []string{"id"}, func() interface{} { return &[]*models.Storage{} }, func(mods ...qm.QueryMod) Bindable { return models.Storages(mods...) }},
+		// TableInfo{T_STORAGES, []string{"id"}, func() interface{} { return &[]*models.Storage{} }, func(mods ...qm.QueryMod) Bindable { return models.Storages(mods...) }},
 
 		// Publishers
 		TableInfo{T_PUBLISHERS, []string{"id"}, func() interface{} { return &[]*models.Publisher{} }, func(mods ...qm.QueryMod) Bindable { return models.Publishers(mods...) }},
@@ -590,8 +590,8 @@ func createTablesInfo() []TableInfo {
 		TableInfo{T_CONTENT_UNITS_PUBLISHERS, []string{"content_unit_id", "publisher_id"}, func() interface{} { return &[]*ContentUnitPublisher{} }, RelationQuery("content_units_publishers", "content_unit_id", "publisher_id")},
 
 		// File Relations
-		TableInfo{T_FILES_OPERATIONS, []string{"file_id", "operation_id"}, func() interface{} { return &[]*FileOperation{} }, RelationQuery("files_operations", "file_id", "operation_id")},
-		TableInfo{T_FILES_STORAGES, []string{"file_id", "storage_id"}, func() interface{} { return &[]*FileStorage{} }, RelationQuery("files_storages", "file_id", "storage_id")},
+		// TableInfo{T_FILES_OPERATIONS, []string{"file_id", "operation_id"}, func() interface{} { return &[]*FileOperation{} }, RelationQuery("files_operations", "file_id", "operation_id")},
+		// TableInfo{T_FILES_STORAGES, []string{"file_id", "storage_id"}, func() interface{} { return &[]*FileStorage{} }, RelationQuery("files_storages", "file_id", "storage_id")},
 
 		// Author Sources
 		TableInfo{T_AUTHORS_SOURCES, []string{"author_id", "source_id"}, func() interface{} { return &[]*AuthorSource{} }, RelationQuery("authors_sources", "author_id", "source_id")},
@@ -792,9 +792,17 @@ func addFileScopeSingleSide(fileIds []int64, scope map[string]*ScopeIds, exec *s
 	}
 	for _, fileId := range withParents {
 		addScopeId(T_FILES, IdsTuple{fileId, 0, ""}, scope, isLocal)
-		addScopeId(T_FILES_OPERATIONS, IdsTuple{fileId, 0, ""}, scope, isLocal)
-		addScopeId(T_FILES_STORAGES, IdsTuple{fileId, 0, ""}, scope, isLocal)
+		//addScopeId(T_FILES_OPERATIONS, IdsTuple{fileId, 0, ""}, scope, isLocal)
+		//addScopeId(T_FILES_STORAGES, IdsTuple{fileId, 0, ""}, scope, isLocal)
 	}
+
+	/*fileOps := []FileOperation(nil)
+	if err := models.NewQuery(qm.Select("operation_id"), qm.From(T_FILES_OPERATIONS), qm.WhereIn("file_id in ?", utils.ToInterfaceSlice(withParents)...)).Bind(context.TODO(), exec, &fileOps); err != nil {
+		return nil, nil, err
+	}
+	for _, fileOp := range fileOps {
+		addScopeId(T_OPERATIONS, IdsTuple{fileOp.OperationID, 0, ""}, scope, isLocal)
+	}*/
 
 	if !withContentUnits {
 		return withParents, nil, nil

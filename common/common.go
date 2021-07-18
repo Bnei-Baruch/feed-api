@@ -3,12 +3,13 @@ package common
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/volatiletech/sqlboiler/boil"
@@ -51,12 +52,32 @@ func (c *Connection) With(q *queries.Query) *ConnectionWithQuery {
 	return &ConnectionWithQuery{c, q}
 }
 
+func (c *ConnectionWithQuery) handleBadConnection(action func() error) error {
+	var err error
+	if err = action(); err != nil && strings.Contains(err.Error(), "could not establish connection") {
+		if err = c.Connection.shutdown(c.Connection.db); err != nil {
+			return errors.Wrap(err, "Error shutting down while re-esteblishing connection.")
+		}
+		if c.Connection.db, err = c.Connection.init(); err != nil {
+			return errors.Wrap(err, "Error initializing while re-esteblishing connection.")
+		}
+		log.Infof("Re-established connection.")
+		return action()
+	}
+	return err
+}
+
 func (c *ConnectionWithQuery) Bind(ctx context.Context, obj interface{}) error {
-	return c.Query.Bind(ctx, c.Connection.db, obj)
+	return c.handleBadConnection(func() error { return c.Query.Bind(ctx, c.Connection.db, obj) })
 }
 
 func (c *ConnectionWithQuery) Exec() (sql.Result, error) {
-	return c.Query.Exec(c.Connection.db)
+	var result sql.Result
+	return result, c.handleBadConnection(func() error {
+		var err error
+		result, err = c.Query.Exec(c.Connection.db)
+		return err
+	})
 }
 
 var (
