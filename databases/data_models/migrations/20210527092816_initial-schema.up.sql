@@ -2,7 +2,6 @@ DROP TABLE IF EXISTS dwh_content_units_measures;
 CREATE TABLE IF NOT EXISTS dwh_content_units_measures
 (
     event_unit_uid               text COLLATE "default" NOT NULL,
-    content_unit_type_name       character varying COLLATE "default",
     all_events_count             bigint,
     unique_users_last10min_count bigint,
     unique_users_count           bigint,
