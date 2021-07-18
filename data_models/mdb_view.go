@@ -62,8 +62,8 @@ type IdsTuple struct {
 }
 
 type BoilRow interface {
-	Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error
-	Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error)
+	Insert(exec boil.Executor, columns boil.Columns) error
+	Delete(exec boil.Executor) (int64, error)
 }
 
 func ToFileSlice(s interface{}) []*models.File {
@@ -273,7 +273,7 @@ func InsertToTable(info TableInfo, ids []IdsTuple, local *sql.DB, remote *sql.DB
 			log.Infof("Fetched %d rows. Chunk %d of total rows %d.", len(rows), i, len(ids))
 			chunkInserted := int64(0)
 			for _, row := range rows {
-				if err := row.Insert(context.TODO(), local, boil.Infer()); err != nil {
+				if err := row.Insert(local, boil.Infer()); err != nil {
 					log.Warnf("Unable to insert, skipping: %+v\nRow: %+v", err, row)
 				} else {
 					chunkInserted++
@@ -298,16 +298,16 @@ type ContentUnitTag struct {
 	TagID         int64 `boil:"tag_id"`
 }
 
-func (cut *ContentUnitTag) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (cut *ContentUnitTag) Insert(exec boil.Executor, columns boil.Columns) error {
 	query := fmt.Sprintf("INSERT INTO \"content_units_tags\" (\"content_unit_id\", \"tag_id\") VALUES (%d, %d)", cut.ContentUnitID, cut.TagID)
-	if _, err := exec.ExecContext(ctx, query); err != nil {
+	if _, err := exec.Exec(query); err != nil {
 		return errors.Wrap(err, "models: unable to insert into content_units_tags")
 	}
 	return nil
 }
 
-func (cut *ContentUnitTag) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
-	if result, err := exec.ExecContext(ctx, "DELETE FROM \"content_units_tags\" WHERE \"content_unit_id\"=$1 AND \"tag_id\"=$2", cut.ContentUnitID, cut.TagID); err != nil {
+func (cut *ContentUnitTag) Delete(exec boil.Executor) (int64, error) {
+	if result, err := exec.Exec("DELETE FROM \"content_units_tags\" WHERE \"content_unit_id\"=$1 AND \"tag_id\"=$2", cut.ContentUnitID, cut.TagID); err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from content_units_tags")
 	} else {
 		if rowsAff, err := result.RowsAffected(); err != nil {
@@ -323,16 +323,16 @@ type ContentUnitSource struct {
 	SourceID      int64 `boil:"source_id"`
 }
 
-func (cut *ContentUnitSource) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (cut *ContentUnitSource) Insert(exec boil.Executor, columns boil.Columns) error {
 	query := fmt.Sprintf("INSERT INTO \"content_units_sources\" (\"content_unit_id\", \"source_id\") VALUES (%d, %d)", cut.ContentUnitID, cut.SourceID)
-	if _, err := exec.ExecContext(ctx, query); err != nil {
+	if _, err := exec.Exec(query); err != nil {
 		return errors.Wrap(err, "models: unable to insert into content_units_sources")
 	}
 	return nil
 }
 
-func (cut *ContentUnitSource) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
-	if result, err := exec.ExecContext(ctx, "DELETE FROM \"content_units_sources\" WHERE \"content_unit_id\"=$1 AND \"source_id\"=$2", cut.ContentUnitID, cut.SourceID); err != nil {
+func (cut *ContentUnitSource) Delete(exec boil.Executor) (int64, error) {
+	if result, err := exec.Exec("DELETE FROM \"content_units_sources\" WHERE \"content_unit_id\"=$1 AND \"source_id\"=$2", cut.ContentUnitID, cut.SourceID); err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from content_units_sources")
 	} else {
 		if rowsAff, err := result.RowsAffected(); err != nil {
@@ -348,16 +348,16 @@ type ContentUnitPublisher struct {
 	PublisherID   int64 `boil:"publisher_id"`
 }
 
-func (cut *ContentUnitPublisher) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (cut *ContentUnitPublisher) Insert(exec boil.Executor, columns boil.Columns) error {
 	query := fmt.Sprintf("INSERT INTO \"content_units_publishers\" (\"content_unit_id\", \"publisher_id\") VALUES (%d, %d)", cut.ContentUnitID, cut.PublisherID)
-	if _, err := exec.ExecContext(ctx, query); err != nil {
+	if _, err := exec.Exec(query); err != nil {
 		return errors.Wrap(err, "models: unable to insert into content_units_publishers")
 	}
 	return nil
 }
 
-func (cut *ContentUnitPublisher) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
-	if result, err := exec.ExecContext(ctx, "DELETE FROM \"content_units_publishers\" WHERE \"content_unit_id\"=$1 AND \"publisher_id\"=$2", cut.ContentUnitID, cut.PublisherID); err != nil {
+func (cut *ContentUnitPublisher) Delete(exec boil.Executor) (int64, error) {
+	if result, err := exec.Exec("DELETE FROM \"content_units_publishers\" WHERE \"content_unit_id\"=$1 AND \"publisher_id\"=$2", cut.ContentUnitID, cut.PublisherID); err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from content_units_publishers")
 	} else {
 		if rowsAff, err := result.RowsAffected(); err != nil {
@@ -373,16 +373,16 @@ type FileOperation struct {
 	OperationID int64 `boil:"operation_id"`
 }
 
-func (cut *FileOperation) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (cut *FileOperation) Insert(exec boil.Executor, columns boil.Columns) error {
 	query := fmt.Sprintf("INSERT INTO \"files_operations\" (\"file_id\", \"operation_id\") VALUES (%d, %d)", cut.FileID, cut.OperationID)
-	if _, err := exec.ExecContext(ctx, query); err != nil {
+	if _, err := exec.Exec(query); err != nil {
 		return errors.Wrap(err, "models: unable to insert into files_operations")
 	}
 	return nil
 }
 
-func (cut *FileOperation) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
-	if result, err := exec.ExecContext(ctx, "DELETE FROM \"files_operations\" WHERE \"file_id\"=$1 AND \"operation_id\"=$2", cut.FileID, cut.OperationID); err != nil {
+func (cut *FileOperation) Delete(exec boil.Executor) (int64, error) {
+	if result, err := exec.Exec("DELETE FROM \"files_operations\" WHERE \"file_id\"=$1 AND \"operation_id\"=$2", cut.FileID, cut.OperationID); err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from files_operations")
 	} else {
 		if rowsAff, err := result.RowsAffected(); err != nil {
@@ -398,16 +398,16 @@ type FileStorage struct {
 	StorageID int64 `boil:"storage_id"`
 }
 
-func (cut *FileStorage) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (cut *FileStorage) Insert(exec boil.Executor, columns boil.Columns) error {
 	query := fmt.Sprintf("INSERT INTO \"files_storages\" (\"file_id\", \"storage_id\") VALUES (%d, %d)", cut.FileID, cut.StorageID)
-	if _, err := exec.ExecContext(ctx, query); err != nil {
+	if _, err := exec.Exec(query); err != nil {
 		return errors.Wrap(err, "models: unable to insert into files_storages")
 	}
 	return nil
 }
 
-func (cut *FileStorage) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
-	if result, err := exec.ExecContext(ctx, "DELETE FROM \"files_storages\" WHERE \"file_id\"=$1 AND \"storage_id\"=$2", cut.FileID, cut.StorageID); err != nil {
+func (cut *FileStorage) Delete(exec boil.Executor) (int64, error) {
+	if result, err := exec.Exec("DELETE FROM \"files_storages\" WHERE \"file_id\"=$1 AND \"storage_id\"=$2", cut.FileID, cut.StorageID); err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from files_storages")
 	} else {
 		if rowsAff, err := result.RowsAffected(); err != nil {
@@ -423,16 +423,16 @@ type AuthorSource struct {
 	SourceID int64 `boil:"source_id"`
 }
 
-func (cut *AuthorSource) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (cut *AuthorSource) Insert(exec boil.Executor, columns boil.Columns) error {
 	query := fmt.Sprintf("INSERT INTO \"authors_sources\" (\"author_id\", \"source_id\") VALUES (%d, %d)", cut.AuthorID, cut.SourceID)
-	if _, err := exec.ExecContext(ctx, query); err != nil {
+	if _, err := exec.Exec(query); err != nil {
 		return errors.Wrap(err, "models: unable to insert into authors_sources")
 	}
 	return nil
 }
 
-func (cut *AuthorSource) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
-	if result, err := exec.ExecContext(ctx, "DELETE FROM \"authors_sources\" WHERE \"author_id\"=$1 AND \"source_id\"=$2", cut.AuthorID, cut.SourceID); err != nil {
+func (cut *AuthorSource) Delete(exec boil.Executor) (int64, error) {
+	if result, err := exec.Exec("DELETE FROM \"authors_sources\" WHERE \"author_id\"=$1 AND \"source_id\"=$2", cut.AuthorID, cut.SourceID); err != nil {
 		return 0, errors.Wrap(err, "models: unable to delete from authors_sources")
 	} else {
 		if rowsAff, err := result.RowsAffected(); err != nil {
