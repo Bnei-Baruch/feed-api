@@ -69,10 +69,10 @@ func serverFn(cmd *cobra.Command, args []string) {
 	router := gin.New()
 	router.Use(
 		utils.LoggerMiddleware(),
-		utils.DataStoresMiddleware(common.RemoteMDB),
-		LocalStoreMiddleware("LOCAL_CHRONICLES_DB", common.LocalChroniclesDB),
-		LocalStoreMiddleware("LOCAL_MDB", common.LocalMDB),
-		DataModelsMiddleware(data_models.MakeDataModels(common.LocalMDB, common.RemoteMDB, common.LocalChroniclesDB, common.ModelsDB, viper.GetString("chronicles.remote_api"))),
+		utils.DataStoresMiddleware(common.RemoteMdb),
+		LocalStoreMiddleware("LOCAL_CHRONICLES_DB", common.LocalChroniclesDb),
+		LocalStoreMiddleware("LOCAL_MDB", common.LocalMdb),
+		DataModelsMiddleware(data_models.MakeDataModels(common.LocalMdb, common.RemoteMdb, common.LocalChroniclesDb, common.ModelsDb, viper.GetString("chronicles.remote_api"))),
 		utils.ErrorHandlingMiddleware(),
 		cors.New(corsConfig),
 		utils.RecoveryMiddleware())

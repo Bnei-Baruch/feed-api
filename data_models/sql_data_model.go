@@ -2,19 +2,18 @@ package data_models
 
 import (
 	"context"
-	"database/sql"
 	"sort"
 
+	"github.com/Bnei-Baruch/feed-api/common"
 	"github.com/Bnei-Baruch/feed-api/databases/data_models/models"
-	log "github.com/sirupsen/logrus"
 	"github.com/volatiletech/sqlboiler/queries/qm"
 )
 
 type SqlDataModel struct {
-	modelsDb *sql.DB
+	modelsDb *common.Connection
 }
 
-func MakeSqlDataModel(modelsDb *sql.DB) *SqlDataModel {
+func MakeSqlDataModel(modelsDb *common.Connection) *SqlDataModel {
 	return &SqlDataModel{modelsDb}
 }
 
@@ -37,10 +36,11 @@ func (dm *SqlDataModel) WatchingNow(uids []string) ([]int64, error) {
 
 func (dm *SqlDataModel) AllWatchingNow() (map[string]int64, error) {
 	count := []Count(nil)
-	if err := models.NewQuery(
+	if err := dm.modelsDb.With(models.NewQuery(
 		qm.Select("event_unit_uid as uid, unique_users_last10min_count as count"),
 		qm.From("dwh_content_units_measures"),
-	).Bind(context.TODO(), dm.modelsDb, &count); err != nil {
+		qm.Where("unique_users_last10min_count > 0"),
+	)).Bind(context.TODO(), &count); err != nil {
 		return nil, err
 	}
 	cMap := make(map[string]int64, len(count))
@@ -75,10 +75,11 @@ func (dm *SqlDataModel) Views(uids []string) ([]int64, error) {
 
 func (dm *SqlDataModel) AllViews() (map[string]int64, error) {
 	count := []Count(nil)
-	if err := models.NewQuery(
+	if err := dm.modelsDb.With(models.NewQuery(
 		qm.Select("event_unit_uid as uid, unique_users_count as count"),
 		qm.From("dwh_content_units_measures"),
-	).Bind(context.TODO(), dm.modelsDb, &count); err != nil {
+		qm.Where("unique_users_count > 0"),
+	)).Bind(context.TODO(), &count); err != nil {
 		return nil, err
 	}
 	cMap := make(map[string]int64, len(count))
@@ -92,17 +93,17 @@ func (dm *SqlDataModel) SortPopular(uids []string) error {
 	if count, err := dm.AllViews(); err != nil {
 		return err
 	} else {
-		for _, uid := range uids {
+		/*for _, uid := range uids {
 			if c, ok := count[uid]; ok {
 				log.Infof("%s: %d", uid, c)
 			}
-		}
+		}*/
 		sort.SliceStable(uids, func(i, j int) bool {
 			return count[uids[i]] > count[uids[j]]
 		})
-		if len(uids) > 30 {
+		/*if len(uids) > 30 {
 			log.Infof("After Uids: %+v...", uids[0:30])
-		}
+		}*/
 	}
 	return nil
 }

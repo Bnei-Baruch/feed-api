@@ -180,7 +180,10 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 						}
 					}
 					sort.Strings(watchingNowUids)
+					log.Infof("watchingNow: %+v", watchingNow)
+					l := len(uids)
 					uids = utils.IntersectSorted(uids, watchingNowUids)
+					log.Infof("%d %d => %d", l, len(watchingNowUids), len(uids))
 				}
 			default:
 				log.Errorf("Did not expect filter selector enum %d", filter.FilterSelector)

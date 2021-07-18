@@ -168,11 +168,8 @@ func InClause(prefix string, list []string) string {
 }
 
 func IntersectSorted(first []string, second []string) (ret []string) {
-	/*start := time.Now()
-	defer func() {
-		Profile("IntersectSorted", time.Now().Sub(start))
-		log.Infof("IntersectSorted: %d %d -> %d", len(first), len(second), len(ret))
-	}()*/
+	start := time.Now()
+	defer func() { Profile("IntersectSorted", time.Now().Sub(start)) }()
 	firstIndex := 0
 	secondIndex := 0
 	for firstIndex < len(first) && secondIndex < len(second) {

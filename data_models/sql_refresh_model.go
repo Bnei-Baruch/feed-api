@@ -2,13 +2,13 @@ package data_models
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/Bnei-Baruch/feed-api/common"
 	"github.com/Bnei-Baruch/feed-api/databases/data_models/models"
 	"github.com/Bnei-Baruch/feed-api/utils"
 	log "github.com/sirupsen/logrus"
@@ -19,7 +19,7 @@ import (
 )
 
 type SqlRefreshModel struct {
-	modelsDb *sql.DB
+	modelsDb *common.Connection
 
 	sqlFiles []string
 	sqls     []string
@@ -37,7 +37,7 @@ func LoadSqls(path string, files []string) ([]string, error) {
 	return sqls, nil
 }
 
-func MakeSqlRefreshModel(sqlFiles []string, modelsDb *sql.DB) *SqlRefreshModel {
+func MakeSqlRefreshModel(sqlFiles []string, modelsDb *common.Connection) *SqlRefreshModel {
 	sqlsPath := viper.GetString("data_models.sqls_path")
 	sqls, err := LoadSqls(sqlsPath, sqlFiles)
 	utils.Must(err)
@@ -56,7 +56,7 @@ func (cm *SqlRefreshModel) Refresh() error {
 	minutesPrevEndReadId := []struct {
 		IdMax null.String `boil:"id_max"`
 	}(nil)
-	if err := models.NewQuery(qm.Select("max(event_end_id_max) as id_max"), qm.From("dwh_fact_play_units_by_minutes")).Bind(context.TODO(), cm.modelsDb, &minutesPrevEndReadId); err != nil {
+	if err := cm.modelsDb.With(models.NewQuery(qm.Select("max(event_end_id_max) as id_max"), qm.From("dwh_fact_play_units_by_minutes"))).Bind(context.TODO(), &minutesPrevEndReadId); err != nil {
 		return err
 	}
 	if len(minutesPrevEndReadId) == 1 && minutesPrevEndReadId[0].IdMax.Valid {
@@ -73,8 +73,8 @@ func (cm *SqlRefreshModel) Refresh() error {
 		//log.Infof("After %s", sql)
 		start := time.Now()
 		log.Infof("Running %s", cm.sqlFiles[i])
-		if result, err := queries.Raw(sql).Exec(cm.modelsDb); err != nil {
-			log.Warnf("Error running sqls: %+v", err)
+		if result, err := cm.modelsDb.With(queries.Raw(sql)).Exec(); err != nil {
+			log.Warnf("Error running sql %s: %+v", cm.sqlFiles[i], err)
 			// return err
 		} else {
 			log.Infof("Updated sql %s, result: %+v", cm.sqlFiles[i], result)
