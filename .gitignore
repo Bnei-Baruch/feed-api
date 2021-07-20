@@ -6,6 +6,7 @@
 *.swn
 config.toml
 sqlboiler.toml
+rambler.json
 
 feed-api
 feed-api-linux*
