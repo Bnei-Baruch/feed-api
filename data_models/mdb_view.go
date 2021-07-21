@@ -33,9 +33,7 @@ type MdbView struct {
 func MakeMdbView(local *sql.DB, remote *sql.DB) *MdbView {
 	tables := createTablesInfo()
 	if !events.DebugMode {
-		go func() {
-			utils.Must(syncLocalMdb(tables, local, remote))
-		}()
+		utils.Must(syncLocalMdb(tables, local, remote))
 	}
 
 	return &MdbView{
@@ -642,27 +640,33 @@ const (
 	SCOPE_REMOTE = false
 )
 
+// If adding large number of ids, sort them first so that the append + copy will be efficient.
+// Othewise will end up O(N^2) complexity.
 func addScopeId(table string, id IdsTuple, scope map[string]*ScopeIds, isLocal bool) {
 	if _, ok := scope[table]; !ok {
 		scope[table] = &ScopeIds{nil, nil}
 	}
 	scopeIds := scope[table]
 	if isLocal {
-		for _, localId := range scopeIds.local {
-			if CompareIdsTuple(&localId, &id) == 0 {
-				return
-			}
+		if i := sort.Search(len(scopeIds.local), func(i int) bool {
+			return CompareIdsTuple(&scopeIds.local[i], &id) != -1
+		}); i < len(scopeIds.local) && CompareIdsTuple(&scopeIds.local[i], &id) == 0 {
+			return
+		} else {
+			scopeIds.local = append(scopeIds.local, IdsTuple{})
+			copy(scopeIds.local[i+1:], scopeIds.local[i:])
+			scopeIds.local[i] = id
 		}
-		scopeIds.local = append(scopeIds.local, id)
-		sort.Slice(scopeIds.local, IdsTupleSliceLess(scopeIds.local))
 	} else {
-		for _, remoteId := range scopeIds.remote {
-			if CompareIdsTuple(&remoteId, &id) == 0 {
-				return
-			}
+		if i := sort.Search(len(scopeIds.remote), func(i int) bool {
+			return CompareIdsTuple(&scopeIds.remote[i], &id) != -1
+		}); i < len(scopeIds.remote) && CompareIdsTuple(&scopeIds.remote[i], &id) == 0 {
+			return
+		} else {
+			scopeIds.remote = append(scopeIds.remote, IdsTuple{})
+			copy(scopeIds.remote[i+1:], scopeIds.remote[i:])
+			scopeIds.remote[i] = id
 		}
-		scopeIds.remote = append(scopeIds.remote, id)
-		sort.Slice(scopeIds.remote, IdsTupleSliceLess(scopeIds.remote))
 	}
 }
 
@@ -823,6 +827,24 @@ func addFileScopeSingleSide(fileIds []int64, scope map[string]*ScopeIds, exec *s
 	return withParents, units, nil
 }
 
+func addBlogScope(blogId, wpId int64, scope map[string]*ScopeIds, local, remote *sql.DB) error {
+	if blogPosts, err := models.BlogPosts(qm.Select("id"), qm.Where("blog_id = ?", blogId), qm.And("wp_id = ?", wpId)).All(local); err != nil {
+		return err
+	} else {
+		for _, blogPost := range blogPosts {
+			addScopeId(T_BLOG_POSTS, IdsTuple{blogPost.ID, 0, ""}, scope, SCOPE_LOCAL)
+		}
+	}
+	if blogPosts, err := models.BlogPosts(qm.Select("id"), qm.Where("blog_id = ?", blogId), qm.And("wp_id = ?", wpId)).All(remote); err != nil {
+		return err
+	} else {
+		for _, blogPost := range blogPosts {
+			addScopeId(T_BLOG_POSTS, IdsTuple{blogPost.ID, 0, ""}, scope, SCOPE_REMOTE)
+		}
+	}
+	return nil
+}
+
 type ScopeIds struct {
 	local  []IdsTuple
 	remote []IdsTuple
@@ -839,11 +861,14 @@ func eventsScope(datas []events.Data, local, remote *sql.DB) (map[string]*ScopeI
 	for _, data := range datas {
 		switch data.Type {
 		case E_BLOG_POST_CREATE, E_BLOG_POST_UPDATE, E_BLOG_POST_DELETE:
-			if id, err := readIdFromEvent("wpId", data.Payload); err != nil {
-				log.Warnf("%+v", err)
+			if wpId, err := readIdFromEvent("wpId", data.Payload); err != nil {
+				log.Warnf("Failed extracting wpId from blog data %+v", err)
+			} else if blogId, err := readIdFromEvent("blogId", data.Payload); err != nil {
+				log.Warnf("Failed extracting blogId from blog data %+v", err)
 			} else {
-				addScopeId(T_BLOG_POSTS, IdsTuple{id, 0, ""}, scope, SCOPE_LOCAL)
-				addScopeId(T_BLOG_POSTS, IdsTuple{id, 0, ""}, scope, SCOPE_REMOTE)
+				if err := addBlogScope(blogId, wpId, scope, local, remote); err != nil {
+					return nil, err
+				}
 			}
 
 		case E_COLLECTION_CREATE, E_COLLECTION_UPDATE, E_COLLECTION_DELETE, E_COLLECTION_PUBLISHED_CHANGE, E_COLLECTION_CONTENT_UNITS_CHANGE:
@@ -1005,6 +1030,6 @@ func applyScope(scope map[string]*ScopeIds, tables []TableInfo, local *sql.DB, r
 			}
 		}
 	}
-	log.Infof("Finished syncing all tables.")
+	log.Infof("Finished applying scope.")
 	return nil
 }
