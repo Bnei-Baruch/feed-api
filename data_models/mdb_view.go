@@ -597,6 +597,12 @@ func createTablesInfo() []TableInfo {
 }
 
 func syncLocalMdb(tables []TableInfo, local *sql.DB, remote *sql.DB) error {
+	// Hack to correctly sync content types as the migration is broken.
+	if count, err := models.ContentTypes().DeleteAll(local); err != nil {
+		return err
+	} else {
+		log.Infof("Cleaning (%d) content types, due to bad migrations for content types.", count)
+	}
 	scope := make(map[string]*ScopeIds)
 	for _, info := range tables {
 		var remoteIds, localIds []IdsTuple
