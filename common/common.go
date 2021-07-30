@@ -133,9 +133,6 @@ func InitWithDefault() time.Time {
 	var err error
 	clock := time.Now()
 
-	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
-	//log.SetLevel(log.WarnLevel)
-
 	log.Info("Setting up connection to MDB")
 
 	RemoteMdb, err = sql.Open("postgres", viper.GetString("mdb.url"))

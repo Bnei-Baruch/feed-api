@@ -56,7 +56,7 @@ func MoreHandler(c *gin.Context) {
 }
 
 func handleMore(suggesterContext core.SuggesterContext, r core.MoreRequest) (*MoreResponse, *HttpError) {
-	log.Infof("r: %+v", r)
+	log.Debugf("r: %+v", r)
 	feed := core.MakeFeed(suggesterContext)
 	if cis, err := feed.More(r); err != nil {
 		return nil, NewInternalError(err)
@@ -128,7 +128,7 @@ func RecommendHandler(c *gin.Context) {
 		make(map[string]interface{}),
 	}
 	resp, err := handleRecommend(suggesterContext, r)
-	log.Infof("Err: %+v", err)
+	log.Debugf("Err: %+v", err)
 	concludeRequest(c, resp, err)
 }
 
@@ -148,9 +148,9 @@ func MakeAndUnmarshal(suggesterContext core.SuggesterContext, spec *core.Suggest
 }
 
 func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest) (*MoreResponse, *HttpError) {
-	log.Infof("r: %+v", r)
-	log.Infof("Spec: %+v", r.Options.Spec)
-	log.Infof("Specs: %+v", r.Options.Specs)
+	log.Debugf("r: %+v", r)
+	log.Debugf("Spec: %+v", r.Options.Spec)
+	log.Debugf("Specs: %+v", r.Options.Specs)
 	var recommend *recommendations.Recommender
 	var recommends []*recommendations.Recommender
 	if r.Options.Spec == nil && r.Options.Specs == nil {
@@ -168,7 +168,7 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 		}
 	} else {
 		for i, spec := range r.Options.Specs {
-			log.Infof("Spec %d: %+v", i, spec)
+			log.Debugf("Spec %d: %+v", i, spec)
 			if rec, err := MakeAndUnmarshal(suggesterContext, spec); err != nil {
 				return nil, NewInternalError(err)
 			} else {
@@ -178,14 +178,14 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 	}
 
 	// Uncomment to debug marshaling and unmarshling of specs.
-	// log.Infof("S: %+v", recommend.Suggester)
+	// log.Debugf("S: %+v", recommend.Suggester)
 	// if spec, err := recommend.Suggester.MarshalSpec(); err != nil {
 	// 	return nil, NewInternalError(err)
 	// } else {
 	// 	if marshaledBytes, err := json.Marshal(spec); err != nil {
 	// 		return nil, NewInternalError(err)
 	// 	} else {
-	// 		log.Infof("Spec as JSON: %s", string(marshaledBytes))
+	// 		log.Debugf("Spec as JSON: %s", string(marshaledBytes))
 	// 	}
 	// }
 	//
@@ -201,7 +201,7 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 	//					if sMarshaledBytes, err := json.MarshalIndent(sSpec, "", "  "); err != nil {
 	//						return nil, NewInternalError(err)
 	//					} else {
-	//						log.Infof("Spec as JSON: %s", string(sMarshaledBytes))
+	//						log.Debugf("Spec as JSON: %s", string(sMarshaledBytes))
 	//					}
 	//				}
 	//			}
@@ -228,20 +228,20 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 				for _, ci := range cis {
 					skipUidsMap[ci.UID] = true
 				}
-				log.Infof("cis: %+v", cis)
-				log.Infof("Recommend[%d]: %+v", i, time.Now().Sub(start))
+				log.Debugf("cis: %+v", cis)
+				log.Debugf("Recommend[%d]: %+v", i, time.Now().Sub(start))
 				utils.PrintProfile(true)
 				res.Feeds = append(res.Feeds, cis)
 			}
 		}
-		log.Infof("res: %+v", res)
+		log.Debugf("res: %+v", res)
 		return res, nil
 	} else {
 		start := time.Now()
 		if cis, err := recommend.Recommend(r); err != nil {
 			return nil, NewInternalError(err)
 		} else {
-			log.Infof("Recommend: %+v", time.Now().Sub(start))
+			log.Debugf("Recommend: %+v", time.Now().Sub(start))
 			utils.PrintProfile(true)
 			return &MoreResponse{Feed: cis}, nil
 		}

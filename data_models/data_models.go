@@ -326,7 +326,7 @@ func refreshModel(model RefreshModel) error {
 	start := time.Now()
 	err := model.Refresh()
 	end := time.Now()
-	log.Infof("Refreshed %s in %s", model.Name(), end.Sub(start))
+	log.Debugf("Refreshed %s in %s", model.Name(), end.Sub(start))
 	if err != nil {
 		return errors.Wrap(err, model.Name())
 	}

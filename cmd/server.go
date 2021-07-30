@@ -48,6 +48,11 @@ func LocalStoreMiddleware(name string, db *sql.DB) gin.HandlerFunc {
 }
 
 func serverFn(cmd *cobra.Command, args []string) {
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
+	logLevel, err := log.ParseLevel(viper.GetString("server.log-level"))
+	utils.Must(err)
+	log.SetLevel(logLevel)
+
 	log.Infof("Starting feed api server version %s", version.Version)
 	common.Init()
 	defer common.Shutdown()

@@ -76,7 +76,7 @@ type ScanResponse struct {
 }
 
 func (m *ChroniclesWindowModel) ScanChroniclesEntries() ([]*models.Entry, error) {
-	log.Infof("Scanning chronicles entries, last successfull [%s]", m.lastReadId)
+	log.Debugf("Scanning chronicles entries, last successfull [%s]", m.lastReadId)
 	resp, err := m.httpClient.Post(
 		fmt.Sprintf("%s/scan", m.chroniclesUrl),
 		"application/json",
@@ -111,16 +111,15 @@ func (m *ChroniclesWindowModel) Refresh() error {
 		return err
 	} else {
 		// Insert entries to local table.
-		log.Infof("Inserting %d entries.", len(entries))
+		log.Debugf("Inserting %d entries.", len(entries))
 		if len(entries) == SCAN_SIZE {
 			m.interval = utils.MaxDuration(m.interval/2, MIN_INTERVAL)
 		} else {
 			m.interval = utils.MinDuration(m.interval*2, MAX_INTERVAL)
 		}
-		log.Infof("Updated interval to %s", m.interval)
+		log.Debugf("Updated interval to %s", m.interval)
 		start := time.Now()
 		for _, entry := range entries {
-			//log.Infof("Entry: %+v", entry)
 			switch entry.ClientEventType {
 			case "recommend":
 				instrumentation.Stats.RecommendCounter.Inc()
@@ -131,24 +130,24 @@ func (m *ChroniclesWindowModel) Refresh() error {
 				return err
 			}
 		}
-		log.Infof("Insert done in %s", time.Now().Sub(start))
+		log.Debugf("Insert done in %s", time.Now().Sub(start))
 		if entry, err := models.Entries(qm.OrderBy("id desc"), qm.Offset(MAX_WINDOW_SIZE)).One(m.localChroniclesDb); err == nil && entry != nil {
-			log.Infof("Deleting from id: %s", entry.ID)
+			log.Debugf("Deleting from id: %s", entry.ID)
 			if result, err := queries.Raw(fmt.Sprintf("delete from entries where id <= '%s'", entry.ID)).Exec(m.localChroniclesDb); err != nil {
-				log.Infof("Failed deleting %+v", err)
+				log.Warnf("Failed deleting from local chronicles %+v", err)
 				return err
 			} else {
 				if rowsDeleted, err := result.RowsAffected(); err != nil {
-					log.Infof("Failed getting deleted count %+v", err)
+					log.Warnf("Failed getting deleted count %+v", err)
 					return err
 				} else {
-					log.Infof("Deleted %d entries from local chronicles by offset.", rowsDeleted)
+					log.Debugf("Deleted %d entries from local chronicles by offset.", rowsDeleted)
 				}
 			}
 		} else {
-			log.Infof("No delete required.")
+			log.Debugf("No delete required.")
 		}
-		log.Infof("Delete done in %s", time.Now().Sub(start))
+		log.Debugf("Delete done in %s", time.Now().Sub(start))
 	}
 	return nil
 }

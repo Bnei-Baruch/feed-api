@@ -2,6 +2,7 @@
 bind-address=":9590"
 mode="debug"  # GIN mode. Either debug, release or test
 boiler-mode="debug"  # Either debug or something else.
+log-level="info" # One of: panic, fatal, error, warn, info, debug, trace.
 
 [mdb]
 url="postgres://localhost/mdb?sslmode=disable&user=postgres"

@@ -50,7 +50,7 @@ func (cm *SqlRefreshModel) Name() string {
 }
 
 func (cm *SqlRefreshModel) Refresh() error {
-	log.Info("Update sql models.")
+	log.Debug("Update sql models.")
 	params := make(map[string]string)
 
 	minutesPrevEndReadId := []struct {
@@ -66,18 +66,15 @@ func (cm *SqlRefreshModel) Refresh() error {
 	}
 
 	for i, sql := range cm.sqls {
-		//log.Infof("Before %s", sql)
 		for param, value := range params {
 			sql = strings.ReplaceAll(sql, param, value)
 		}
-		//log.Infof("After %s", sql)
 		start := time.Now()
-		log.Infof("Running %s", cm.sqlFiles[i])
+		log.Debugf("Running %s", cm.sqlFiles[i])
 		if result, err := cm.modelsDb.With(queries.Raw(sql)).Exec(); err != nil {
 			log.Warnf("Error running sql %s: %+v", cm.sqlFiles[i], err)
-			// return err
 		} else {
-			log.Infof("Updated sql %s, result: %+v", cm.sqlFiles[i], result)
+			log.Debugf("Updated sql %s, result: %+v", cm.sqlFiles[i], result)
 		}
 		utils.Profile(fmt.Sprintf("SqlDataModel: %s", cm.sqlFiles[i]), time.Now().Sub(start))
 	}

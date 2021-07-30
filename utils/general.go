@@ -33,7 +33,7 @@ func Profile(name string, duration time.Duration) {
 
 func PrintProfile(reset bool) {
 	for k, v := range PROFILE {
-		log.Infof("%s: %+v", k, v)
+		log.Debugf("%s: %+v", k, v)
 	}
 	if reset {
 		PROFILE = make(map[string]*ProfileData)

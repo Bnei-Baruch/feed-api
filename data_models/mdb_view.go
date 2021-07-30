@@ -72,7 +72,6 @@ func ToFileSlice(s interface{}) []*models.File {
 	c := slice.Len()
 	out := make([]*models.File, c)
 	for i := 0; i < c; i++ {
-		//log.Infof("%d: %+v", i, slice.Index(i))
 		out[i] = slice.Index(i).Interface().(*models.File)
 	}
 	return out
@@ -86,7 +85,6 @@ func ToBoilRowSlice(s interface{}) []BoilRow {
 	c := slice.Len()
 	out := make([]BoilRow, c)
 	for i := 0; i < c; i++ {
-		//log.Infof("%d: %+v", i, slice.Index(i))
 		out[i] = slice.Index(i).Interface().(BoilRow)
 	}
 	return out
@@ -121,7 +119,6 @@ func KeyColumns(info TableInfo) []string {
 func fetchIds(info TableInfo, exec boil.ContextExecutor) ([]IdsTuple, error) {
 	ids := []IdsTuple(nil)
 	if err := info.Query(qm.Select(KeyColumns(info)...)).Bind(context.TODO(), exec, &ids); err != nil {
-		log.Infof("Failed binding ids: %+v", info)
 		return []IdsTuple(nil), err
 	}
 	return ids, nil
@@ -177,7 +174,6 @@ func fetchRows(info TableInfo, ids []IdsTuple, exec boil.ContextExecutor) ([]Boi
 	slice := info.Units()
 	err := info.Query(qm.Select("*"), qm.Where(whereIds(info, ids))).Bind(context.TODO(), exec, slice)
 	if err != nil {
-		// log.Infof("Failed binding rows: %+v Err: %+v", info, err)
 		return nil, err
 	}
 	if info.Name != T_FILES {
@@ -268,14 +264,13 @@ func InsertToTable(info TableInfo, ids []IdsTuple, local *sql.DB, remote *sql.DB
 		if rows, err := fetchRows(info, chunk, remote); err != nil {
 			return 0, err
 		} else {
-			log.Infof("Fetched %d rows. Chunk %d of total rows %d.", len(rows), i, len(ids))
+			log.Debugf("Fetched %d rows. Chunk %d of total rows %d.", len(rows), i, len(ids))
 			chunkInserted := int64(0)
 			for _, row := range rows {
 				if err := row.Insert(local, boil.Infer()); err != nil {
 					log.Warnf("Unable to insert, skipping: %+v\nRow: %+v", err, row)
 				} else {
 					chunkInserted++
-					// log.Infof("Inserted")
 				}
 			}
 			inserted += chunkInserted
@@ -745,7 +740,7 @@ func addFileScopeParentsOnly(fileIds []int64, scope map[string]*ScopeIds, exec *
 	fileIdsSlice := []int64(nil)
 	fileIdsMap := make(map[int64]bool)
 	for len(children) > 0 {
-		log.Infof("Children: %+v", children)
+		log.Debugf("Children: %+v", children)
 		if files, err := models.Files(qm.Select("id, parent_id"), qm.WhereIn("id in ?", utils.ToInterfaceSlice(children)...)).All(exec); err != nil {
 			return nil, err
 		} else {
@@ -879,7 +874,7 @@ func eventsScope(datas []events.Data, local, remote *sql.DB) (map[string]*ScopeI
 
 		case E_COLLECTION_CREATE, E_COLLECTION_UPDATE, E_COLLECTION_DELETE, E_COLLECTION_PUBLISHED_CHANGE, E_COLLECTION_CONTENT_UNITS_CHANGE:
 			if id, err := readIdFromEvent("id", data.Payload); err != nil {
-				log.Warnf("Failed fetching id: %+v", err)
+				log.Warnf("Failed fetching id for collection event: %+v", err)
 			} else {
 				if err := addCollectionScope(id, scope, local, remote); err != nil {
 					return nil, err
@@ -888,7 +883,7 @@ func eventsScope(datas []events.Data, local, remote *sql.DB) (map[string]*ScopeI
 
 		case E_CONTENT_UNIT_CREATE, E_CONTENT_UNIT_UPDATE, E_CONTENT_UNIT_DELETE, E_CONTENT_UNIT_PUBLISHED_CHANGE, E_CONTENT_UNIT_DERIVATIVES_CHANGE, E_CONTENT_UNIT_SOURCES_CHANGE, E_CONTENT_UNIT_TAGS_CHANGE, E_CONTENT_UNIT_PERSONS_CHANGE, E_CONTENT_UNIT_PUBLISHERS_CHANGE:
 			if id, err := readIdFromEvent("id", data.Payload); err != nil {
-				log.Warnf("%+v", err)
+				log.Warnf("Failed fetching id for content unit event %+v", err)
 			} else {
 				contentUnitIds = append(contentUnitIds, id)
 			}
@@ -912,14 +907,14 @@ func eventsScope(datas []events.Data, local, remote *sql.DB) (map[string]*ScopeI
 
 		case E_FILE_UPDATE, E_FILE_PUBLISHED, E_FILE_INSERT, E_FILE_REMOVE:
 			if id, err := readIdFromEvent("id", data.Payload); err != nil {
-				log.Warnf("%+v", err)
+				log.Warnf("Failed fetching id from file event %+v", err)
 			} else {
 				fileIds = append(fileIds, id)
 			}
 
 		case E_SOURCE_CREATE, E_SOURCE_UPDATE:
 			if id, err := readIdFromEvent("id", data.Payload); err != nil {
-				log.Warnf("%+v", err)
+				log.Warnf("Failed fetching id for source event %+v", err)
 			} else {
 				addScopeId(T_SOURCES, IdsTuple{id, 0, ""}, scope, SCOPE_LOCAL)
 				addScopeId(T_SOURCES, IdsTuple{id, 0, ""}, scope, SCOPE_REMOTE)
@@ -927,7 +922,7 @@ func eventsScope(datas []events.Data, local, remote *sql.DB) (map[string]*ScopeI
 
 		case E_TAG_CREATE, E_TAG_UPDATE:
 			if id, err := readIdFromEvent("id", data.Payload); err != nil {
-				log.Warnf("%+v", err)
+				log.Warnf("Failed fetching id for tag event %+v", err)
 			} else {
 				addScopeId(T_TAGS, IdsTuple{id, 0, ""}, scope, SCOPE_LOCAL)
 				addScopeId(T_TAGS, IdsTuple{id, 0, ""}, scope, SCOPE_REMOTE)
@@ -935,7 +930,7 @@ func eventsScope(datas []events.Data, local, remote *sql.DB) (map[string]*ScopeI
 
 		case E_PERSON_CREATE, E_PERSON_UPDATE, E_PERSON_DELETE:
 			if id, err := readIdFromEvent("id", data.Payload); err != nil {
-				log.Warnf("%+v", err)
+				log.Warnf("Failed fetching id for person event %+v", err)
 			} else {
 				addScopeId(T_PERSONS, IdsTuple{id, 0, ""}, scope, SCOPE_LOCAL)
 				addScopeId(T_PERSONS, IdsTuple{id, 0, ""}, scope, SCOPE_REMOTE)
@@ -943,7 +938,7 @@ func eventsScope(datas []events.Data, local, remote *sql.DB) (map[string]*ScopeI
 
 		case E_PUBLISHER_CREATE, E_PUBLISHER_UPDATE:
 			if id, err := readIdFromEvent("id", data.Payload); err != nil {
-				log.Warnf("%+v", err)
+				log.Warnf("Failed fetching id for publisher event %+v", err)
 			} else {
 				addScopeId(T_PUBLISHERS, IdsTuple{id, 0, ""}, scope, SCOPE_LOCAL)
 				addScopeId(T_PUBLISHERS, IdsTuple{id, 0, ""}, scope, SCOPE_REMOTE)
@@ -951,7 +946,7 @@ func eventsScope(datas []events.Data, local, remote *sql.DB) (map[string]*ScopeI
 
 		case E_TWEET_CREATE, E_TWEET_UPDATE, E_TWEET_DELETE:
 			if id, err := readIdFromEvent("tid", data.Payload); err != nil {
-				log.Warnf("%+v", err)
+				log.Warnf("Failed fetching id for tweet event %+v", err)
 			} else {
 				addScopeId(T_TWITTER_TWEETS, IdsTuple{id, 0, ""}, scope, SCOPE_LOCAL)
 				addScopeId(T_TWITTER_TWEETS, IdsTuple{id, 0, ""}, scope, SCOPE_REMOTE)
@@ -977,7 +972,7 @@ func (m *MdbView) Refresh() error {
 		utils.Profile("Refresh", time.Now().Sub(start))
 	}()
 	datas := events.ReadAndClearEvents()
-	log.Infof("New events to handle: %+v", datas)
+	log.Debugf("New events to handle: %+v", datas)
 	if scope, err := eventsScope(datas, m.local, m.remote); err != nil {
 		return errors.Wrap(err, "Error generating scope from events")
 	} else {
@@ -997,11 +992,11 @@ func IdsToString(ids []IdsTuple) string {
 }
 
 func PrintScope(scope map[string]*ScopeIds) {
-	log.Info("Scope:")
+	log.Debug("Scope:")
 	for table, info := range scope {
-		log.Infof("[%s]:", table)
-		log.Infof("  Local: %s", IdsToString(info.local))
-		log.Infof("  Remote: %s", IdsToString(info.remote))
+		log.Debugf("[%s]:", table)
+		log.Debugf("  Local: %s", IdsToString(info.local))
+		log.Debugf("  Remote: %s", IdsToString(info.remote))
 	}
 }
 
@@ -1013,7 +1008,7 @@ func applyScope(scope map[string]*ScopeIds, tables []TableInfo, local *sql.DB, r
 	defer utils.PrintProfile(true)
 	PrintScope(scope)
 	// First delete in reverse order.
-	log.Infof("Deleting...")
+	log.Debugf("Deleting...")
 	for i := len(tables) - 1; i >= 0; i-- {
 		info := tables[i]
 		if scopeIds, ok := scope[info.Name]; ok && len(scopeIds.local) > 0 {
@@ -1021,21 +1016,20 @@ func applyScope(scope map[string]*ScopeIds, tables []TableInfo, local *sql.DB, r
 			if deleted, err := DeleteFromTable(info, scopeIds.local, local); err != nil {
 				log.Warnf("Error deleting from table %s: %+v", info.Name, err)
 			} else {
-				log.Infof("Deleted %d from %s", deleted, info.Name)
+				log.Debugf("Deleted %d from %s", deleted, info.Name)
 			}
 		}
 	}
-	log.Infof("Inserting...")
+	log.Debugf("Inserting...")
 	for _, info := range tables {
 		if scopeIds, ok := scope[info.Name]; ok {
-			// log.Infof("Inserting to %s with ids %+v", info.Name, scopeIds)
 			if inserted, err := InsertToTable(info, scopeIds.remote, local, remote); err != nil {
 				return err
 			} else {
-				log.Infof("Inserted %d to %s", inserted, info.Name)
+				log.Debugf("Inserted %d to %s", inserted, info.Name)
 			}
 		}
 	}
-	log.Infof("Finished applying scope.")
+	log.Debug("Finished applying scope.")
 	return nil
 }
