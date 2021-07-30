@@ -16,6 +16,7 @@ import (
 	"github.com/volatiletech/sqlboiler/queries"
 
 	"github.com/Bnei-Baruch/feed-api/databases/mdb"
+	"github.com/Bnei-Baruch/feed-api/instrumentation"
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
@@ -160,6 +161,9 @@ func InitWithDefault() time.Time {
 	boil.SetDB(LocalMdb)
 	boil.DebugMode = viper.GetString("server.boiler-mode") == "debug"
 	log.Infof("boil.DebugMode: %+v", boil.DebugMode)
+
+	log.Infof("Settin up instrumentation")
+	instrumentation.Stats.Init()
 
 	return clock
 }

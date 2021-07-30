@@ -16,6 +16,7 @@ import (
 	"github.com/volatiletech/sqlboiler/queries/qm"
 
 	"github.com/Bnei-Baruch/feed-api/databases/chronicles/models"
+	"github.com/Bnei-Baruch/feed-api/instrumentation"
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
@@ -120,6 +121,12 @@ func (m *ChroniclesWindowModel) Refresh() error {
 		start := time.Now()
 		for _, entry := range entries {
 			//log.Infof("Entry: %+v", entry)
+			switch entry.ClientEventType {
+			case "recommend":
+				instrumentation.Stats.RecommendCounter.Inc()
+			case "recommend-selected":
+				instrumentation.Stats.RecommendSelectedCounter.Inc()
+			}
 			if err := entry.Insert(m.localChroniclesDb, boil.Infer()); err != nil {
 				return err
 			}

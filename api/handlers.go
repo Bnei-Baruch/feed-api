@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/Bnei-Baruch/feed-api/core"
@@ -15,6 +16,14 @@ import (
 	"github.com/Bnei-Baruch/feed-api/recommendations"
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
+
+// Premetheus handler.
+func PrometheusHandler() gin.HandlerFunc {
+	h := promhttp.Handler()
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
+	}
+}
 
 // Responds with JSON of given response or aborts the request with the given error.
 func concludeRequest(c *gin.Context, resp interface{}, err *HttpError) {

@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
+	"strconv"
 	"time"
 
+	"github.com/Bnei-Baruch/feed-api/instrumentation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 	"github.com/pkg/errors"
@@ -29,11 +31,17 @@ func LoggerMiddleware() gin.HandlerFunc {
 
 		c.Next()
 
+		latency := time.Now().Sub(start)
+		status := c.Writer.Status()
+		instrumentation.Stats.RequestDurationHistogram.
+			WithLabelValues(c.Request.Method, path, strconv.Itoa(status)).
+			Observe(float64(latency.Seconds()))
+
 		log.WithFields(log.Fields{
 			"status":     c.Writer.Status(),
 			"method":     c.Request.Method,
 			"path":       path,
-			"latency":    time.Now().Sub(start),
+			"latency":    latency,
 			"ip":         c.ClientIP(),
 			"user-agent": c.Request.UserAgent(),
 		}).Info()

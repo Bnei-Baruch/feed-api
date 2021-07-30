@@ -765,7 +765,7 @@ func addFileScopeParentsOnly(fileIds []int64, scope map[string]*ScopeIds, exec *
 			}
 		}
 	}
-	log.Infof("Closure: %+v", fileIdsSlice)
+	log.Debugf("Closure: %+v", fileIdsSlice)
 	return fileIdsSlice, nil
 }
 

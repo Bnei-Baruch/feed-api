@@ -9,4 +9,5 @@ func SetupRoutes(router *gin.Engine) {
 	router.POST("/recommend", RecommendHandler)
 	router.POST("/views", ViewsHandler)
 	router.POST("/watchingnow", WatchingNowHandler)
+	router.GET("/metrics", PrometheusHandler())
 }
