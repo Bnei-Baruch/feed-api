@@ -8,9 +8,13 @@ import (
 var Stats = new(Collectors)
 
 type Collectors struct {
-	RequestDurationHistogram *prometheus.HistogramVec
-	RecommendCounter         prometheus.Counter
-	RecommendSelectedCounter prometheus.Counter
+	RequestDurationHistogram    *prometheus.HistogramVec
+	RecommendCounter            prometheus.Counter
+	RecommendSelectedCounter    prometheus.Counter
+	SearchCounter               prometheus.Counter
+	SearchSelectedCounter       prometheus.Counter
+	AutocompleteCounter         prometheus.Counter
+	AutocompleteSelectedCounter prometheus.Counter
 }
 
 func (c *Collectors) Init() {
@@ -35,9 +39,41 @@ func (c *Collectors) Init() {
 		Help:      "Counts number of recommendation selections by users.",
 	})
 
+	c.SearchCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "feed_api",
+		Subsystem: "search",
+		Name:      "search",
+		Help:      "Counts number of searches served to users.",
+	})
+
+	c.SearchSelectedCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "feed_api",
+		Subsystem: "search",
+		Name:      "search_selected",
+		Help:      "Counts number of search results selected by users.",
+	})
+
+	c.AutocompleteCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "feed_api",
+		Subsystem: "search",
+		Name:      "autocomplete",
+		Help:      "Counts number of autocompletes served to users.",
+	})
+
+	c.AutocompleteSelectedCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "feed_api",
+		Subsystem: "search",
+		Name:      "autocomplete_selected",
+		Help:      "Counts number of autocomplete suggestions selected by users.",
+	})
+
 	prometheus.MustRegister(c.RequestDurationHistogram)
 	prometheus.MustRegister(c.RecommendCounter)
 	prometheus.MustRegister(c.RecommendSelectedCounter)
+	prometheus.MustRegister(c.SearchCounter)
+	prometheus.MustRegister(c.SearchSelectedCounter)
+	prometheus.MustRegister(c.AutocompleteCounter)
+	prometheus.MustRegister(c.AutocompleteSelectedCounter)
 	prometheus.MustRegister(collectors.NewBuildInfoCollector())
 }
 

@@ -49,7 +49,11 @@ func LocalStoreMiddleware(name string, db *sql.DB) gin.HandlerFunc {
 
 func serverFn(cmd *cobra.Command, args []string) {
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
-	logLevel, err := log.ParseLevel(viper.GetString("server.log-level"))
+	logLevelStr := viper.GetString("server.log-level")
+	if logLevelStr == "" {
+		logLevelStr = "info"
+	}
+	logLevel, err := log.ParseLevel(logLevelStr)
 	utils.Must(err)
 	log.SetLevel(logLevel)
 

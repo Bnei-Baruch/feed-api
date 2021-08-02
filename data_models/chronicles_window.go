@@ -125,6 +125,14 @@ func (m *ChroniclesWindowModel) Refresh() error {
 				instrumentation.Stats.RecommendCounter.Inc()
 			case "recommend-selected":
 				instrumentation.Stats.RecommendSelectedCounter.Inc()
+			case "search":
+				instrumentation.Stats.SearchCounter.Inc()
+			case "search-selected":
+				instrumentation.Stats.SearchSelectedCounter.Inc()
+			case "autocomplete":
+				instrumentation.Stats.AutocompleteCounter.Inc()
+			case "autocomplete-selected":
+				instrumentation.Stats.AutocompleteSelectedCounter.Inc()
 			}
 			if err := entry.Insert(m.localChroniclesDb, boil.Infer()); err != nil {
 				return err
