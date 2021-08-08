@@ -106,6 +106,10 @@ func (m *ChroniclesWindowModel) ScanChroniclesEntries() ([]*models.Entry, error)
 	return scanResponse.Entries, nil
 }
 
+type SearchSelectedData struct {
+	Rank *int64 `json: "rank,omitempty"`
+}
+
 func (m *ChroniclesWindowModel) Refresh() error {
 	if entries, err := m.ScanChroniclesEntries(); err != nil {
 		return err
@@ -120,6 +124,7 @@ func (m *ChroniclesWindowModel) Refresh() error {
 		log.Debugf("Updated interval to %s", m.interval)
 		start := time.Now()
 		for _, entry := range entries {
+			instrumentation.Stats.EntriesCounterVec.WithLabelValues(entry.ClientEventType).Inc()
 			switch entry.ClientEventType {
 			case "recommend":
 				instrumentation.Stats.RecommendCounter.Inc()
@@ -128,7 +133,20 @@ func (m *ChroniclesWindowModel) Refresh() error {
 			case "search":
 				instrumentation.Stats.SearchCounter.Inc()
 			case "search-selected":
+				log.Infof("search-selected: %+v", entry)
 				instrumentation.Stats.SearchSelectedCounter.Inc()
+				if entry.Data.Valid {
+					var ssd SearchSelectedData
+					if err := json.Unmarshal(entry.Data.JSON, &ssd); err != nil {
+						return err
+					}
+					if ssd.Rank != nil {
+						log.Infof("Rank %d", *ssd.Rank)
+						instrumentation.Stats.SearchSelectedRankHistogram.Observe(float64(*ssd.Rank))
+					}
+				} else {
+					log.Warnf("Unexpected null json for search-selected entry: %s", entry.ID)
+				}
 			case "autocomplete":
 				instrumentation.Stats.AutocompleteCounter.Inc()
 			case "autocomplete-selected":

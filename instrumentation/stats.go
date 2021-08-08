@@ -15,6 +15,8 @@ type Collectors struct {
 	SearchSelectedCounter       prometheus.Counter
 	AutocompleteCounter         prometheus.Counter
 	AutocompleteSelectedCounter prometheus.Counter
+	SearchSelectedRankHistogram prometheus.Histogram
+	EntriesCounterVec           *prometheus.CounterVec
 }
 
 func (c *Collectors) Init() {
@@ -67,6 +69,32 @@ func (c *Collectors) Init() {
 		Help:      "Counts number of autocomplete suggestions selected by users.",
 	})
 
+	c.SearchSelectedRankHistogram = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: "feed_api",
+		Subsystem: "search",
+		Name:      "search_selected_rank",
+		Help:      "Histogram of search selected rank.",
+		Buckets: []float64{
+			float64(0),
+			float64(1),
+			float64(2),
+			float64(3),
+			float64(4),
+			float64(5),
+			float64(6),
+			float64(7),
+			float64(8),
+			float64(9),
+		},
+	})
+
+	c.EntriesCounterVec = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "feed_api",
+		Subsystem: "chronicles",
+		Name:      "entries",
+		Help:      "Counts number of entries.",
+	}, []string{"event_type"})
+
 	prometheus.MustRegister(c.RequestDurationHistogram)
 	prometheus.MustRegister(c.RecommendCounter)
 	prometheus.MustRegister(c.RecommendSelectedCounter)
@@ -74,6 +102,9 @@ func (c *Collectors) Init() {
 	prometheus.MustRegister(c.SearchSelectedCounter)
 	prometheus.MustRegister(c.AutocompleteCounter)
 	prometheus.MustRegister(c.AutocompleteSelectedCounter)
+	prometheus.MustRegister(c.SearchSelectedRankHistogram)
+	prometheus.MustRegister(c.EntriesCounterVec)
+
 	prometheus.MustRegister(collectors.NewBuildInfoCollector())
 }
 
