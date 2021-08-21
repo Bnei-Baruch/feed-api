@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +21,18 @@ type ProfileData struct {
 var PROFILE_MUTEX = sync.Mutex{}
 var PROFILE = make(map[string]*ProfileData)
 
+func StringKeys(s interface{}) []string {
+	m := reflect.ValueOf(s)
+	if m.Kind() != reflect.Map {
+		panic(fmt.Sprintf("Expected map! got: %+v", m.Kind()))
+	}
+	out := []string(nil)
+	for _, key := range m.MapKeys() {
+		out = append(out, key.String())
+	}
+	return out
+}
+
 func Profile(name string, duration time.Duration) {
 	PROFILE_MUTEX.Lock()
 	defer PROFILE_MUTEX.Unlock()
@@ -32,12 +45,16 @@ func Profile(name string, duration time.Duration) {
 }
 
 func PrintProfile(reset bool) {
-	for k, v := range PROFILE {
-		log.Debugf("%s: %+v", k, v)
+	log.Info("===== Profile =====")
+	keys := StringKeys(PROFILE)
+	sort.Strings(keys)
+	for _, k := range keys {
+		log.Infof("%s: %+v", k, PROFILE[k])
 	}
 	if reset {
 		PROFILE = make(map[string]*ProfileData)
 	}
+	log.Info("===== End Profile =====")
 }
 
 // panic if err != nil
@@ -123,9 +140,9 @@ func StringInSlice(a string, list []string) (ret bool) {
 	/*start := time.Now()
 	defer func() {
 		Profile("StringInSlice", time.Now().Sub(start))
-		if len(list) > 3 {
-			log.Infof("StringInSlice: %d -> %t", len(list), ret)
-		}
+		//if len(list) > 3 {
+		//	log.Infof("StringInSlice: %d -> %t", len(list), ret)
+		//}
 	}()*/
 	for _, b := range list {
 		if b == a {
@@ -186,12 +203,23 @@ func IntersectSorted(first []string, second []string) (ret []string) {
 	return
 }
 
+// Changes the frist map.
+func UnionMaps(a map[string]bool, b map[string]bool) {
+	start := time.Now()
+	defer func() {
+		Profile("UnionMaps", time.Now().Sub(start))
+	}()
+	for k, _ := range b {
+		a[k] = true
+	}
+}
+
 func UnionSorted(first []string, second []string) (ret []string) {
-	/*start := time.Now()
+	start := time.Now()
 	defer func() {
 		Profile("UnionSorted", time.Now().Sub(start))
 		defer log.Infof("UnionSorted: %d, %d -> %d", len(first), len(second), len(ret))
-	}()*/
+	}()
 	firstIndex := 0
 	secondIndex := 0
 	for firstIndex < len(first) || secondIndex < len(second) {
@@ -218,15 +246,72 @@ func UnionSorted(first []string, second []string) (ret []string) {
 
 func Filter(ss []string, test func(string) bool) []string {
 	ret := make([]string, 0, len(ss))
-	/*start := time.Now()
+	start := time.Now()
 	defer func() {
 		Profile("Filter", time.Now().Sub(start))
 		defer log.Infof("Filter: %d -> %d", len(ss), len(ret))
-	}()*/
+	}()
 	for _, s := range ss {
 		if test(s) {
 			ret = append(ret, s)
 		}
+	}
+	return ret
+}
+
+func FilterMap(m map[string]bool, test func(string) bool) {
+	startLen := len(m)
+	start := time.Now()
+	defer func() {
+		Profile("FilterMap", time.Now().Sub(start))
+		defer log.Infof("FilterMap: %d -> %d", startLen, len(m))
+	}()
+	for k, _ := range m {
+		if !test(k) {
+			delete(m, k)
+		}
+	}
+}
+
+func IntersectMaps(a map[string]bool, b map[string]bool) {
+	start := time.Now()
+	lenA := len(a)
+	defer func() {
+		Profile("IntersectMaps", time.Now().Sub(start))
+		defer log.Infof("IntersectMaps: %d %d -> %d", lenA, len(b), len(a))
+	}()
+	for k, _ := range a {
+		if _, ok := b[k]; !ok {
+			delete(a, k)
+		}
+	}
+}
+
+func MapFromSlice(ss []string) map[string]bool {
+	ret := make(map[string]bool, len(ss))
+	for _, s := range ss {
+		ret[s] = true
+	}
+	return ret
+}
+
+func SliceFromMap(m map[string]bool) []string {
+	ret := make([]string, 0, len(m))
+	for k, _ := range m {
+		ret = append(ret, k)
+	}
+	return ret
+}
+
+func CopyStringMap(m map[string]bool) map[string]bool {
+	start := time.Now()
+	ret := make(map[string]bool, len(m))
+	defer func() {
+		Profile("CopyStringMap", time.Now().Sub(start))
+		defer log.Infof("CopyStringMap: %d", len(m))
+	}()
+	for k, v := range m {
+		ret[k] = v
 	}
 	return ret
 }

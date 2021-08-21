@@ -2,7 +2,6 @@ package data_models
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -69,14 +68,14 @@ func (cm *SqlRefreshModel) Refresh() error {
 		for param, value := range params {
 			sql = strings.ReplaceAll(sql, param, value)
 		}
-		start := time.Now()
+		// start := time.Now()
 		log.Debugf("Running %s", cm.sqlFiles[i])
 		if result, err := cm.modelsDb.With(queries.Raw(sql)).Exec(); err != nil {
 			log.Warnf("Error running sql %s: %+v", cm.sqlFiles[i], err)
 		} else {
 			log.Debugf("Updated sql %s, result: %+v", cm.sqlFiles[i], result)
 		}
-		utils.Profile(fmt.Sprintf("SqlDataModel: %s", cm.sqlFiles[i]), time.Now().Sub(start))
+		// utils.Profile(fmt.Sprintf("SqlDataModel: %s", cm.sqlFiles[i]), time.Now().Sub(start))
 	}
 	return nil
 }

@@ -3,9 +3,11 @@ package data_models
 import (
 	"context"
 	"sort"
+	"time"
 
 	"github.com/Bnei-Baruch/feed-api/common"
 	"github.com/Bnei-Baruch/feed-api/databases/data_models/models"
+	"github.com/Bnei-Baruch/feed-api/utils"
 	"github.com/volatiletech/sqlboiler/queries/qm"
 )
 
@@ -35,6 +37,10 @@ func (dm *SqlDataModel) WatchingNow(uids []string) ([]int64, error) {
 }
 
 func (dm *SqlDataModel) AllWatchingNow() (map[string]int64, error) {
+	start := time.Now()
+	defer func() {
+		utils.Profile("AllWatchingNow", time.Now().Sub(start))
+	}()
 	count := []Count(nil)
 	if err := dm.modelsDb.With(models.NewQuery(
 		qm.Select("event_unit_uid as uid, unique_users_last10min_count as count"),

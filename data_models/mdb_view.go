@@ -242,10 +242,10 @@ const (
 // remoteIds - to be added after local removed.
 // localIds and removeIds should overlap most of the times.
 func DeleteFromTable(info TableInfo, ids []IdsTuple, local *sql.DB) (int64, error) {
-	start := time.Now()
-	defer func() {
-		utils.Profile("DeleteFromTable", time.Now().Sub(start))
-	}()
+	//	start := time.Now()
+	//	defer func() {
+	//		utils.Profile("DeleteFromTable", time.Now().Sub(start))
+	//	}()
 	if affected, err := deleteRows(info, ids, local); err != nil {
 		return 0, err
 	} else {
@@ -254,10 +254,10 @@ func DeleteFromTable(info TableInfo, ids []IdsTuple, local *sql.DB) (int64, erro
 }
 
 func InsertToTable(info TableInfo, ids []IdsTuple, local *sql.DB, remote *sql.DB) (int64, error) {
-	start := time.Now()
-	defer func() {
-		utils.Profile("InsertToTable", time.Now().Sub(start))
-	}()
+	// start := time.Now()
+	// defer func() {
+	// 	utils.Profile("InsertToTable", time.Now().Sub(start))
+	// }()
 	inserted := int64(0)
 	for i := 0; i < len(ids); i += CHUNK_SIZE {
 		chunk := ids[i:utils.MinInt(len(ids), i+CHUNK_SIZE)]
@@ -760,7 +760,6 @@ func addFileScopeParentsOnly(fileIds []int64, scope map[string]*ScopeIds, exec *
 			}
 		}
 	}
-	log.Debugf("Closure: %+v", fileIdsSlice)
 	return fileIdsSlice, nil
 }
 
@@ -852,10 +851,10 @@ type ScopeIds struct {
 }
 
 func eventsScope(datas []events.Data, local, remote *sql.DB) (map[string]*ScopeIds, error) {
-	start := time.Now()
-	defer func() {
-		utils.Profile("eventsScope", time.Now().Sub(start))
-	}()
+	//	start := time.Now()
+	//	defer func() {
+	//		utils.Profile("eventsScope", time.Now().Sub(start))
+	//	}()
 	scope := make(map[string]*ScopeIds)
 	contentUnitIds := []int64(nil)
 	fileIds := []int64(nil)
@@ -967,10 +966,10 @@ func eventsScope(datas []events.Data, local, remote *sql.DB) (map[string]*ScopeI
 }
 
 func (m *MdbView) Refresh() error {
-	start := time.Now()
-	defer func() {
-		utils.Profile("Refresh", time.Now().Sub(start))
-	}()
+	//	start := time.Now()
+	//	defer func() {
+	//		utils.Profile("Refresh", time.Now().Sub(start))
+	//	}()
 	datas := events.ReadAndClearEvents()
 	log.Debugf("New events to handle: %+v", datas)
 	if scope, err := eventsScope(datas, m.local, m.remote); err != nil {
@@ -1001,11 +1000,11 @@ func PrintScope(scope map[string]*ScopeIds) {
 }
 
 func applyScope(scope map[string]*ScopeIds, tables []TableInfo, local *sql.DB, remote *sql.DB) error {
-	start := time.Now()
-	defer func() {
-		utils.Profile("applyScope", time.Now().Sub(start))
-	}()
-	defer utils.PrintProfile(true)
+	//	start := time.Now()
+	//	defer func() {
+	//		utils.Profile("applyScope", time.Now().Sub(start))
+	//	}()
+	// defer utils.PrintProfile(true)
 	PrintScope(scope)
 	// First delete in reverse order.
 	log.Debugf("Deleting...")

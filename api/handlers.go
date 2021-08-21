@@ -228,13 +228,13 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 				for _, ci := range cis {
 					skipUidsMap[ci.UID] = true
 				}
-				log.Debugf("cis: %+v", cis)
+				// log.Debugf("cis: %+v", cis)
 				log.Debugf("Recommend[%d]: %+v", i, time.Now().Sub(start))
 				utils.PrintProfile(true)
 				res.Feeds = append(res.Feeds, cis)
 			}
 		}
-		log.Debugf("res: %+v", res)
+		// log.Debugf("res: %+v", res)
 		return res, nil
 	} else {
 		start := time.Now()

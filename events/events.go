@@ -38,8 +38,6 @@ func AddEvent(d Data) {
 
 // Returns shut down function.
 func RunListener() func() {
-	log.SetLevel(log.InfoLevel)
-
 	var err error
 
 	log.Info("Initialize connection to nats")

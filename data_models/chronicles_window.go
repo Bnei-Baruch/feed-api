@@ -133,7 +133,7 @@ func (m *ChroniclesWindowModel) Refresh() error {
 			case "search":
 				instrumentation.Stats.SearchCounter.Inc()
 			case "search-selected":
-				log.Infof("search-selected: %+v", entry)
+				log.Debugf("search-selected: %+v", entry)
 				instrumentation.Stats.SearchSelectedCounter.Inc()
 				if entry.Data.Valid {
 					var ssd SearchSelectedData
@@ -141,7 +141,7 @@ func (m *ChroniclesWindowModel) Refresh() error {
 						return err
 					}
 					if ssd.Rank != nil {
-						log.Infof("Rank %d", *ssd.Rank)
+						log.Debugf("Rank %d", *ssd.Rank)
 						instrumentation.Stats.SearchSelectedRankHistogram.Observe(float64(*ssd.Rank))
 					}
 				} else {

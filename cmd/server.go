@@ -55,6 +55,7 @@ func serverFn(cmd *cobra.Command, args []string) {
 	}
 	logLevel, err := log.ParseLevel(logLevelStr)
 	utils.Must(err)
+	log.Infof("Setting log level: %+v", logLevel)
 	log.SetLevel(logLevel)
 
 	log.Infof("Starting feed api server version %s", version.Version)
