@@ -252,16 +252,27 @@ type DataModels struct {
 	models []RefreshModel
 }
 
+func ContentUnitsPrefilter(datas map[string]interface{}) map[string]bool {
+	ret := make(map[string]bool, len(datas))
+	for uid, cui := range datas {
+		data := cui.(*ContentUnitInfo)
+		if data.SecureAndPublished && !data.IsLessonPrep {
+			ret[uid] = true
+		}
+	}
+	return ret
+}
+
 func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *common.Connection, chroniclesUrl string) *DataModels {
 	mv := MakeMdbView(localMDB, remoteMDB)
-	lcuf := MakeMDBFilterModel(localMDB, "LanguagesContentUnitsFilter", time.Duration(time.Minute*10), LANGUAGES_CONTENT_UNITS_SQL)
-	tcuf := MakeMDBFilterModel(localMDB, "TagsContentUnitsFilter", time.Duration(time.Minute*10), TAGS_CONTENT_UNITS_SQL)
-	scuf := MakeMDBFilterModel(localMDB, "SourcesContentUnitsFilter", time.Duration(time.Minute*10), SOURCES_CONTENT_UNITS_SQL)
-	pcuf := MakeMDBFilterModel(localMDB, "PersonsContentUnitsFilter", time.Duration(time.Minute*10), PERSONS_CONTENT_UNITS_SQL)
-	ccuf := MakeMDBFilterModel(localMDB, "CollectionsContentUnitsFilter", time.Duration(time.Minute*10), COLLECTIONS_CONTENT_UNITS_SQL)
-	cucf := MakeMDBFilterModel(localMDB, "ContentUnitsCollectionsFilter", time.Duration(time.Minute*10), CONTENT_UNITS_COLLECTIONS_SQL)
-	cui := MakeMDBDataModel(localMDB, "ContentUnitsInfo", time.Duration(time.Minute*10), fmt.Sprintf(CONTENT_UNITS_INFO_SQL, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID), ScanContentUnitInfo)
-	ci := MakeMDBDataModel(localMDB, "CollectionsInfo", time.Duration(time.Minute*10), COLLECTIONS_INFO_SQL, ScanCollectionInfo)
+	lcuf := MakeMDBFilterModel(localMDB, "LanguagesContentUnitsFilter", time.Duration(time.Minute*10), LANGUAGES_CONTENT_UNITS_SQL, [][]string{[]string{"en"}, []string{"he"}, []string{"ru"}})
+	tcuf := MakeMDBFilterModel(localMDB, "TagsContentUnitsFilter", time.Duration(time.Minute*10), TAGS_CONTENT_UNITS_SQL, nil)
+	scuf := MakeMDBFilterModel(localMDB, "SourcesContentUnitsFilter", time.Duration(time.Minute*10), SOURCES_CONTENT_UNITS_SQL, nil)
+	pcuf := MakeMDBFilterModel(localMDB, "PersonsContentUnitsFilter", time.Duration(time.Minute*10), PERSONS_CONTENT_UNITS_SQL, [][]string{[]string{RAV_PERSON_UID}})
+	ccuf := MakeMDBFilterModel(localMDB, "CollectionsContentUnitsFilter", time.Duration(time.Minute*10), COLLECTIONS_CONTENT_UNITS_SQL, nil)
+	cucf := MakeMDBFilterModel(localMDB, "ContentUnitsCollectionsFilter", time.Duration(time.Minute*10), CONTENT_UNITS_COLLECTIONS_SQL, nil)
+	cui := MakeMDBDataModel(localMDB, "ContentUnitsInfo", time.Duration(time.Minute*10), fmt.Sprintf(CONTENT_UNITS_INFO_SQL, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID), ScanContentUnitInfo, ContentUnitsPrefilter)
+	ci := MakeMDBDataModel(localMDB, "CollectionsInfo", time.Duration(time.Minute*10), COLLECTIONS_INFO_SQL, ScanCollectionInfo, nil)
 	cwm := MakeChroniclesWindowModel(cDb, chroniclesUrl)
 	sqlInsertContentUnits := MakeSqlRefreshModel([]string{INSERT_CONTENT_UNITS}, modelsDb)
 	sqlInsertEventsByDayUser := MakeSqlRefreshModel([]string{INSERT_EVENTS_BY_MINUTES, INSERT_CONTENT_UNITS_MEASURES}, modelsDb)
@@ -348,17 +359,21 @@ func (dataModels *DataModels) Refresh() error {
 // --- Data Models --- //
 
 // --- MDB Filter Model --- //
+type FilterPrefilter func(values map[string][]string) []string
+
 type MDBFilterModel struct {
-	db          *sql.DB
-	name        string
-	interval    time.Duration
-	sql         string
-	Values      map[string][]string
-	valuesMutex sync.RWMutex
+	db            *sql.DB
+	name          string
+	interval      time.Duration
+	sql           string
+	Values        map[string]map[string]bool
+	valuesMutex   sync.RWMutex
+	prefilterKeys [][]string
+	prefiltered   map[string]map[string]bool
 }
 
-func MakeMDBFilterModel(db *sql.DB, name string, interval time.Duration, sql string) *MDBFilterModel {
-	return &MDBFilterModel{db, name, interval, sql, make(map[string][]string), sync.RWMutex{}}
+func MakeMDBFilterModel(db *sql.DB, name string, interval time.Duration, sql string, prefilterKeys [][]string) *MDBFilterModel {
+	return &MDBFilterModel{db, name, interval, sql, make(map[string]map[string]bool), sync.RWMutex{}, prefilterKeys, make(map[string]map[string]bool)}
 }
 
 func (model *MDBFilterModel) Name() string {
@@ -376,16 +391,15 @@ func (model *MDBFilterModel) Refresh() error {
 	}
 	defer rows.Close()
 
-	tmp := make(map[string][]string)
+	tmp := make(map[string]map[string]bool)
 	for rows.Next() {
 		var key null.String
 		uids := []string(nil)
 		if err := rows.Scan(&key, pq.Array(&uids)); err != nil {
 			return err
 		}
-		sort.Strings(uids)
 		// We ignore key.Valid as we want to use in non valid state the default empty string.
-		tmp[key.String] = uids
+		tmp[key.String] = utils.MapFromSlice(uids)
 	}
 
 	model.valuesMutex.Lock()
@@ -393,38 +407,53 @@ func (model *MDBFilterModel) Refresh() error {
 	for k, v := range tmp {
 		model.Values[k] = v
 	}
+	model.prefiltered = make(map[string]map[string]bool)
+	if model.prefilterKeys != nil {
+		for _, pKeys := range model.prefilterKeys {
+			cacheKey := strings.Join(pKeys, "|")
+			model.prefiltered[cacheKey] = model.filterValues(pKeys)
+		}
+	}
 	return nil
 }
 
-func (model *MDBFilterModel) FilterValues(keys []string) []string {
-	model.valuesMutex.RLock()
-	defer model.valuesMutex.RUnlock()
-	ret := []string(nil)
+func (model *MDBFilterModel) filterValues(keys []string) map[string]bool {
+	cacheKey := strings.Join(keys, "|")
+	if ret, ok := model.prefiltered[cacheKey]; ok {
+		return ret
+	}
+	ret := make(map[string]bool, len(keys))
 	for _, key := range keys {
-		if ret == nil {
-			ret = model.Values[key]
-		} else {
-			ret = utils.UnionSorted(ret, model.Values[key])
-		}
+		utils.UnionMaps(ret, model.Values[key])
 	}
 	return ret
 }
 
-// -- MDB Data Model -- //
-type ScanRows func(rows *sql.Rows, datas map[string]interface{}) error
-
-type MDBDataModel struct {
-	db         *sql.DB
-	name       string
-	interval   time.Duration
-	sql        string
-	scanRows   ScanRows
-	Datas      map[string]interface{}
-	datasMutex sync.RWMutex
+func (model *MDBFilterModel) FilterValues(keys []string) map[string]bool {
+	model.valuesMutex.RLock()
+	defer model.valuesMutex.RUnlock()
+	return model.filterValues(keys)
 }
 
-func MakeMDBDataModel(db *sql.DB, name string, interval time.Duration, sql string, scanRows ScanRows) *MDBDataModel {
-	return &MDBDataModel{db, name, interval, sql, scanRows, make(map[string]interface{}), sync.RWMutex{}}
+// -- MDB Data Model -- //
+type ScanRows func(rows *sql.Rows, datas map[string]interface{}) error
+type Prefilter func(datas map[string]interface{}) map[string]bool
+
+type MDBDataModel struct {
+	db          *sql.DB
+	name        string
+	interval    time.Duration
+	sql         string
+	scanRows    ScanRows
+	Datas       map[string]interface{}
+	datasMutex  sync.RWMutex
+	keys        []string
+	prefilter   Prefilter
+	prefiltered map[string]bool
+}
+
+func MakeMDBDataModel(db *sql.DB, name string, interval time.Duration, sql string, scanRows ScanRows, prefilter Prefilter) *MDBDataModel {
+	return &MDBDataModel{db, name, interval, sql, scanRows, make(map[string]interface{}), sync.RWMutex{}, nil, prefilter, nil}
 }
 
 func (model *MDBDataModel) Name() string {
@@ -452,6 +481,10 @@ func (model *MDBDataModel) Refresh() error {
 	model.datasMutex.Lock()
 	defer model.datasMutex.Unlock()
 	model.Datas = tmp
+	model.rebuildKeys()
+	if model.prefilter != nil {
+		model.prefiltered = model.prefilter(model.Datas)
+	}
 	return nil
 }
 
@@ -461,13 +494,19 @@ func (model *MDBDataModel) Data(key string) interface{} {
 	return model.Datas[key]
 }
 
-func (model *MDBDataModel) Keys() []string {
-	model.datasMutex.RLock()
-	defer model.datasMutex.RUnlock()
+func (model *MDBDataModel) rebuildKeys() {
 	keys := []string(nil)
 	for k := range model.Datas {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	return keys
+	model.keys = keys
+}
+
+func (model *MDBDataModel) Keys() []string {
+	return model.keys
+}
+
+func (model *MDBDataModel) Prefiltered() map[string]bool {
+	return model.prefiltered
 }
