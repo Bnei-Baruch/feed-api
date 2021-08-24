@@ -256,7 +256,7 @@ func ContentUnitsPrefilter(datas map[string]interface{}) map[string]bool {
 	ret := make(map[string]bool, len(datas))
 	for uid, cui := range datas {
 		data := cui.(*ContentUnitInfo)
-		if data.SecureAndPublished && !data.IsLessonPrep {
+		if data.SecureAndPublished && !data.IsLessonPrep && data.TypeId != mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_KITEI_MAKOR].ID {
 			ret[uid] = true
 		}
 	}
