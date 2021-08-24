@@ -45,16 +45,16 @@ func Profile(name string, duration time.Duration) {
 }
 
 func PrintProfile(reset bool) {
-	log.Info("===== Profile =====")
+	log.Debug("===== Profile =====")
 	keys := StringKeys(PROFILE)
 	sort.Strings(keys)
 	for _, k := range keys {
-		log.Infof("%s: %+v", k, PROFILE[k])
+		log.Debugf("%s: %+v", k, PROFILE[k])
 	}
 	if reset {
 		PROFILE = make(map[string]*ProfileData)
 	}
-	log.Info("===== End Profile =====")
+	log.Debug("===== End Profile =====")
 }
 
 // panic if err != nil
@@ -218,7 +218,7 @@ func UnionSorted(first []string, second []string) (ret []string) {
 	start := time.Now()
 	defer func() {
 		Profile("UnionSorted", time.Now().Sub(start))
-		defer log.Infof("UnionSorted: %d, %d -> %d", len(first), len(second), len(ret))
+		defer log.Debugf("UnionSorted: %d, %d -> %d", len(first), len(second), len(ret))
 	}()
 	firstIndex := 0
 	secondIndex := 0
@@ -249,7 +249,7 @@ func Filter(ss []string, test func(string) bool) []string {
 	start := time.Now()
 	defer func() {
 		Profile("Filter", time.Now().Sub(start))
-		defer log.Infof("Filter: %d -> %d", len(ss), len(ret))
+		defer log.Debugf("Filter: %d -> %d", len(ss), len(ret))
 	}()
 	for _, s := range ss {
 		if test(s) {
@@ -264,7 +264,7 @@ func FilterMap(m map[string]bool, test func(string) bool) {
 	start := time.Now()
 	defer func() {
 		Profile("FilterMap", time.Now().Sub(start))
-		defer log.Infof("FilterMap: %d -> %d", startLen, len(m))
+		defer log.Debugf("FilterMap: %d -> %d", startLen, len(m))
 	}()
 	for k, _ := range m {
 		if !test(k) {
@@ -278,7 +278,7 @@ func IntersectMaps(a map[string]bool, b map[string]bool) {
 	lenA := len(a)
 	defer func() {
 		Profile("IntersectMaps", time.Now().Sub(start))
-		defer log.Infof("IntersectMaps: %d %d -> %d", lenA, len(b), len(a))
+		defer log.Debugf("IntersectMaps: %d %d -> %d", lenA, len(b), len(a))
 	}()
 	for k, _ := range a {
 		if _, ok := b[k]; !ok {
@@ -308,7 +308,7 @@ func CopyStringMap(m map[string]bool) map[string]bool {
 	ret := make(map[string]bool, len(m))
 	defer func() {
 		Profile("CopyStringMap", time.Now().Sub(start))
-		defer log.Infof("CopyStringMap: %d", len(m))
+		defer log.Debugf("CopyStringMap: %d", len(m))
 	}()
 	for k, v := range m {
 		ret[k] = v

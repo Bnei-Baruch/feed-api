@@ -331,10 +331,6 @@ func (s *DataCollectionsSuggester) More(request core.MoreRequest) ([]core.Conten
 		for _, uid := range uids {
 			uidsMap[uid] = true
 		}
-		// Filter published and secure, remove skipped and current uids.
-		// uids = utils.Filter(uids, func(uid string) bool {
-		// 	return uid != recommendInfo.Uid && !utils.StringInSlice(uid, request.Options.SkipUids)
-		// })
 		utils.FilterMap(uidsMap, func(uid string) bool {
 			return uid != recommendInfo.Uid && !utils.StringInSlice(uid, request.Options.SkipUids)
 		})
@@ -346,9 +342,6 @@ func (s *DataCollectionsSuggester) More(request core.MoreRequest) ([]core.Conten
 			case core.CollectionContentTypes:
 				suggesterNameParts = append(suggesterNameParts, ";CollectionContentTypes:[", strings.Join(filter.Args, ","), "]")
 				int64Args := core.ContentTypesToInt64Ids(filter.Args)
-				// uids = utils.Filter(uids, func(uid string) bool {
-				// 	return utils.Int64InSlice(dm.CollectionsInfo.Data(uid).(*data_models.CollectionInfo).TypeId, int64Args)
-				// })
 				utils.FilterMap(uidsMap, func(uid string) bool {
 					return utils.Int64InSlice(dm.CollectionsInfo.Data(uid).(*data_models.CollectionInfo).TypeId, int64Args)
 				})
@@ -358,9 +351,6 @@ func (s *DataCollectionsSuggester) More(request core.MoreRequest) ([]core.Conten
 				log.Errorf("Did not expect Sources filter for DataCollectionsSuggester")
 			case core.Collections:
 				suggesterNameParts = append(suggesterNameParts, ";Collections:[", strings.Join(filter.Args, ","), "]")
-				//				uids = utils.Filter(uids, func(uid string) bool {
-				//					return utils.StringInSlice(uid, filter.Args)
-				//				})
 				utils.FilterMap(uidsMap, func(uid string) bool {
 					return utils.StringInSlice(uid, filter.Args)
 				})
@@ -368,13 +358,9 @@ func (s *DataCollectionsSuggester) More(request core.MoreRequest) ([]core.Conten
 				log.Errorf("Did not expect SameTag filter for DataCollectionsSuggester")
 			case core.SameCollection:
 				suggesterNameParts = append(suggesterNameParts, ";SameCollection:[", strings.Join(filter.Args, ","), "]")
-				//uids = utils.IntersectSorted(uids, dm.ContentUnitsCollectionsFilter.FilterValues([]string{request.Options.Recommend.Uid}))
 				utils.IntersectMaps(uidsMap, dm.ContentUnitsCollectionsFilter.FilterValues([]string{request.Options.Recommend.Uid}))
 			case core.SameSource:
 				suggesterNameParts = append(suggesterNameParts, ";SameSource:[", strings.Join(filter.Args, ","), "]")
-				//				uids = utils.Filter(uids, func(uid string) bool {
-				//					return utils.StringInSlice(dm.CollectionsInfo.Data(uid).(*data_models.CollectionInfo).SourceUid, recommendInfo.Sources)
-				//				})
 				utils.FilterMap(uidsMap, func(uid string) bool {
 					return utils.StringInSlice(dm.CollectionsInfo.Data(uid).(*data_models.CollectionInfo).SourceUid, recommendInfo.Sources)
 				})
