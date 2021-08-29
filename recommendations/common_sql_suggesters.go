@@ -10,7 +10,7 @@ import (
 
 	"github.com/Bnei-Baruch/feed-api/consts"
 	"github.com/Bnei-Baruch/feed-api/core"
-	"github.com/Bnei-Baruch/feed-api/mdb"
+	"github.com/Bnei-Baruch/feed-api/databases/mdb"
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 

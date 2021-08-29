@@ -28,6 +28,11 @@ WORKDIR /app
 COPY misc/wait-for /wait-for
 COPY config.sample.toml config.toml
 COPY --from=build ${work_dir}/feed-api .
+COPY --from=build ${work_dir}/databases/data_models/flow flows/data_models
+
+COPY --from=build ${work_dir}/databases/mdb/migrations migrations/mdb
+COPY --from=build ${work_dir}/databases/chronicles/migrations migrations/chronicles
+COPY --from=build ${work_dir}/databases/data_models/migrations migrations/data_models
 
 EXPOSE 8080
 CMD ["./feed-api", "server"]

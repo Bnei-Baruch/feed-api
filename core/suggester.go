@@ -36,6 +36,7 @@ const (
 	SameTag
 	SameSource
 	SameCollection
+	WatchingNowFilter
 )
 
 var FILTER_STRING_TO_VALUE = map[string]FilterSelectorEnum{
@@ -47,6 +48,7 @@ var FILTER_STRING_TO_VALUE = map[string]FilterSelectorEnum{
 	"FSameTag":                SameTag,
 	"FSameSource":             SameSource,
 	"FSameCollection":         SameCollection,
+	"FWatchingNowFilter":      WatchingNowFilter,
 }
 
 type SuggesterFilter struct {
@@ -63,14 +65,16 @@ const (
 	Prev
 	Rand
 	Popular
+	WatchingNow
 )
 
 var ORDER_STRING_TO_VALUE = map[string]OrderSelectorEnum{
-	"OLast":    Last,
-	"ONext":    Next,
-	"OPrev":    Prev,
-	"ORand":    Rand,
-	"OPopular": Popular,
+	"OLast":        Last,
+	"ONext":        Next,
+	"OPrev":        Prev,
+	"ORand":        Rand,
+	"OPopular":     Popular,
+	"OWatchingNow": WatchingNow,
 }
 
 type SuggesterSpec struct {

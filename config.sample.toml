@@ -2,6 +2,25 @@
 bind-address=":9590"
 mode="debug"  # GIN mode. Either debug, release or test
 boiler-mode="debug"  # Either debug or something else.
+log-level="info" # One of: panic, fatal, error, warn, info, debug, trace.
 
 [mdb]
 url="postgres://localhost/mdb?sslmode=disable&user=postgres"
+local_url="postgres://postgres:password@localhost/mdb?sslmode=disable"
+
+[chronicles]
+local_url="postgres://postgres:password@localhost/chronicles?sslmode=disable"
+remote_api="https://chronicles-server"
+
+[data_models]
+url="postgres://postgres:password@localhost/data_models?sslmode=disable"
+sqls_path="./databases/data_models/flow/"
+
+[nats]
+url="nats://10.0.0.1:1234"
+client-id="feed-api-dev"
+cluster-id="test-cluster"
+subject="mdb"
+durable=true
+durable-name="archive-backend-events"
+mode="debug"

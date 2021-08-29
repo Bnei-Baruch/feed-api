@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Bnei-Baruch/sqlboiler/queries"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/volatiletech/sqlboiler/queries"
 
 	"github.com/Bnei-Baruch/feed-api/core"
 	"github.com/Bnei-Baruch/feed-api/data_models"
-	"github.com/Bnei-Baruch/feed-api/mdb"
+	"github.com/Bnei-Baruch/feed-api/databases/mdb"
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
@@ -83,7 +83,7 @@ func LoadContentUnitRecommendInfo(uid string, suggesterContext core.SuggesterCon
 			group by
 				cu.type_id, date, cu.created_at;
 		`, uid)
-		rows, err := queries.Raw(suggesterContext.DB, sqlStr).Query()
+		rows, err := queries.Raw(sqlStr).Query(suggesterContext.DB)
 		if err != nil {
 			return nil, err
 		}
@@ -114,36 +114,68 @@ func LoadContentUnitRecommendInfo(uid string, suggesterContext core.SuggesterCon
 	return suggesterContext.Cache["recommendInfo"].(*ContentUnitRecommendInfo), nil
 }
 
+func (s *DataContentUnitsSuggester) initialUids(request core.MoreRequest) map[string]bool {
+	init_start := time.Now()
+	defer func() {
+		utils.Profile("DataContentUnitsSuggester.More.Init", time.Now().Sub(init_start))
+	}()
+	var ok bool
+	if _, ok = s.suggesterContext.Cache["uids"]; !ok {
+		prefiltered_start := time.Now()
+		dm := s.suggesterContext.DataModels
+		uids := utils.CopyStringMap(dm.ContentUnitsInfo.Prefiltered())
+		log.Debugf("prefilter uids: %d", len(uids))
+		utils.Profile("DataContentUnitsSuggester.More.Prefiltered", time.Now().Sub(prefiltered_start))
+
+		language_start := time.Now()
+		utils.IntersectMaps(uids, dm.LanguagesContentUnitsFilter.FilterValues(request.Options.Languages))
+		utils.Profile("DataContentUnitsSuggester.More.Language", time.Now().Sub(language_start))
+
+		persons_start := time.Now()
+		utils.IntersectMaps(uids, dm.PersonsContentUnitsFilter.FilterValues([]string{data_models.RAV_PERSON_UID}))
+		utils.Profile("DataContentUnitsSuggester.More.Persons", time.Now().Sub(persons_start))
+		s.suggesterContext.Cache["uids"] = uids
+	}
+	return utils.CopyStringMap(s.suggesterContext.Cache["uids"].(map[string]bool))
+}
+
 func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.ContentItem, error) {
+	start := time.Now()
+	defer func() {
+		utils.Profile("DataContentUnitsSuggester.More", time.Now().Sub(start))
+	}()
 	if recommendInfo, err := LoadContentUnitRecommendInfo(request.Options.Recommend.Uid, s.suggesterContext); err != nil {
 		return nil, err
 	} else {
 		dm := s.suggesterContext.DataModels
-		uids := dm.ContentUnitsInfo.Keys()
-		// Filter published and secure.
-		uids = utils.Filter(uids, func(uid string) bool {
-			return dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo).SecureAndPublished &&
-				!dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo).IsLessonPrep &&
-				uid != recommendInfo.Uid &&
-				!utils.StringInSlice(uid, request.Options.SkipUids)
-		})
-		uids = utils.IntersectSorted(uids, dm.PersonsContentUnitsFilter.FilterValues([]string{"abcdefgh"}))
-		uids = utils.IntersectSorted(uids, dm.LanguagesContentUnitsFilter.FilterValues(request.Options.Languages))
+		uids := s.initialUids(request)
+
+		log.Debugf("before skip uids: %d", len(uids))
+		skip_start := time.Now()
+		for _, uid := range request.Options.SkipUids {
+			delete(uids, uid)
+		}
+		delete(uids, recommendInfo.Uid)
+		utils.Profile("DataContentUnitsSuggester.More.Skip", time.Now().Sub(skip_start))
+
+		filters_start := time.Now()
 		suggesterNameParts := []string{"DataContentUnitsSuggester"}
+		log.Debugf("before filter uids: %d", len(uids))
 		for _, filter := range s.filters {
+			filter_start := time.Now()
 			switch filter.FilterSelector {
 			case core.UnitContentTypes:
 				suggesterNameParts = append(suggesterNameParts, ";UnitContentTypes:[", strings.Join(filter.Args, ","), "]")
 				int64Args := core.ContentTypesToInt64Ids(filter.Args)
-				uids = utils.Filter(uids, func(uid string) bool {
+				utils.FilterMap(uids, func(uid string) bool {
 					return utils.Int64InSlice(dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo).TypeId, int64Args)
 				})
 			case core.CollectionContentTypes:
 				suggesterNameParts = append(suggesterNameParts, ";CollectionContentTypes:[", strings.Join(filter.Args, ","), "]")
 				int64Args := core.ContentTypesToInt64Ids(filter.Args)
-				uids = utils.Filter(uids, func(uid string) bool {
+				utils.FilterMap(uids, func(uid string) bool {
 					collectionsUids := dm.ContentUnitsCollectionsFilter.FilterValues([]string{uid})
-					for _, collectionUid := range collectionsUids {
+					for collectionUid, _ := range collectionsUids {
 						if utils.Int64InSlice(dm.CollectionsInfo.Data(collectionUid).(*data_models.CollectionInfo).TypeId, int64Args) {
 							return true
 						}
@@ -152,29 +184,47 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 				})
 			case core.Tags:
 				suggesterNameParts = append(suggesterNameParts, ";Tags:[", strings.Join(filter.Args, ","), "]")
-				uids = utils.IntersectSorted(uids, dm.TagsContentUnitsFilter.FilterValues(filter.Args))
+				utils.IntersectMaps(uids, dm.TagsContentUnitsFilter.FilterValues(filter.Args))
 			case core.Sources:
 				suggesterNameParts = append(suggesterNameParts, ";Sources:[", strings.Join(filter.Args, ","), "]")
-				uids = utils.IntersectSorted(uids, dm.SourcesContentUnitsFilter.FilterValues(filter.Args))
+				utils.IntersectMaps(uids, dm.SourcesContentUnitsFilter.FilterValues(filter.Args))
 			case core.Collections:
 				suggesterNameParts = append(suggesterNameParts, ";Collections:[", strings.Join(filter.Args, ","), "]")
-				uids = utils.IntersectSorted(uids, dm.CollectionsContentUnitsFilter.FilterValues(filter.Args))
+				utils.IntersectMaps(uids, dm.CollectionsContentUnitsFilter.FilterValues(filter.Args))
 			case core.SameTag:
 				suggesterNameParts = append(suggesterNameParts, ";SameTag:[", strings.Join(filter.Args, ","), "]")
-				uids = utils.IntersectSorted(uids, dm.TagsContentUnitsFilter.FilterValues(recommendInfo.Tags))
+				utils.IntersectMaps(uids, dm.TagsContentUnitsFilter.FilterValues(recommendInfo.Tags))
 			case core.SameCollection:
 				suggesterNameParts = append(suggesterNameParts, ";SameCollection:[", strings.Join(filter.Args, ","), "]")
-				uids = utils.IntersectSorted(uids, dm.CollectionsContentUnitsFilter.FilterValues(dm.ContentUnitsCollectionsFilter.FilterValues([]string{request.Options.Recommend.Uid})))
+				utils.IntersectMaps(uids, dm.CollectionsContentUnitsFilter.FilterValues(utils.SliceFromMap(dm.ContentUnitsCollectionsFilter.FilterValues([]string{request.Options.Recommend.Uid}))))
 			case core.SameSource:
 				suggesterNameParts = append(suggesterNameParts, ";SameSource:[", strings.Join(filter.Args, ","), "]")
-				uids = utils.IntersectSorted(uids, dm.SourcesContentUnitsFilter.FilterValues(recommendInfo.Sources))
+				utils.IntersectMaps(uids, dm.SourcesContentUnitsFilter.FilterValues(recommendInfo.Sources))
+			case core.WatchingNowFilter:
+				suggesterNameParts = append(suggesterNameParts, ";WatchingNowFilter:[", strings.Join(filter.Args, ","), "]")
+				if watchingNow, err := dm.SqlDataModel.AllWatchingNow(); err != nil {
+					return nil, err
+				} else {
+					watchingNowUids := make(map[string]bool, len(watchingNow))
+					for uid, count := range watchingNow {
+						if count > 0 {
+							watchingNowUids[uid] = true
+						}
+					}
+					utils.IntersectMaps(uids, watchingNowUids)
+				}
 			default:
 				log.Errorf("Did not expect filter selector enum %d", filter.FilterSelector)
 			}
+			utils.Profile(fmt.Sprintf("DataContentUnitsSuggester.More.Filter[%d]", filter.FilterSelector), time.Now().Sub(filter_start))
 		}
+		utils.Profile("DataContentUnitsSuggester.More.Filters", time.Now().Sub(filters_start))
+		sort_start := time.Now()
+		uidsSlice := utils.SliceFromMap(uids)
+		log.Debugf("uidsSlice: %d", len(uidsSlice))
 		sortLastPrev := func(i, j int) bool {
-			icu := dm.ContentUnitsInfo.Data(uids[i]).(*data_models.ContentUnitInfo)
-			jcu := dm.ContentUnitsInfo.Data(uids[j]).(*data_models.ContentUnitInfo)
+			icu := dm.ContentUnitsInfo.Data(uidsSlice[i]).(*data_models.ContentUnitInfo)
+			jcu := dm.ContentUnitsInfo.Data(uidsSlice[j]).(*data_models.ContentUnitInfo)
 			if icu.Date.Equal(jcu.Date) {
 				if icu.CreatedAt.Equal(jcu.CreatedAt) {
 					return false
@@ -186,16 +236,16 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 		switch s.orderSelector {
 		case core.Last:
 			suggesterNameParts = append(suggesterNameParts, ";Last")
-			sort.SliceStable(uids, sortLastPrev)
+			sort.SliceStable(uidsSlice, sortLastPrev)
 		case core.Next:
 			suggesterNameParts = append(suggesterNameParts, ";Next")
-			uids = utils.Filter(uids, func(uid string) bool {
+			uidsSlice = utils.Filter(uidsSlice, func(uid string) bool {
 				info := dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo)
 				return recommendInfo.Date.Before(info.Date) || (recommendInfo.Date.Equal(info.Date) && recommendInfo.CreatedAt.Before(info.CreatedAt))
 			})
-			sort.SliceStable(uids, func(i, j int) bool {
-				icu := dm.ContentUnitsInfo.Data(uids[i]).(*data_models.ContentUnitInfo)
-				jcu := dm.ContentUnitsInfo.Data(uids[j]).(*data_models.ContentUnitInfo)
+			sort.SliceStable(uidsSlice, func(i, j int) bool {
+				icu := dm.ContentUnitsInfo.Data(uidsSlice[i]).(*data_models.ContentUnitInfo)
+				jcu := dm.ContentUnitsInfo.Data(uidsSlice[j]).(*data_models.ContentUnitInfo)
 				if icu.Date.Equal(jcu.Date) {
 					if icu.CreatedAt.Equal(jcu.CreatedAt) {
 						return false
@@ -206,23 +256,33 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 			})
 		case core.Prev:
 			suggesterNameParts = append(suggesterNameParts, ";Prev")
-			uids = utils.Filter(uids, func(uid string) bool {
+			uidsSlice = utils.Filter(uidsSlice, func(uid string) bool {
 				info := dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo)
 				return recommendInfo.Date.After(info.Date) || (recommendInfo.Date.Equal(info.Date) && recommendInfo.CreatedAt.After(info.CreatedAt))
 			})
-			sort.SliceStable(uids, sortLastPrev)
+			sort.SliceStable(uidsSlice, sortLastPrev)
 		case core.Rand:
 			suggesterNameParts = append(suggesterNameParts, ";Rand")
 			rand.Seed(time.Now().UnixNano())
-			rand.Shuffle(len(uids), func(i, j int) { uids[i], uids[j] = uids[j], uids[i] })
+			rand.Shuffle(len(uidsSlice), func(i, j int) { uidsSlice[i], uidsSlice[j] = uidsSlice[j], uidsSlice[i] })
 		case core.Popular:
-			return nil, errors.New("Now Implemented")
+			suggesterNameParts = append(suggesterNameParts, ";Popular")
+			if err := dm.SqlDataModel.SortPopular(uidsSlice); err != nil {
+				return nil, err
+			}
+		case core.WatchingNow:
+			suggesterNameParts = append(suggesterNameParts, ";WatchingNow")
+			if err := dm.SqlDataModel.SortWatchingNow(uidsSlice); err != nil {
+				return nil, err
+			}
 		}
+		utils.Profile("DataContentUnitsSuggester.More.Sort", time.Now().Sub(sort_start))
+		ret_start := time.Now()
 		ret := []core.ContentItem(nil)
 		if request.MoreItems <= 0 {
 			return ret, nil
 		}
-		for _, uid := range uids {
+		for _, uid := range uidsSlice {
 			cuInfo := dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo)
 			contentType := mdb.CONTENT_TYPE_REGISTRY.ByID[cuInfo.TypeId].Name
 			ret = append(ret, core.ContentItem{UID: uid, Date: cuInfo.Date, CreatedAt: cuInfo.CreatedAt, ContentType: contentType, Suggester: strings.Join(suggesterNameParts, "")})
@@ -230,6 +290,7 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 				break
 			}
 		}
+		utils.Profile("DataContentUnitsSuggester.More.BuildRet", time.Now().Sub(ret_start))
 		return ret, nil
 	}
 }
@@ -266,8 +327,11 @@ func (s *DataCollectionsSuggester) More(request core.MoreRequest) ([]core.Conten
 	} else {
 		dm := s.suggesterContext.DataModels
 		uids := dm.CollectionsInfo.Keys()
-		// Filter published and secure, remove skipped and current uids.
-		uids = utils.Filter(uids, func(uid string) bool {
+		uidsMap := make(map[string]bool, len(uids))
+		for _, uid := range uids {
+			uidsMap[uid] = true
+		}
+		utils.FilterMap(uidsMap, func(uid string) bool {
 			return uid != recommendInfo.Uid && !utils.StringInSlice(uid, request.Options.SkipUids)
 		})
 		suggesterNameParts := []string{"DataCollectionsSuggester"}
@@ -278,7 +342,7 @@ func (s *DataCollectionsSuggester) More(request core.MoreRequest) ([]core.Conten
 			case core.CollectionContentTypes:
 				suggesterNameParts = append(suggesterNameParts, ";CollectionContentTypes:[", strings.Join(filter.Args, ","), "]")
 				int64Args := core.ContentTypesToInt64Ids(filter.Args)
-				uids = utils.Filter(uids, func(uid string) bool {
+				utils.FilterMap(uidsMap, func(uid string) bool {
 					return utils.Int64InSlice(dm.CollectionsInfo.Data(uid).(*data_models.CollectionInfo).TypeId, int64Args)
 				})
 			case core.Tags:
@@ -287,23 +351,24 @@ func (s *DataCollectionsSuggester) More(request core.MoreRequest) ([]core.Conten
 				log.Errorf("Did not expect Sources filter for DataCollectionsSuggester")
 			case core.Collections:
 				suggesterNameParts = append(suggesterNameParts, ";Collections:[", strings.Join(filter.Args, ","), "]")
-				uids = utils.Filter(uids, func(uid string) bool {
+				utils.FilterMap(uidsMap, func(uid string) bool {
 					return utils.StringInSlice(uid, filter.Args)
 				})
 			case core.SameTag:
 				log.Errorf("Did not expect SameTag filter for DataCollectionsSuggester")
 			case core.SameCollection:
 				suggesterNameParts = append(suggesterNameParts, ";SameCollection:[", strings.Join(filter.Args, ","), "]")
-				uids = utils.IntersectSorted(uids, dm.ContentUnitsCollectionsFilter.FilterValues([]string{request.Options.Recommend.Uid}))
+				utils.IntersectMaps(uidsMap, dm.ContentUnitsCollectionsFilter.FilterValues([]string{request.Options.Recommend.Uid}))
 			case core.SameSource:
 				suggesterNameParts = append(suggesterNameParts, ";SameSource:[", strings.Join(filter.Args, ","), "]")
-				uids = utils.Filter(uids, func(uid string) bool {
+				utils.FilterMap(uidsMap, func(uid string) bool {
 					return utils.StringInSlice(dm.CollectionsInfo.Data(uid).(*data_models.CollectionInfo).SourceUid, recommendInfo.Sources)
 				})
 			default:
 				log.Errorf("Did not expect filter selector enum %d", filter.FilterSelector)
 			}
 		}
+		uids = utils.SliceFromMap(uidsMap)
 		sortLastPrev := func(i, j int) bool {
 			icu := dm.CollectionsInfo.Data(uids[i]).(*data_models.CollectionInfo)
 			jcu := dm.CollectionsInfo.Data(uids[j]).(*data_models.CollectionInfo)
