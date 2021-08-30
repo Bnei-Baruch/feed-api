@@ -9,8 +9,8 @@ var Stats = new(Collectors)
 
 type Collectors struct {
 	RequestDurationHistogram    *prometheus.HistogramVec
-	RecommendCounter            prometheus.Counter
-	RecommendSelectedCounter    prometheus.Counter
+	RecommendCounter            *prometheus.CounterVec
+	RecommendSelectedCounter    *prometheus.CounterVec
 	SearchCounter               prometheus.Counter
 	SearchSelectedCounter       prometheus.Counter
 	AutocompleteCounter         prometheus.Counter
@@ -27,19 +27,19 @@ func (c *Collectors) Init() {
 		Help:      "Time (in seconds) spent serving HTTP requests.",
 	}, []string{"method", "route", "status_code"})
 
-	c.RecommendCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	c.RecommendCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "feed_api",
 		Subsystem: "recommend",
 		Name:      "recommend",
 		Help:      "Counts number of recommendation served to users.",
-	})
+	}, []string{"ab"})
 
-	c.RecommendSelectedCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	c.RecommendSelectedCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "feed_api",
 		Subsystem: "recommend",
 		Name:      "recommend_selected",
 		Help:      "Counts number of recommendation selections by users.",
-	})
+	}, []string{"ab"})
 
 	c.SearchCounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "feed_api",

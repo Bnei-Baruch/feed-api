@@ -106,6 +106,10 @@ func (m *ChroniclesWindowModel) ScanChroniclesEntries() ([]*models.Entry, error)
 	return scanResponse.Entries, nil
 }
 
+type ABTestingData struct {
+	AB map[string]string `json: "ab,omitempty"`
+}
+
 type SearchSelectedData struct {
 	Rank *int64 `json: "rank,omitempty"`
 }
@@ -127,9 +131,29 @@ func (m *ChroniclesWindowModel) Refresh() error {
 			instrumentation.Stats.EntriesCounterVec.WithLabelValues(entry.ClientEventType).Inc()
 			switch entry.ClientEventType {
 			case "recommend":
-				instrumentation.Stats.RecommendCounter.Inc()
+				ab := ""
+				if entry.Data.Valid {
+					var abd ABTestingData
+					if err := json.Unmarshal(entry.Data.JSON, &abd); err != nil {
+						return err
+					}
+					if version, ok := abd.AB["recommend"]; ok {
+						ab = version
+					}
+				}
+				instrumentation.Stats.RecommendCounter.WithLabelValues(ab).Inc()
 			case "recommend-selected":
-				instrumentation.Stats.RecommendSelectedCounter.Inc()
+				ab := ""
+				if entry.Data.Valid {
+					var abd ABTestingData
+					if err := json.Unmarshal(entry.Data.JSON, &abd); err != nil {
+						return err
+					}
+					if version, ok := abd.AB["recommend"]; ok {
+						ab = version
+					}
+				}
+				instrumentation.Stats.RecommendSelectedCounter.WithLabelValues(ab).Inc()
 			case "search":
 				instrumentation.Stats.SearchCounter.Inc()
 			case "search-selected":
