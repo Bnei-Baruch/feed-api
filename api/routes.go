@@ -10,4 +10,5 @@ func SetupRoutes(router *gin.Engine) {
 	router.POST("/views", ViewsHandler)
 	router.POST("/watchingnow", WatchingNowHandler)
 	router.GET("/metrics", PrometheusHandler())
+	router.GET("/health_check", HealthCheckHandler)
 }

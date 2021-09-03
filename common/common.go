@@ -24,7 +24,7 @@ type InitDb func() (*sql.DB, error)
 type ShutdownDb func(db *sql.DB) error
 
 type Connection struct {
-	db       *sql.DB
+	DB       *sql.DB
 	init     InitDb
 	shutdown ShutdownDb
 }
@@ -35,13 +35,13 @@ func MakeConnection(i InitDb, s ShutdownDb) *Connection {
 
 func (c *Connection) MustConnect() *Connection {
 	var err error
-	c.db, err = c.init()
+	c.DB, err = c.init()
 	utils.Must(err)
 	return c
 }
 
 func (c *Connection) Shutdown() error {
-	return c.shutdown(c.db)
+	return c.shutdown(c.DB)
 }
 
 type ConnectionWithQuery struct {
@@ -56,11 +56,11 @@ func (c *Connection) With(q *queries.Query) *ConnectionWithQuery {
 func (c *ConnectionWithQuery) handleBadConnection(action func() error) error {
 	var err error
 	if err = action(); err != nil && strings.Contains(err.Error(), "could not establish connection") {
-		if err = c.Connection.shutdown(c.Connection.db); err != nil {
-			return errors.Wrap(err, "Error shutting down while re-esteblishing connection.")
+		if err = c.Connection.shutdown(c.Connection.DB); err != nil {
+			return errors.Wrap(err, "Error shutting down while re-establishing connection.")
 		}
-		if c.Connection.db, err = c.Connection.init(); err != nil {
-			return errors.Wrap(err, "Error initializing while re-esteblishing connection.")
+		if c.Connection.DB, err = c.Connection.init(); err != nil {
+			return errors.Wrap(err, "Error initializing while re-establishing connection.")
 		}
 		log.Infof("Re-established connection.")
 		return action()
@@ -69,14 +69,14 @@ func (c *ConnectionWithQuery) handleBadConnection(action func() error) error {
 }
 
 func (c *ConnectionWithQuery) Bind(ctx context.Context, obj interface{}) error {
-	return c.handleBadConnection(func() error { return c.Query.Bind(ctx, c.Connection.db, obj) })
+	return c.handleBadConnection(func() error { return c.Query.Bind(ctx, c.Connection.DB, obj) })
 }
 
 func (c *ConnectionWithQuery) Exec() (sql.Result, error) {
 	var result sql.Result
 	return result, c.handleBadConnection(func() error {
 		var err error
-		result, err = c.Query.Exec(c.Connection.db)
+		result, err = c.Query.Exec(c.Connection.DB)
 		return err
 	})
 }

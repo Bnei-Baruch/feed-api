@@ -9,17 +9,22 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Bnei-Baruch/feed-api/instrumentation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Bnei-Baruch/feed-api/instrumentation"
 )
 
-// Set MDB in context.
-func DataStoresMiddleware(mbdDB *sql.DB) gin.HandlerFunc {
+// DataStoresMiddleware set data stores connections in context.
+func DataStoresMiddleware(remoteMDB, localMDB, localChroniclesDB, ModelsDb *sql.DB, dataModels interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Set("MDB_DB", mbdDB)
+		c.Set("MDB_DB", remoteMDB)
+		c.Set("LOCAL_MDB", localMDB)
+		c.Set("LOCAL_CHRONICLES_DB", localChroniclesDB)
+		c.Set("MODELS_DB", ModelsDb)
+		c.Set("DATA_MODELS", dataModels)
 		c.Next()
 	}
 }
