@@ -56,8 +56,19 @@ func MoreHandler(c *gin.Context) {
 }
 
 func handleMore(suggesterContext core.SuggesterContext, r core.MoreRequest) (*MoreResponse, *HttpError) {
-	log.Debugf("r: %+v", r)
-	feed := core.MakeFeed(suggesterContext)
+	log.Infof("r: %+v", r)
+	var feed *core.Feed
+	if r.Options.Spec == nil {
+		log.Infof("Spec is nil")
+		feed = core.MakeFeed(suggesterContext)
+	} else {
+		log.Infof("From spec")
+		if s, err := MakeAndUnmarshalSuggester(suggesterContext, r.Options.Spec); err != nil {
+			return nil, NewInternalError(err)
+		} else {
+			feed = core.MakeFeedFromSuggester(s, suggesterContext)
+		}
+	}
 	if cis, err := feed.More(r); err != nil {
 		return nil, NewInternalError(err)
 	} else {
@@ -132,9 +143,9 @@ func RecommendHandler(c *gin.Context) {
 	concludeRequest(c, resp, err)
 }
 
-func MakeAndUnmarshal(suggesterContext core.SuggesterContext, spec *core.SuggesterSpec) (*recommendations.Recommender, error) {
+func MakeAndUnmarshalSuggester(suggesterContext core.SuggesterContext, spec *core.SuggesterSpec) (core.Suggester, error) {
 	if spec.Name == "Default" {
-		return recommendations.MakeRecommender(suggesterContext)
+		return core.MakeDefaultSuggester(suggesterContext)
 	}
 	if s, err := core.MakeSuggesterFromName(suggesterContext, spec.Name); err != nil {
 		return nil, err
@@ -142,8 +153,16 @@ func MakeAndUnmarshal(suggesterContext core.SuggesterContext, spec *core.Suggest
 		if err := s.UnmarshalSpec(suggesterContext, *spec); err != nil {
 			return nil, err
 		} else {
-			return &recommendations.Recommender{s}, nil
+			return s, nil
 		}
+	}
+}
+
+func MakeAndUnmarshalRecommender(suggesterContext core.SuggesterContext, spec *core.SuggesterSpec) (*recommendations.Recommender, error) {
+	if s, err := MakeAndUnmarshalSuggester(suggesterContext, spec); err != nil {
+		return &recommendations.Recommender{s}, nil
+	} else {
+		return nil, err
 	}
 }
 
@@ -157,11 +176,10 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 		var err error
 		recommend, err = recommendations.MakeRecommender(suggesterContext)
 		if err != nil {
-
 			return nil, NewInternalError(err)
 		}
 	} else if r.Options.Specs == nil {
-		if rec, err := MakeAndUnmarshal(suggesterContext, r.Options.Spec); err != nil {
+		if rec, err := MakeAndUnmarshalRecommender(suggesterContext, r.Options.Spec); err != nil {
 			return nil, NewInternalError(err)
 		} else {
 			recommend = rec
@@ -169,7 +187,7 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 	} else {
 		for i, spec := range r.Options.Specs {
 			log.Debugf("Spec %d: %+v", i, spec)
-			if rec, err := MakeAndUnmarshal(suggesterContext, spec); err != nil {
+			if rec, err := MakeAndUnmarshalRecommender(suggesterContext, spec); err != nil {
 				return nil, NewInternalError(err)
 			} else {
 				recommends = append(recommends, rec)

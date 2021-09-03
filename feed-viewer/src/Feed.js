@@ -1,7 +1,9 @@
 import React, { PureComponent } from 'react';
 
 import PropTypes from 'prop-types';
-import { Button, Checkbox, Container, Dimmer, Grid, Icon, Loader, Segment } from 'semantic-ui-react'
+import { Button, Checkbox, Container, Dimmer, Grid, Icon, Loader, Segment, TextArea } from 'semantic-ui-react'
+
+import SpecTree from './SpecTree.js'
 
 import './Feed.css';
 import { CT_DAILY_LESSON, CT_VIDEO_PROGRAM } from './helpers/consts';
@@ -21,6 +23,7 @@ class Feed extends PureComponent {
 		updateOptions: PropTypes.func,
 		fetchingSubscribeCollections: PropTypes.bool,
 		subscribeCollections: PropTypes.arrayOf(PropTypes.shape({})),
+    error: PropTypes.string,
 	};
 
 	static defaultProps = {
@@ -100,18 +103,18 @@ class Feed extends PureComponent {
 		}
 	}
 
-    nextCollectionState(contentType, mid, options) {
-        return this.nextOptionState(
-            (options.collections &&
-            contentType in options.collections &&
-            mid in options.collections[contentType] &&
-            options.collections[contentType][mid]) || '');
-    }
+  nextCollectionState(contentType, mid, options) {
+      return this.nextOptionState(
+          (options.collections &&
+          contentType in options.collections &&
+          mid in options.collections[contentType] &&
+          options.collections[contentType][mid]) || '');
+  }
 
-    nextContentTypeState(contentType, options) {
-        return this.nextOptionState(
-            (options.content_types &&
-            contentType in options.content_types &&
+  nextContentTypeState(contentType, options) {
+      return this.nextOptionState(
+          (options.content_types &&
+          contentType in options.content_types &&
             options.content_types[contentType]) || '');
     }
 
@@ -147,76 +150,98 @@ class Feed extends PureComponent {
         updateOptions(update);
 	}
 
-    subscriptionChecked(value) {
-        switch (value) {
-            case 'subscribe':
-                return true;
-            case 'unsubscribe':
-                return undefined;
-            case 'default':
-                return false;
-            default:
-                return undefined;
-        }
-    }
+  subscriptionChecked(value) {
+      switch (value) {
+          case 'subscribe':
+              return true;
+          case 'unsubscribe':
+              return undefined;
+          case 'default':
+              return false;
+          default:
+              return undefined;
+      }
+  }
 
-    subscriptionIndeterminate(value) {
-        switch (value) {
-            case 'subscribe':
-                return false;
-            case 'unsubscribe':
-                return true;
-            case 'default':
-                return false;
-            default:
-                return false;
-        }
-    }
+  subscriptionIndeterminate(value) {
+      switch (value) {
+          case 'subscribe':
+              return false;
+          case 'unsubscribe':
+              return true;
+          case 'default':
+              return false;
+          default:
+              return false;
+      }
+  }
 
-    contentTypeChecked(contentType, options) {
-        if (!('content_types' in options &&
-            contentType in options.content_types)) {
-            return undefined;
-        }
-        return this.subscriptionChecked(options.content_types[contentType]);
-    }
+  contentTypeChecked(contentType, options) {
+      if (!('content_types' in options &&
+          contentType in options.content_types)) {
+          return undefined;
+      }
+      return this.subscriptionChecked(options.content_types[contentType]);
+  }
 
-    contentTypeIndeterminate(contentType, options) {
-        if (!('content_types' in options &&
-            contentType in options.content_types)) {
-            return false;
-        }
-        return this.subscriptionIndeterminate(options.content_types[contentType]);
-    }
+  contentTypeIndeterminate(contentType, options) {
+      if (!('content_types' in options &&
+          contentType in options.content_types)) {
+          return false;
+      }
+      return this.subscriptionIndeterminate(options.content_types[contentType]);
+  }
 
-    collectionChecked(contentType, collectionMid, options) {
-        if (!('collections' in options &&
-            contentType in options.collections &&
-            collectionMid in options.collections[contentType])) {
-            return false;
-        }
-        return this.subscriptionChecked(options.collections[contentType][collectionMid]);
-    }
+  collectionChecked(contentType, collectionMid, options) {
+      if (!('collections' in options &&
+          contentType in options.collections &&
+          collectionMid in options.collections[contentType])) {
+          return false;
+      }
+      return this.subscriptionChecked(options.collections[contentType][collectionMid]);
+  }
 
-    collectionIndeterminate(contentType, collectionMid, options) {
-        if (!('collections' in options &&
-            contentType in options.collections &&
-            collectionMid in options.collections[contentType])) {
-            return false;
-        }
-        return this.subscriptionIndeterminate(options.collections[contentType][collectionMid]);
-    }
+  collectionIndeterminate(contentType, collectionMid, options) {
+      if (!('collections' in options &&
+          contentType in options.collections &&
+          collectionMid in options.collections[contentType])) {
+          return false;
+      }
+      return this.subscriptionIndeterminate(options.collections[contentType][collectionMid]);
+  }
 
 	render() {
-		const {items, options, more, reset, fetchingSubscribeCollections, subscribeCollections} = this.props;
+		const {items, options, more, reset, fetchingSubscribeCollections, subscribeCollections, spec, error, updateSpec} = this.props;
 		//console.log(fetchingSubscribeCollections, subscribeCollections);
         //console.log('checked:', this.contentTypeChecked('CT_DAILY_LESSON', options),
         //    'indetermidiate:', this.contentTypeIndeterminate('CT_DAILY_LESSON', options));
+    const parseSpec = (spec) => {
+      if (spec) {
+        try {
+          return [JSON.parse(spec), null];
+        } catch(e) {
+          return [null, e];
+        }
+      }
+      return [null, null];
+    }
+    const [specObj, specParseErr] = parseSpec(spec);
+
 		return (
 			<Grid columns={2}>
 				<Grid.Row>
 					<Grid.Column>
 						<Segment style={{'direction': 'ltr'}}>
+              <h3>Spec Tree</h3>
+              <Segment textAlign='left'>
+                <SpecTree spec={specObj} onChange={spec => updateSpec(spec ? JSON.stringify(spec, null, 2) : '')} />
+              </Segment>
+              <Segment textAlign='left'>
+                <div>Spec JSON:</div>
+                <div>
+                  <TextArea placeholder='Spec' rows="10" style={{'width': '100%'}} value={spec} onChange={(event, data) => updateSpec(data.value)} />
+                </div>
+              </Segment>
 							<h3>Subscriptions</h3>
 							<Segment textAlign='left'>
 								<Checkbox label='CT_DAILY_LESSON'
@@ -301,6 +326,8 @@ class Feed extends PureComponent {
 						<Segment>
 							<Button onClick={more}>More</Button>
 							<Button onClick={reset}>Reset</Button>
+              <br />
+              {(error || specParseErr) && <span style={{color: 'red'}}>{error || String(specParseErr)}</span>}
 						</Segment>
 					</Grid.Column>
 				</Grid.Row>

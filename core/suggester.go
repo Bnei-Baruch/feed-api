@@ -102,6 +102,7 @@ type MoreOptions struct {
 }
 
 type MoreRequest struct {
+	Namespace   string        `json:"namespace,omitempty" form:"namespace,omitempty"`
 	CurrentFeed []ContentItem `json:"current_feed" form:"current_feed"`
 	MoreItems   int           `json:"more_items" form:"more_items"`
 	Options     MoreOptions   `json:"options" form:"options"`

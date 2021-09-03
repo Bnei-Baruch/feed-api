@@ -40,7 +40,7 @@ func (suggester *SortSuggester) UnmarshalSpec(suggesterContext SuggesterContext,
 	if len(spec.Args) != 0 {
 		return errors.New("SortSuggester expected to have no arguments.")
 	}
-	if len(spec.Specs) == 1 {
+	if len(spec.Specs) != 1 {
 		return errors.New(fmt.Sprintf("SortSuggester expected to have 1 suggesters, got %d.", len(spec.Specs)))
 	}
 	if newSuggester, err := MakeSuggesterFromName(suggesterContext, spec.Specs[0].Name); err != nil {

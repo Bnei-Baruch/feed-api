@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/volatiletech/sqlboiler/queries"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	"github.com/volatiletech/sqlboiler/queries"
 
 	"github.com/Bnei-Baruch/feed-api/databases/mdb"
 	"github.com/Bnei-Baruch/feed-api/utils"
@@ -116,6 +117,7 @@ func (suggester *CollectionSuggester) UnmarshalSpec(suggesterContext SuggesterCo
 }
 
 func (suggester *CollectionSuggester) More(request MoreRequest) ([]ContentItem, error) {
+	log.Infof("CS more")
 	currentLessonUIDs := []string(nil)
 	for _, ci := range request.CurrentFeed {
 		if ci.ContentType == suggester.contentType {
