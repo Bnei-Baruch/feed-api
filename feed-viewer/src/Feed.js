@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react';
 
 import PropTypes from 'prop-types';
-import { Button, Checkbox, Container, Dimmer, Grid, Icon, Loader, Segment, TextArea } from 'semantic-ui-react'
+import { Button, Checkbox, Container, Dimmer, Grid, Icon, Input, Loader, Segment, TextArea } from 'semantic-ui-react'
 
 import SpecTree from './SpecTree.js'
 
@@ -211,7 +211,7 @@ class Feed extends PureComponent {
   }
 
 	render() {
-		const {items, options, more, reset, fetchingSubscribeCollections, subscribeCollections, spec, error, updateSpec} = this.props;
+		const {items, options, more, reset, fetchingSubscribeCollections, subscribeCollections, spec, error, updateSpec, debugTimestamp, updateDebugTimestamp} = this.props;
 		//console.log(fetchingSubscribeCollections, subscribeCollections);
         //console.log('checked:', this.contentTypeChecked('CT_DAILY_LESSON', options),
         //    'indetermidiate:', this.contentTypeIndeterminate('CT_DAILY_LESSON', options));
@@ -232,6 +232,14 @@ class Feed extends PureComponent {
 				<Grid.Row>
 					<Grid.Column>
 						<Segment style={{'direction': 'ltr'}}>
+              <h3>Options</h3>
+              <Segment textAlign='left'>
+                <table>
+                  <tbody>
+                    <tr><td>Debug timestamp:</td><td><Input placeholder='Debug timestamp...' defaultValue={debugTimestamp} onChange={(event, data) => updateDebugTimestamp(data.value)} /></td></tr>
+                  </tbody>
+                </table>
+              </Segment>
               <h3>Spec Tree</h3>
               <Segment textAlign='left'>
                 <SpecTree spec={specObj} onChange={spec => updateSpec(spec ? JSON.stringify(spec, null, 2) : '')} />

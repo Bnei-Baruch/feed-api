@@ -99,6 +99,8 @@ type MoreOptions struct {
 
 	Languages []string `json:"languages,omitempty" form:"languages,omitempty"`
 	SkipUids  []string `json:"skip_uids"`
+
+	DebugTimestamp *int64 `json:"debug_timestamp,omitempty"`
 }
 
 type MoreRequest struct {

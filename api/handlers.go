@@ -52,17 +52,18 @@ func MoreHandler(c *gin.Context) {
 		make(map[string]interface{}),
 	}
 	resp, err := handleMore(suggesterContext, r)
+	if err != nil {
+		log.Infof("Err: %+v", err)
+	}
 	concludeRequest(c, resp, err)
 }
 
 func handleMore(suggesterContext core.SuggesterContext, r core.MoreRequest) (*MoreResponse, *HttpError) {
-	log.Infof("r: %+v", r)
+	log.Debugf("r: %+v", r)
 	var feed *core.Feed
 	if r.Options.Spec == nil {
-		log.Infof("Spec is nil")
 		feed = core.MakeFeed(suggesterContext)
 	} else {
-		log.Infof("From spec")
 		if s, err := MakeAndUnmarshalSuggester(suggesterContext, r.Options.Spec); err != nil {
 			return nil, NewInternalError(err)
 		} else {
@@ -139,7 +140,9 @@ func RecommendHandler(c *gin.Context) {
 		make(map[string]interface{}),
 	}
 	resp, err := handleRecommend(suggesterContext, r)
-	log.Debugf("Err: %+v", err)
+	if err != nil {
+		log.Infof("Err: %+v", err)
+	}
 	concludeRequest(c, resp, err)
 }
 

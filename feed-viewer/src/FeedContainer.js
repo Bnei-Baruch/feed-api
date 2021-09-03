@@ -24,11 +24,13 @@ class FeedContainer extends Component {
       options: {languages: ['he', 'en']},
       error: '',
       spec: new URLSearchParams(window.location.search).get('spec') || '',
+      debugTimestamp: new URLSearchParams(window.location.search).get('debug_timestamp') || '',
     };
     this.moreHandler = this.moreHandler.bind(this);
     this.resetHandler = this.resetHandler.bind(this);
     this.updateOptions = this.updateOptions.bind(this);
     this.updateSpec = this.updateSpec.bind(this);
+    this.updateDebugTimestamp = this.updateDebugTimestamp.bind(this);
   }
 
   componentDidMount() {
@@ -64,11 +66,18 @@ class FeedContainer extends Component {
 	}
 
   updateSpec(spec) {
-    this.setState({spec}, () => {
-      const url = new URL(window.location.toString());
-      url.search = `?spec=${spec}`;
-      window.history.replaceState({}, 'Feed', url.toString());
-    });
+    this.setState({spec}, () => this.updateUrl());
+  }
+
+  updateDebugTimestamp(debugTimestamp) {
+    this.setState({debugTimestamp}, () => this.updateUrl());
+  }
+
+  updateUrl() {
+    const {spec, debugTimestamp} = this.state;
+    const url = new URL(window.location.toString());
+    url.search = `?spec=${spec}&debug_timestamp=${debugTimestamp}`;
+    window.history.replaceState({}, 'Feed', url.toString());
   }
 
 	resetHandler() {
@@ -77,7 +86,7 @@ class FeedContainer extends Component {
 
 	moreHandler() {
     this.setState({error: ''}, () => {
-      const {feed, itemsByUid, options, spec} = this.state;
+      const {feed, itemsByUid, options, spec, debugTimestamp} = this.state;
 
       const parseSpec = (spec) => {
         if (spec) {
@@ -93,6 +102,11 @@ class FeedContainer extends Component {
       if (specObj) {
         options.spec = specObj;
       }
+      if (debugTimestamp) {
+        options.debug_timestamp = Number(debugTimestamp);
+      } else {
+        delete options.debug_timestamp;
+      }
 
       more(feed, itemsByUid, options)
         .then(({feed, items, itemsByUid}) => this.setState({feed, items, itemsByUid}))
@@ -102,7 +116,7 @@ class FeedContainer extends Component {
 
   render() {
     //console.log('render container');
-    const {items, options, fetchingSubscribeCollections, subscribeCollections, spec, error} = this.state;
+    const {items, options, fetchingSubscribeCollections, subscribeCollections, spec, error, debugTimestamp} = this.state;
     return (
       <Feed
         items={items}
@@ -115,6 +129,8 @@ class FeedContainer extends Component {
         error={error}
         spec={spec}
         updateSpec={this.updateSpec}
+        debugTimestamp={debugTimestamp}
+        updateDebugTimestamp={this.updateDebugTimestamp}
       />
     );
   }

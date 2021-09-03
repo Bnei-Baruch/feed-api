@@ -218,6 +218,16 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 			}
 			utils.Profile(fmt.Sprintf("DataContentUnitsSuggester.More.Filter[%d]", filter.FilterSelector), time.Now().Sub(filter_start))
 		}
+		log.Debugf("Debug timestamp: %+v", request.Options.DebugTimestamp)
+		if request.Options.DebugTimestamp != nil {
+			from := time.Unix(*request.Options.DebugTimestamp, 0)
+			log.Debugf("From: %+v", from)
+			l := len(uids)
+			utils.FilterMap(uids, func(uid string) bool {
+				return from.After(dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo).Date)
+			})
+			log.Debugf("Debug timestamp from %d => %d", l, len(uids))
+		}
 		utils.Profile("DataContentUnitsSuggester.More.Filters", time.Now().Sub(filters_start))
 		sort_start := time.Now()
 		uidsSlice := utils.SliceFromMap(uids)
@@ -367,6 +377,16 @@ func (s *DataCollectionsSuggester) More(request core.MoreRequest) ([]core.Conten
 			default:
 				log.Errorf("Did not expect filter selector enum %d", filter.FilterSelector)
 			}
+		}
+		log.Debugf("Debug timestamp: %+v", request.Options.DebugTimestamp)
+		if request.Options.DebugTimestamp != nil {
+			from := time.Unix(*request.Options.DebugTimestamp, 0)
+			log.Debugf("From: %+v", from)
+			l := len(uids)
+			utils.FilterMap(uidsMap, func(uid string) bool {
+				return from.After(dm.CollectionsInfo.Data(uid).(*data_models.CollectionInfo).Date)
+			})
+			log.Debugf("Debug timestamp from %d => %d", l, len(uids))
 		}
 		uids = utils.SliceFromMap(uidsMap)
 		sortLastPrev := func(i, j int) bool {

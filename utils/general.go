@@ -44,17 +44,27 @@ func Profile(name string, duration time.Duration) {
 	p.Duration += duration
 }
 
+type loggingFFunc func(format string, args ...interface{})
+
 func PrintProfile(reset bool) {
-	log.Debug("===== Profile =====")
+	var logf loggingFFunc
+	for _, pd := range PROFILE {
+		if pd.Duration > 5*time.Second {
+			logf = log.Infof
+		} else {
+			logf = log.Debugf
+		}
+	}
+	logf("===== Profile =====")
 	keys := StringKeys(PROFILE)
 	sort.Strings(keys)
 	for _, k := range keys {
-		log.Debugf("%s: %+v", k, PROFILE[k])
+		logf("%s: %+v", k, PROFILE[k])
 	}
 	if reset {
 		PROFILE = make(map[string]*ProfileData)
 	}
-	log.Debug("===== End Profile =====")
+	logf("===== End Profile =====")
 }
 
 // panic if err != nil
