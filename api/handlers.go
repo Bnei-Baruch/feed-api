@@ -162,7 +162,7 @@ func MakeAndUnmarshalSuggester(suggesterContext core.SuggesterContext, spec *cor
 }
 
 func MakeAndUnmarshalRecommender(suggesterContext core.SuggesterContext, spec *core.SuggesterSpec) (*recommendations.Recommender, error) {
-	if s, err := MakeAndUnmarshalSuggester(suggesterContext, spec); err != nil {
+	if s, err := MakeAndUnmarshalSuggester(suggesterContext, spec); err == nil {
 		return &recommendations.Recommender{s}, nil
 	} else {
 		return nil, err
@@ -193,6 +193,7 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 			if rec, err := MakeAndUnmarshalRecommender(suggesterContext, spec); err != nil {
 				return nil, NewInternalError(err)
 			} else {
+				log.Debugf("Rec: %+v", rec)
 				recommends = append(recommends, rec)
 			}
 		}
@@ -235,8 +236,10 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 	}
 
 	if len(recommends) > 0 {
+		log.Debugf("len: %+v", len(recommends))
 		res := &MoreResponse{}
 		for i, rec := range recommends {
+			log.Debugf("Rec: %+v", rec)
 			start := time.Now()
 			skipUids := []string(nil)
 			for uid, _ := range skipUidsMap {
