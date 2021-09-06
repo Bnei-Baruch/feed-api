@@ -18,7 +18,7 @@ import (
 )
 
 // DataStoresMiddleware set data stores connections in context.
-func DataStoresMiddleware(remoteMDB, localMDB, localChroniclesDB, ModelsDb *sql.DB, dataModels interface{}) gin.HandlerFunc {
+func DataStoresMiddleware(remoteMDB, localMDB, localChroniclesDB *sql.DB, ModelsDb, dataModels interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set("MDB_DB", remoteMDB)
 		c.Set("LOCAL_MDB", localMDB)

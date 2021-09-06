@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hellofresh/health-go/v4"
 
+	"github.com/Bnei-Baruch/feed-api/common"
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
@@ -31,7 +33,10 @@ func HealthCheckHandler(c *gin.Context) {
 		health.Config{
 			Name:    "models_db",
 			Timeout: time.Second,
-			Check:   utils.PostgresNoOpenCheck(c.MustGet("MODELS_DB").(*sql.DB)),
+			Check: func(ctx context.Context) error {
+				con := c.MustGet("MODELS_DB").(*common.Connection)
+				return utils.PostgresNoOpenCheck(con.DB)(ctx)
+			},
 		},
 	))
 
