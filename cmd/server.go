@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"database/sql"
-
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -31,22 +29,6 @@ func init() {
 	RootCmd.AddCommand(serverCmd)
 }
 
-// Set DataModels in context.
-func DataModelsMiddleware(dataModels *data_models.DataModels) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Set("DATA_MODELS", dataModels)
-		c.Next()
-	}
-}
-
-// Set local database in context.
-func LocalStoreMiddleware(name string, db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Set(name, db)
-		c.Next()
-	}
-}
-
 func serverFn(cmd *cobra.Command, args []string) {
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	logLevelStr := viper.GetString("server.log-level")
@@ -64,6 +46,8 @@ func serverFn(cmd *cobra.Command, args []string) {
 	shutDownEvents := events.RunListener()
 	defer shutDownEvents()
 
+	dataModels := data_models.MakeDataModels(common.LocalMdb, common.RemoteMdb, common.LocalChroniclesDb, common.ModelsDb, viper.GetString("chronicles.remote_api"))
+
 	// TODO: Setup Rollbar
 	// rollbar.Token = viper.GetString("server.rollbar-token")
 	// rollbar.Environment = viper.GetString("server.rollbar-environment")
@@ -79,10 +63,7 @@ func serverFn(cmd *cobra.Command, args []string) {
 	router := gin.New()
 	router.Use(
 		utils.LoggerMiddleware(),
-		utils.DataStoresMiddleware(common.RemoteMdb),
-		LocalStoreMiddleware("LOCAL_CHRONICLES_DB", common.LocalChroniclesDb),
-		LocalStoreMiddleware("LOCAL_MDB", common.LocalMdb),
-		DataModelsMiddleware(data_models.MakeDataModels(common.LocalMdb, common.RemoteMdb, common.LocalChroniclesDb, common.ModelsDb, viper.GetString("chronicles.remote_api"))),
+		utils.DataStoresMiddleware(common.RemoteMdb, common.LocalMdb, common.LocalChroniclesDb, common.ModelsDb.DB, dataModels),
 		utils.ErrorHandlingMiddleware(),
 		cors.New(corsConfig),
 		utils.RecoveryMiddleware())
