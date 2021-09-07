@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -27,13 +28,17 @@ type Connection struct {
 	DB       *sql.DB
 	init     InitDb
 	shutdown ShutdownDb
+
+	m sync.Mutex
 }
 
 func MakeConnection(i InitDb, s ShutdownDb) *Connection {
-	return (&Connection{nil, i, s}).MustConnect()
+	return (&Connection{nil, i, s, sync.Mutex{}}).MustConnect()
 }
 
 func (c *Connection) MustConnect() *Connection {
+	c.m.Lock()
+	defer c.m.Unlock()
 	var err error
 	c.DB, err = c.init()
 	utils.Must(err)
@@ -41,26 +46,42 @@ func (c *Connection) MustConnect() *Connection {
 }
 
 func (c *Connection) Shutdown() error {
-	return c.shutdown(c.DB)
+	c.m.Lock()
+	defer c.m.Unlock()
+	err := c.shutdown(c.DB)
+	c.DB = nil
+	return err
 }
 
 type ConnectionWithQuery struct {
 	Connection *Connection
 	Query      *queries.Query
+
+	m sync.RWMutex
 }
 
 func (c *Connection) With(q *queries.Query) *ConnectionWithQuery {
-	return &ConnectionWithQuery{c, q}
+	return &ConnectionWithQuery{c, q, sync.RWMutex{}}
+}
+
+func (c *ConnectionWithQuery) reconnect() error {
+	c.m.Lock()
+	defer c.m.Unlock()
+	if err := c.Connection.Shutdown(); err != nil {
+		return errors.Wrap(err, "Error shutting down while re-establishing connection.")
+	}
+	var err error
+	if c.Connection.DB, err = c.Connection.init(); err != nil {
+		return errors.Wrap(err, "Error initializing while re-establishing connection.")
+	}
+	return nil
 }
 
 func (c *ConnectionWithQuery) handleBadConnection(action func() error) error {
 	var err error
 	if err = action(); err != nil && strings.Contains(err.Error(), "could not establish connection") {
-		if err = c.Connection.shutdown(c.Connection.DB); err != nil {
-			return errors.Wrap(err, "Error shutting down while re-establishing connection.")
-		}
-		if c.Connection.DB, err = c.Connection.init(); err != nil {
-			return errors.Wrap(err, "Error initializing while re-establishing connection.")
+		if err = c.reconnect(); err != nil {
+			return err
 		}
 		log.Infof("Re-established connection.")
 		return action()
@@ -69,12 +90,18 @@ func (c *ConnectionWithQuery) handleBadConnection(action func() error) error {
 }
 
 func (c *ConnectionWithQuery) Bind(ctx context.Context, obj interface{}) error {
-	return c.handleBadConnection(func() error { return c.Query.Bind(ctx, c.Connection.DB, obj) })
+	return c.handleBadConnection(func() error {
+		c.m.RLock()
+		defer c.m.RUnlock()
+		return c.Query.Bind(ctx, c.Connection.DB, obj)
+	})
 }
 
 func (c *ConnectionWithQuery) Exec() (sql.Result, error) {
 	var result sql.Result
 	return result, c.handleBadConnection(func() error {
+		c.m.RLock()
+		defer c.m.RUnlock()
 		var err error
 		result, err = c.Query.Exec(c.Connection.DB)
 		return err
