@@ -61,6 +61,8 @@ func PrintProfile(reset bool) {
 		logf("%s: %+v", k, PROFILE[k])
 	}
 	if reset {
+		PROFILE_MUTEX.Lock()
+		defer PROFILE_MUTEX.Unlock()
 		PROFILE = make(map[string]*ProfileData)
 	}
 	logf("===== End Profile =====")

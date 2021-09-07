@@ -14,12 +14,10 @@ require (
 	github.com/kat-co/vala v0.0.0-20170210184112-42e1d8b61f12
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/lib/pq v1.10.0
-	github.com/nats-io/nkeys v0.3.0 // indirect
 	github.com/nats-io/stan.go v0.9.0
 	github.com/nullbio/inflect v0.0.0-20170731032957-3edb4592a77b // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
-	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
