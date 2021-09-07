@@ -98,9 +98,11 @@ type MoreOptions struct {
 	Specs     []*SuggesterSpec `json:"specs,omitempty" form:"specs,omitempty"`
 
 	Languages []string `json:"languages,omitempty" form:"languages,omitempty"`
-	SkipUids  []string `json:"skip_uids"`
+	SkipUids  []string `json:"skip_uids" form:"skip_uids"`
 
-	DebugTimestamp *int64 `json:"debug_timestamp,omitempty"`
+	DebugTimestamp *int64 `json:"debug_timestamp,omitempty" form:"debug_timestamp,omitempty"`
+
+	WatchingNowMin *int64 `json:"watching_now_min,omitempty" form:"watching_now_min,omitempty"`
 }
 
 type MoreRequest struct {

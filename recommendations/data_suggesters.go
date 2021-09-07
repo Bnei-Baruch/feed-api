@@ -205,9 +205,13 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 				if watchingNow, err := dm.SqlDataModel.AllWatchingNow(); err != nil {
 					return nil, err
 				} else {
+					watchingNowMin := int64(0)
+					if request.Options.WatchingNowMin != nil {
+						watchingNowMin = *request.Options.WatchingNowMin
+					}
 					watchingNowUids := make(map[string]bool, len(watchingNow))
 					for uid, count := range watchingNow {
-						if count > 0 {
+						if count > watchingNowMin {
 							watchingNowUids[uid] = true
 						}
 					}

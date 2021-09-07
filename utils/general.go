@@ -47,12 +47,11 @@ func Profile(name string, duration time.Duration) {
 type loggingFFunc func(format string, args ...interface{})
 
 func PrintProfile(reset bool) {
-	var logf loggingFFunc
+	logf := log.Debugf
 	for _, pd := range PROFILE {
 		if pd.Duration > 5*time.Second {
 			logf = log.Infof
-		} else {
-			logf = log.Debugf
+			break
 		}
 	}
 	logf("===== Profile =====")

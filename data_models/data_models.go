@@ -197,12 +197,24 @@ type RefreshModel interface {
 	Interval() time.Duration
 }
 
+// Chain model will run the models one after another, but not before it's interval is done.
+// This means that if the first model has interval of 1s and the second has interval of 10s,
+// then the second model will be run one time for 10 runs of the first model. Note that I
+// ignore here the runtime of each model.
+// In the opposite case, where first model will have 10s interval and second will have 1s,
+// the second model will be always waiting for the first to finish before running once, so
+// they will run one after another in 10s intervals.
 type ChainModel struct {
-	models []RefreshModel
+	nextRefresh map[int]time.Time
+	models      []RefreshModel
 }
 
 func MakeChainModels(models []RefreshModel) *ChainModel {
-	return &ChainModel{models}
+	nextRefresh := make(map[int]time.Time)
+	for i := range models {
+		nextRefresh[i] = time.Now().Add(models[i].Interval())
+	}
+	return &ChainModel{nextRefresh, models}
 }
 
 func (cm *ChainModel) Name() string {
@@ -215,15 +227,23 @@ func (cm *ChainModel) Name() string {
 
 func (cm *ChainModel) Refresh() error {
 	for i := range cm.models {
-		if err := cm.models[i].Refresh(); err != nil {
-			return err
+		if when, ok := cm.nextRefresh[i]; ok && when.Before(time.Now()) {
+			if err := cm.models[i].Refresh(); err != nil {
+				return err
+			}
+			cm.nextRefresh[i] = time.Now().Add(cm.models[i].Interval())
+		} else {
+			log.Debugf("Breaking chain model at %s, no time yet.", cm.models[i].Name())
+			// Break the refresh chain if interval is not in the past.
+			break
 		}
 	}
 	return nil
 }
 
 func (cm *ChainModel) Interval() time.Duration {
-	// TODO: Improve to also include other intervals.
+	// Always return the first model interval, other intervals are condition for running after
+	// the first one.
 	return cm.models[0].Interval()
 }
 
@@ -337,7 +357,7 @@ func refreshModel(model RefreshModel) error {
 	start := time.Now()
 	err := model.Refresh()
 	end := time.Now()
-	log.Debugf("Refreshed %s in %s", model.Name(), end.Sub(start))
+	log.Debugf("Model Refreshed %s in %s", model.Name(), end.Sub(start))
 	if err != nil {
 		return errors.Wrap(err, model.Name())
 	}
@@ -353,6 +373,7 @@ func (dataModels *DataModels) Refresh() error {
 			dataModels.nextRefresh[dataModel.Name()] = time.Now().Add(dataModel.Interval())
 		}
 	}
+	utils.PrintProfile(true)
 	return nil
 }
 
@@ -465,6 +486,10 @@ func (model *MDBDataModel) Interval() time.Duration {
 }
 
 func (model *MDBDataModel) Refresh() error {
+	start := time.Now()
+	defer func() {
+		utils.Profile(fmt.Sprintf("MDBDataModel.%s.Refresh", model.Name()), time.Now().Sub(start))
+	}()
 	rows, err := queries.Raw(model.sql).Query(model.db)
 	if err != nil {
 		return err
@@ -478,6 +503,7 @@ func (model *MDBDataModel) Refresh() error {
 		}
 	}
 
+	utils.Profile(fmt.Sprintf("MDBDataModel.%s.Refresh.Scan", model.Name()), time.Now().Sub(start))
 	model.datasMutex.Lock()
 	defer model.datasMutex.Unlock()
 	model.Datas = tmp

@@ -49,6 +49,7 @@ func (dm *SqlDataModel) AllWatchingNow() (map[string]int64, error) {
 	)).Bind(context.TODO(), &count); err != nil {
 		return nil, err
 	}
+	utils.Profile("AllWatchingNow.Sql", time.Now().Sub(start))
 	cMap := make(map[string]int64, len(count))
 	for _, c := range count {
 		cMap[c.Uid] = c.Count
