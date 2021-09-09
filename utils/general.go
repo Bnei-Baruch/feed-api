@@ -47,6 +47,8 @@ func Profile(name string, duration time.Duration) {
 type loggingFFunc func(format string, args ...interface{})
 
 func PrintProfile(reset bool) {
+	PROFILE_MUTEX.Lock()
+	defer PROFILE_MUTEX.Unlock()
 	logf := log.Debugf
 	for _, pd := range PROFILE {
 		if pd.Duration > 5*time.Second {
@@ -61,8 +63,6 @@ func PrintProfile(reset bool) {
 		logf("%s: %+v", k, PROFILE[k])
 	}
 	if reset {
-		PROFILE_MUTEX.Lock()
-		defer PROFILE_MUTEX.Unlock()
 		PROFILE = make(map[string]*ProfileData)
 	}
 	logf("===== End Profile =====")

@@ -52,6 +52,7 @@ func (cm *SqlRefreshModel) Name() string {
 func (cm *SqlRefreshModel) Refresh() error {
 	log.Debug("Update sql models.")
 	params := make(map[string]string)
+	cm.modelsDb.FillParams(params)
 
 	minutesPrevEndReadId := []struct {
 		IdMax null.String `boil:"id_max"`

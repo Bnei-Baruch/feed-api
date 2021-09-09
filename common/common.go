@@ -21,26 +21,33 @@ import (
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
-type InitDb func() (*sql.DB, error)
+type InitDb func() (*sql.DB, map[string]string, error)
 type ShutdownDb func(db *sql.DB) error
 
 type Connection struct {
 	DB       *sql.DB
 	init     InitDb
 	shutdown ShutdownDb
+	Params   map[string]string
 
 	m sync.Mutex
 }
 
 func MakeConnection(i InitDb, s ShutdownDb) *Connection {
-	return (&Connection{nil, i, s, sync.Mutex{}}).MustConnect()
+	return (&Connection{nil, i, s, make(map[string]string), sync.Mutex{}}).MustConnect()
+}
+
+func (c *Connection) FillParams(p map[string]string) {
+	for k, v := range c.Params {
+		p[k] = v
+	}
 }
 
 func (c *Connection) MustConnect() *Connection {
 	c.m.Lock()
 	defer c.m.Unlock()
 	var err error
-	c.DB, err = c.init()
+	c.DB, c.Params, err = c.init()
 	utils.Must(err)
 	return c
 }
@@ -71,7 +78,7 @@ func (c *ConnectionWithQuery) reconnect() error {
 		return errors.Wrap(err, "Error shutting down while re-establishing connection.")
 	}
 	var err error
-	if c.Connection.DB, err = c.Connection.init(); err != nil {
+	if c.Connection.DB, c.Connection.Params, err = c.Connection.init(); err != nil {
 		return errors.Wrap(err, "Error initializing while re-establishing connection.")
 	}
 	return nil
@@ -128,8 +135,9 @@ func GetUserPasswordFromConnectionString(cs string) (string, string, error) {
 	return match[1], match[2], nil
 }
 
-func InitModelsDb() (db *sql.DB, err error) {
+func InitModelsDb() (db *sql.DB, params map[string]string, err error) {
 	log.Info("Setting up connection to Models")
+	params = make(map[string]string)
 	if db, err = sql.Open("postgres", viper.GetString("data_models.url")); err != nil {
 		return
 	}
@@ -140,17 +148,13 @@ func InitModelsDb() (db *sql.DB, err error) {
 	if username, password, err = GetUserPasswordFromConnectionString(viper.GetString("mdb.local_url")); err != nil {
 		return
 	} else {
-		if _, err = queries.Raw(fmt.Sprintf("select dblink_connect('mdb_conn', 'dbname=mdb user=%s password=%s');", username, password)).Exec(db); err != nil {
-			return
-		}
-		log.Infof("mdb_conn dblink_connected")
+		params["mdb_conn"] = fmt.Sprintf("dbname=mdb user=%s password=%s", username, password)
+		log.Debugf("mdb_conn %s", params["mdb_conn"])
 	}
 	if username, password, err = GetUserPasswordFromConnectionString(viper.GetString("chronicles.local_url")); err != nil {
 		return
 	} else {
-		if _, err = queries.Raw(fmt.Sprintf("select dblink_connect('chronicles_conn', 'dbname=chronicles user=%s password=%s');", username, password)).Exec(db); err != nil {
-			return
-		}
+		params["chronicles_conn"] = fmt.Sprintf("dbname=chronicles user=%s password=%s", username, password)
 		log.Infof("chronicles_conn dblink_connected")
 	}
 	return
