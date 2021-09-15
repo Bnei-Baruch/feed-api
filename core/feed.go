@@ -118,7 +118,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									"filter_selector": FSameSource
 								}
 							],
-							"order_selector": ORand
+							"order_selector": OPopular
 						},
 						{
 							"name": "DataContentUnitsSuggester",
@@ -133,7 +133,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									"filter_selector": FSameTag
 								}
 							],
-							"order_selector": ORand
+							"order_selector": OPopular
 						}
 					]
 				},
@@ -183,7 +183,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									"filter_selector": FSameSource
 								}
 							],
-							"order_selector": ORand
+							"order_selector": OPopular
 						},
 						{
 							"name": "DataContentUnitsSuggester",
@@ -198,7 +198,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									"filter_selector": FSameTag
 								}
 							],
-							"order_selector": ORand
+							"order_selector": OPopular
 						}
 					]
 				},
@@ -245,7 +245,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									"filter_selector": FSameSource
 								}
 							],
-							"order_selector": ORand
+							"order_selector": OPopular
 						}
 					]
 				},
@@ -280,7 +280,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									"filter_selector": FSameSource
 								}
 							],
-							"order_selector": ORand
+							"order_selector": OPopular
 						},
 						{
 							"name": "DataContentUnitsSuggester",
@@ -292,7 +292,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									]
 								}
 							],
-							"order_selector": ORand
+							"order_selector": OPopular
 						}
 					]
 				},
@@ -324,7 +324,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									]
 								}
 							],
-							"order_selector": ORand
+							"order_selector": OPopular
 						}
 					]
 				},
@@ -356,7 +356,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									]
 								}
 							],
-							"order_selector": ORand
+							"order_selector": OPopular
 						}
 					]
 				},
@@ -388,7 +388,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									]
 								}
 							],
-							"order_selector": ORand
+							"order_selector": OPopular
 						}
 					]
 				},
@@ -420,7 +420,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									]
 								}
 							],
-							"order_selector": ORand
+							"order_selector": OPopular
 						}
 					]
 				},
@@ -434,7 +434,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 							]
 						}
 					],
-					"order_selector": ORand
+					"order_selector": OPopular
 				},
 				{
 					"name": "DataContentUnitsSuggester",
@@ -446,7 +446,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 							]
 						}
 					],
-					"order_selector": ORand
+					"order_selector": OPopular
 				}
 			]
 		}
@@ -698,7 +698,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 							]
 						}
 					],
-					"order_selector": ORand
+					"order_selector": OPopular
 				}
 			]
 		}
