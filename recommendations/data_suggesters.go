@@ -217,6 +217,23 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 					}
 					utils.IntersectMaps(uids, watchingNowUids)
 				}
+			case core.PopularFilter:
+				suggesterNameParts = append(suggesterNameParts, ";PopularFilter:[", strings.Join(filter.Args, ","), "]")
+				if views, err := dm.SqlDataModel.AllViews(); err != nil {
+					return nil, err
+				} else {
+					popularMin := int64(0)
+					if request.Options.PopularMin != nil {
+						popularMin = *request.Options.PopularMin
+					}
+					popularUids := make(map[string]bool, len(views))
+					for uid, count := range views {
+						if count > popularMin {
+							popularUids[uid] = true
+						}
+					}
+					utils.IntersectMaps(uids, popularUids)
+				}
 			default:
 				log.Errorf("Did not expect filter selector enum %d", filter.FilterSelector)
 			}

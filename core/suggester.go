@@ -37,6 +37,7 @@ const (
 	SameSource
 	SameCollection
 	WatchingNowFilter
+	PopularFilter
 )
 
 var FILTER_STRING_TO_VALUE = map[string]FilterSelectorEnum{
@@ -49,6 +50,7 @@ var FILTER_STRING_TO_VALUE = map[string]FilterSelectorEnum{
 	"FSameSource":             SameSource,
 	"FSameCollection":         SameCollection,
 	"FWatchingNowFilter":      WatchingNowFilter,
+	"FPopularFilter":          PopularFilter,
 }
 
 type SuggesterFilter struct {
@@ -103,6 +105,7 @@ type MoreOptions struct {
 	DebugTimestamp *int64 `json:"debug_timestamp,omitempty" form:"debug_timestamp,omitempty"`
 
 	WatchingNowMin *int64 `json:"watching_now_min,omitempty" form:"watching_now_min,omitempty"`
+	PopularMin     *int64 `json:"popular_min,omitempty" form:"popular_min,omitempty"`
 }
 
 type MoreRequest struct {
