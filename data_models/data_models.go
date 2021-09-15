@@ -124,6 +124,7 @@ const (
 			c.uid as uid,
 			coalesce(c.properties->>'start_date', c.created_at::text)::date as date,
 			c.created_at as created_at,
+			c.secure = 0 AND c.published IS TRUE as secure_and_published,
 			c.properties->>'source'
 		from
 			collections as c;`
@@ -172,17 +173,18 @@ func ScanContentUnitInfo(rows *sql.Rows, datas map[string]interface{}) error {
 }
 
 type CollectionInfo struct {
-	TypeId    int64
-	Uid       string
-	Date      time.Time
-	CreatedAt time.Time
-	SourceUid string
+	TypeId             int64
+	Uid                string
+	Date               time.Time
+	CreatedAt          time.Time
+	SecureAndPublished bool
+	SourceUid          string
 }
 
 func ScanCollectionInfo(rows *sql.Rows, datas map[string]interface{}) error {
 	c := CollectionInfo{}
 	var sourceUid null.String
-	if err := rows.Scan(&c.TypeId, &c.Uid, &c.Date, &c.CreatedAt, &sourceUid); err != nil {
+	if err := rows.Scan(&c.TypeId, &c.Uid, &c.Date, &c.CreatedAt, &c.SecureAndPublished, &sourceUid); err != nil {
 		return err
 	} else {
 		c.SourceUid = sourceUid.String
@@ -283,6 +285,15 @@ func ContentUnitsPrefilter(datas map[string]interface{}) map[string]bool {
 	return ret
 }
 
+func CollectionsPrefilter(datas map[string]interface{}) map[string]bool {
+	ret := make(map[string]bool, len(datas))
+	for uid, ci := range datas {
+		data := ci.(*CollectionInfo)
+		ret[uid] = data.SecureAndPublished
+	}
+	return ret
+}
+
 func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *common.Connection, chroniclesUrl string) *DataModels {
 	mv := MakeMdbView(localMDB, remoteMDB)
 	lcuf := MakeMDBFilterModel(localMDB, "LanguagesContentUnitsFilter", time.Duration(time.Minute*10), LANGUAGES_CONTENT_UNITS_SQL, [][]string{[]string{"en"}, []string{"he"}, []string{"ru"}})
@@ -292,7 +303,7 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 	ccuf := MakeMDBFilterModel(localMDB, "CollectionsContentUnitsFilter", time.Duration(time.Minute*10), COLLECTIONS_CONTENT_UNITS_SQL, nil)
 	cucf := MakeMDBFilterModel(localMDB, "ContentUnitsCollectionsFilter", time.Duration(time.Minute*10), CONTENT_UNITS_COLLECTIONS_SQL, nil)
 	cui := MakeMDBDataModel(localMDB, "ContentUnitsInfo", time.Duration(time.Minute*10), fmt.Sprintf(CONTENT_UNITS_INFO_SQL, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID), ScanContentUnitInfo, ContentUnitsPrefilter)
-	ci := MakeMDBDataModel(localMDB, "CollectionsInfo", time.Duration(time.Minute*10), COLLECTIONS_INFO_SQL, ScanCollectionInfo, nil)
+	ci := MakeMDBDataModel(localMDB, "CollectionsInfo", time.Duration(time.Minute*10), COLLECTIONS_INFO_SQL, ScanCollectionInfo, CollectionsPrefilter)
 	cwm := MakeChroniclesWindowModel(cDb, chroniclesUrl)
 	sqlInsertContentUnits := MakeSqlRefreshModel([]string{INSERT_CONTENT_UNITS}, modelsDb)
 	sqlInsertEventsByDayUser := MakeSqlRefreshModel([]string{INSERT_EVENTS_BY_MINUTES, INSERT_CONTENT_UNITS_MEASURES}, modelsDb)
