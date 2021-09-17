@@ -19,6 +19,11 @@ import (
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
+const (
+	CONTENT_UNITS_UIDS_KEY = "uids"
+	COLLECTIONS_UIDS_KEY   = "collection-uids"
+)
+
 type DataContentUnitsSuggester struct {
 	suggesterContext core.SuggesterContext
 	filters          []core.SuggesterFilter
@@ -120,7 +125,7 @@ func (s *DataContentUnitsSuggester) initialUids(request core.MoreRequest) map[st
 		utils.Profile("DataContentUnitsSuggester.More.Init", time.Now().Sub(init_start))
 	}()
 	var ok bool
-	if _, ok = s.suggesterContext.Cache["uids"]; !ok {
+	if _, ok = s.suggesterContext.Cache[CONTENT_UNITS_UIDS_KEY]; !ok {
 		prefiltered_start := time.Now()
 		dm := s.suggesterContext.DataModels
 		uids := utils.CopyStringMap(dm.ContentUnitsInfo.Prefiltered())
@@ -134,9 +139,9 @@ func (s *DataContentUnitsSuggester) initialUids(request core.MoreRequest) map[st
 		persons_start := time.Now()
 		utils.IntersectMaps(uids, dm.PersonsContentUnitsFilter.FilterValues([]string{data_models.RAV_PERSON_UID}))
 		utils.Profile("DataContentUnitsSuggester.More.Persons", time.Now().Sub(persons_start))
-		s.suggesterContext.Cache["uids"] = uids
+		s.suggesterContext.Cache[CONTENT_UNITS_UIDS_KEY] = uids
 	}
-	return utils.CopyStringMap(s.suggesterContext.Cache["uids"].(map[string]bool))
+	return utils.CopyStringMap(s.suggesterContext.Cache[CONTENT_UNITS_UIDS_KEY].(map[string]bool))
 }
 
 func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.ContentItem, error) {
@@ -358,15 +363,15 @@ func (s *DataCollectionsSuggester) initialUids(request core.MoreRequest) map[str
 		utils.Profile("DataCollectionsSuggester.More.Init", time.Now().Sub(init_start))
 	}()
 	var ok bool
-	if _, ok = s.suggesterContext.Cache["uids"]; !ok {
+	if _, ok = s.suggesterContext.Cache[COLLECTIONS_UIDS_KEY]; !ok {
 		prefiltered_start := time.Now()
 		dm := s.suggesterContext.DataModels
 		uids := utils.CopyStringMap(dm.CollectionsInfo.Prefiltered())
 		log.Debugf("prefilter uids: %d", len(uids))
 		utils.Profile("DataCollectionsSuggester.More.Prefiltered", time.Now().Sub(prefiltered_start))
-		s.suggesterContext.Cache["collections-uids"] = uids
+		s.suggesterContext.Cache[COLLECTIONS_UIDS_KEY] = uids
 	}
-	return utils.CopyStringMap(s.suggesterContext.Cache["collections-uids"].(map[string]bool))
+	return utils.CopyStringMap(s.suggesterContext.Cache[COLLECTIONS_UIDS_KEY].(map[string]bool))
 }
 
 func (s *DataCollectionsSuggester) More(request core.MoreRequest) ([]core.ContentItem, error) {
