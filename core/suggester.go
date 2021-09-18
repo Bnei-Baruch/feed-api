@@ -38,6 +38,7 @@ const (
 	SameCollection                            = 7
 	WatchingNowFilter                         = 8
 	PopularFilter                             = 9
+	AgeFilter                                 = 10
 )
 
 var FILTER_STRING_TO_VALUE = map[string]FilterSelectorEnum{
@@ -51,6 +52,7 @@ var FILTER_STRING_TO_VALUE = map[string]FilterSelectorEnum{
 	"FSameCollection":         SameCollection,
 	"FWatchingNowFilter":      WatchingNowFilter,
 	"FPopularFilter":          PopularFilter,
+	"FAgeFilter":              AgeFilter,
 }
 
 type SuggesterFilter struct {

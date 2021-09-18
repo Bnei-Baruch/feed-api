@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -239,6 +240,18 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 					}
 					utils.IntersectMaps(uids, popularUids)
 				}
+			case core.AgeFilter:
+				suggesterNameParts = append(suggesterNameParts, ";Age:[", strings.Join(filter.Args, ","), "]")
+				if len(filter.Args) != 1 {
+					return nil, errors.New(fmt.Sprintf("Expected age args be of length 1, got: '%d'.", len(filter.Args)))
+				} else if ageSeconds, err := strconv.Atoi(filter.Args[0]); err != nil {
+					return nil, errors.New(fmt.Sprintf("Expected age arg to be number as string, got: '%s'.", filter.Args[0]))
+				} else {
+					age := time.Now().Add(time.Duration(-ageSeconds) * time.Second)
+					utils.FilterMap(uids, func(uid string) bool {
+						return age.Before(dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo).Date)
+					})
+				}
 			default:
 				log.Errorf("Did not expect filter selector enum %d", filter.FilterSelector)
 			}
@@ -414,6 +427,18 @@ func (s *DataCollectionsSuggester) More(request core.MoreRequest) ([]core.Conten
 				utils.FilterMap(uids, func(uid string) bool {
 					return utils.StringInSlice(dm.CollectionsInfo.Data(uid).(*data_models.CollectionInfo).SourceUid, recommendInfo.Sources)
 				})
+			case core.AgeFilter:
+				suggesterNameParts = append(suggesterNameParts, ";Age:[", strings.Join(filter.Args, ","), "]")
+				if len(filter.Args) != 1 {
+					return nil, errors.New(fmt.Sprintf("Expected age args be of length 1, got: '%d'.", len(filter.Args)))
+				} else if ageSeconds, err := strconv.Atoi(filter.Args[0]); err != nil {
+					return nil, errors.New(fmt.Sprintf("Expected age arg to be number as string, got: '%s'.", filter.Args[0]))
+				} else {
+					age := time.Now().Add(time.Duration(-ageSeconds) * time.Second)
+					utils.FilterMap(uids, func(uid string) bool {
+						return age.Before(dm.CollectionsInfo.Data(uid).(*data_models.CollectionInfo).Date)
+					})
+				}
 			default:
 				log.Errorf("Did not expect filter selector enum %d", filter.FilterSelector)
 			}

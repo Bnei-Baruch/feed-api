@@ -6,6 +6,7 @@ import {
   Button,
   Checkbox,
   Dropdown,
+  Input,
   List,
   Table,
 } from 'semantic-ui-react';
@@ -30,6 +31,8 @@ const FITLER_SELECTOR_SAME_TAG = 5;
 const FILTER_SELECTOR_SAME_SOURCE = 6;
 const FILTER_SELECTOR_SAME_COLLECTION = 7;
 const FILTER_WATCHING_NOW = 8;
+const FILTER_POPULAR = 9;
+const FILTER_AGE = 10;
 
 const FILTER_SELECTOR_OPTIONS = [
   {key: FITLER_SELECTOR_UNIT_CONTENT_TYPES, text: "UnitContentTypes", value: FITLER_SELECTOR_UNIT_CONTENT_TYPES, disabled: COLLECTIONS_SUGGESTERS},
@@ -41,6 +44,8 @@ const FILTER_SELECTOR_OPTIONS = [
   {key: FILTER_SELECTOR_SAME_SOURCE, text: "SameSource", value: FILTER_SELECTOR_SAME_SOURCE, disabled: COLLECTIONS_SUGGESTERS},
   {key: FILTER_SELECTOR_SAME_COLLECTION, text: "SameCollection", value: FILTER_SELECTOR_SAME_COLLECTION},
   {key: FILTER_WATCHING_NOW, text: "WatchingNowFilter", value: FILTER_WATCHING_NOW},
+  {key: FILTER_POPULAR, text: "PopularFilter", value: FILTER_POPULAR},
+  {key: FILTER_AGE, text: "AgeFilter", value: FILTER_AGE},
 ];
 
 const SUGGESTERS = [
@@ -366,6 +371,11 @@ const SuggesterFilterArgs = ({spec, selectedSpec, filterIndex, onChange}) => {
                 onAddItem={(event, data) => updateArgs(data.value)}
                 onChange={(event, data) => updateArgs(data.value)}
       />
+    );
+  }
+  if ([FILTER_AGE].includes(selectedSpec.filters[filterIndex].filter_selector)) {
+    return (
+      <Input value={selectedSpec.filters[filterIndex].args[0]} onChange={(event, data) => updateArgs([data.value])} />
     );
   }
   return null;
