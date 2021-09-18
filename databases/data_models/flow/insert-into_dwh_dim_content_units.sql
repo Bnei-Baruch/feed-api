@@ -1,5 +1,6 @@
-truncate table dwh_dim_content_units;
-insert into dwh_dim_content_units
+create TEMP table IF NOT EXISTS dwh_dim_content_units_tmp (LIKE dwh_dim_content_units);
+truncate table dwh_dim_content_units_tmp;
+insert into dwh_dim_content_units_tmp
 (
   /** all content units from mdb **/	
 	select * from dblink('mdb_conn',
@@ -25,4 +26,9 @@ insert into dwh_dim_content_units
     content_unit_name character varying,
     content_unit_language character varying
   )
-)
+);
+truncate table dwh_dim_content_units;
+insert into dwh_dim_content_units (
+  select * from dwh_dim_content_units_tmp
+);
+drop table dwh_dim_content_units_tmp;

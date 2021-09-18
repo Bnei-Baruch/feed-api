@@ -28,16 +28,16 @@ type Recommend struct {
 type FilterSelectorEnum int
 
 const (
-	UnitContentTypes FilterSelectorEnum = iota
-	CollectionContentTypes
-	Tags
-	Sources
-	Collections
-	SameTag
-	SameSource
-	SameCollection
-	WatchingNowFilter
-	PopularFilter
+	UnitContentTypes       FilterSelectorEnum = 0
+	CollectionContentTypes                    = 1
+	Tags                                      = 2
+	Sources                                   = 3
+	Collections                               = 4
+	SameTag                                   = 5
+	SameSource                                = 6
+	SameCollection                            = 7
+	WatchingNowFilter                         = 8
+	PopularFilter                             = 9
 )
 
 var FILTER_STRING_TO_VALUE = map[string]FilterSelectorEnum{
@@ -62,12 +62,12 @@ type SuggesterFilter struct {
 type OrderSelectorEnum int
 
 const (
-	Last OrderSelectorEnum = iota
-	Next
-	Prev
-	Rand
-	Popular
-	WatchingNow
+	Last        OrderSelectorEnum = 0
+	Next                          = 1
+	Prev                          = 2
+	Rand                          = 3
+	Popular                       = 4
+	WatchingNow                   = 5
 )
 
 var ORDER_STRING_TO_VALUE = map[string]OrderSelectorEnum{
