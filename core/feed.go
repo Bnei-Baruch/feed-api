@@ -761,20 +761,7 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 		rootJSON = strings.ReplaceAll(rootJSON, orderName, fmt.Sprintf("%d", orderValue))
 	}
 
-	var spec SuggesterSpec
-	if err := json.Unmarshal([]byte(rootJSON), &spec); err != nil {
-		return nil, err
-	}
-
-	if s, err := MakeSuggesterFromName(suggesterContext, spec.Name); err != nil {
-		return nil, err
-	} else {
-		if err := s.UnmarshalSpec(suggesterContext, spec); err != nil {
-			return nil, err
-		} else {
-			return s, nil
-		}
-	}
+	return MakeSuggesterFromJson(suggesterContext, rootJSON)
 
 	/*return &Recommender{Suggester: core.MakeCompletionSuggester([]core.Suggester{
 		core.MakeRoundRobinSuggester([]core.Suggester{
@@ -791,4 +778,21 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 		MakeRandomContentTypesSuggester(db, []string{consts.CT_CLIP, consts.CT_LESSON_PART, consts.CT_VIDEO_PROGRAM_CHAPTER}, []string(nil) /* tagUids * /),
 	})}, nil*/
 
+}
+
+func MakeSuggesterFromJson(suggesterContext SuggesterContext, jsonStr string) (Suggester, error) {
+	var spec SuggesterSpec
+	if err := json.Unmarshal([]byte(jsonStr), &spec); err != nil {
+		return nil, err
+	}
+
+	if s, err := MakeSuggesterFromName(suggesterContext, spec.Name); err != nil {
+		return nil, err
+	} else {
+		if err := s.UnmarshalSpec(suggesterContext, spec); err != nil {
+			return nil, err
+		} else {
+			return s, nil
+		}
+	}
 }

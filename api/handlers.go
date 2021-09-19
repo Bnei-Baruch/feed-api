@@ -271,3 +271,53 @@ func handleRecommend(suggesterContext core.SuggesterContext, r core.MoreRequest)
 		}
 	}
 }
+
+// Feed
+func FeedHandler(c *gin.Context) {
+	r := core.MoreRequest{}
+	if c.Bind(&r) != nil {
+		return
+	}
+
+	suggesterContext := core.SuggesterContext{
+		c.MustGet("MDB_DB").(*sql.DB),
+		c.MustGet("DATA_MODELS").(*data_models.DataModels),
+		make(map[string]interface{}),
+	}
+	resp, err := handleFeed(suggesterContext, r)
+	if err != nil {
+		log.Infof("Err: %+v", err)
+	}
+	concludeRequest(c, resp, err)
+}
+
+const FEED_SUGGESTER_JSON = `
+	{
+		"name":"SortSuggester",
+		"specs":[
+			{
+				"name":"RoundRobinSuggester",
+				"specs":[
+					{"name":"DataCollectionsSuggester","filters":[{"filter_selector":1,"args":["DAILY_LESSON"]}]},
+					{"name":"DataContentUnitsSuggester","filters":[{"filter_selector":0,"args":["VIDEO_PROGRAM_CHAPTER"]}]},
+					{"name":"DataCollectionsSuggester","filters":[{"filter_selector":1,"args":["CONGRESS"]}]},
+					{"name":"DataContentUnitsSuggester","filters":[{"filter_selector":0,"args":["FRIENDS_GATHERING"]}]}
+				]
+			}
+		]
+	}
+`
+
+func handleFeed(suggesterContext core.SuggesterContext, r core.MoreRequest) (*MoreResponse, *HttpError) {
+	log.Debugf("r: %+v", r)
+	if s, err := core.MakeSuggesterFromJson(suggesterContext, FEED_SUGGESTER_JSON); err != nil {
+		return nil, NewInternalError(err)
+	} else {
+		feed := core.MakeFeedFromSuggester(s, suggesterContext)
+		if cis, err := feed.More(r); err != nil {
+			return nil, NewInternalError(err)
+		} else {
+			return &MoreResponse{Feed: cis}, nil
+		}
+	}
+}
