@@ -74,7 +74,7 @@ export const moreOrReccomend = (feed, itemsByUid, options, handler, numItems) =>
     return results.json();
   }).then(data => {
     console.log('moreOrReccomend', data, feed, itemsByUid, options, handler, numItems);
-    const newFeed = data.feed || [];
+    const newFeed = (feed || []).concat(data.feed || []);
     const newFeedUids = new Set(newFeed.map((contentItem) => contentItem.uid));
     const fetchItems = newFeed.filter((contentItem) => !(contentItem.uid in itemsByUid));
     console.log('fetchItems', fetchItems);
@@ -106,7 +106,9 @@ export const moreOrReccomend = (feed, itemsByUid, options, handler, numItems) =>
         }
       });
       const items = newFeed.map((contentItem) => itemsByUid[contentItem.uid]);
-      return {feed: newFeed, items, itemsByUid};
+      const ret = {feed: newFeed, items, itemsByUid};
+      console.log('ret', ret);
+      return ret;
     });
   });
 };
