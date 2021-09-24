@@ -292,21 +292,68 @@ func FeedHandler(c *gin.Context) {
 }
 
 const FEED_SUGGESTER_JSON = `
-	{
-		"name":"SortSuggester",
-		"specs":[
-			{
-				"name":"RoundRobinSuggester",
-				"specs":[
-					{"name":"DataCollectionsSuggester","filters":[{"filter_selector":1,"args":["DAILY_LESSON"]}]},
-					{"name":"DataContentUnitsSuggester","filters":[{"filter_selector":0,"args":["VIDEO_PROGRAM_CHAPTER"]}]},
-					{"name":"DataCollectionsSuggester","filters":[{"filter_selector":1,"args":["CONGRESS"]}]},
-					{"name":"DataContentUnitsSuggester","filters":[{"filter_selector":0,"args":["FRIENDS_GATHERING"]}]}
-				]
-			}
-		]
-	}
-`
+{
+  "name": "RoundRobinSuggester",
+  "specs": [
+    {
+      "name": "DataCollectionsSuggester",
+      "filters": [
+        {
+          "filter_selector": 1,
+          "args": [
+            "DAILY_LESSON"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DataContentUnitsSuggester",
+      "filters": [
+        {
+          "filter_selector": 0,
+          "args": [
+            "VIDEO_PROGRAM_CHAPTER"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DataCollectionsSuggester",
+      "filters": [
+        {
+          "filter_selector": 1,
+          "args": [
+            "CONGRESS"
+          ]
+        },
+        {
+          "filter_selector": 10,
+          "args": [
+            "86400"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DataContentUnitsSuggester",
+      "filters": [
+        {
+          "filter_selector": 0,
+          "args": [
+            "FRIENDS_GATHERING"
+          ]
+        },
+        {
+          "filter_selector": 10,
+          "args": [
+            "86400"
+          ]
+        }
+      ],
+      "order_selector": 0
+    }
+  ]
+}`
 
 func handleFeed(suggesterContext core.SuggesterContext, r core.MoreRequest) (*MoreResponse, *HttpError) {
 	log.Debugf("r: %+v", r)
