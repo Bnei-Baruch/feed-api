@@ -23,28 +23,28 @@ import (
 
 // DWHContentUnitsMeasure is an object representing the database table.
 type DWHContentUnitsMeasure struct {
-	EventUnitUID              string      `boil:"event_unit_uid" json:"event_unit_uid" toml:"event_unit_uid" yaml:"event_unit_uid"`
-	ContentUnitTypeName       null.String `boil:"content_unit_type_name" json:"content_unit_type_name,omitempty" toml:"content_unit_type_name" yaml:"content_unit_type_name,omitempty"`
-	AllEventsCount            null.Int64  `boil:"all_events_count" json:"all_events_count,omitempty" toml:"all_events_count" yaml:"all_events_count,omitempty"`
-	UniqueUsersLast10minCount null.Int64  `boil:"unique_users_last10min_count" json:"unique_users_last10min_count,omitempty" toml:"unique_users_last10min_count" yaml:"unique_users_last10min_count,omitempty"`
-	DWHUpdateDatetime         null.Time   `boil:"dwh_update_datetime" json:"dwh_update_datetime,omitempty" toml:"dwh_update_datetime" yaml:"dwh_update_datetime,omitempty"`
+	EventUnitUID                string     `boil:"event_unit_uid" json:"event_unit_uid" toml:"event_unit_uid" yaml:"event_unit_uid"`
+	AllEventsCount              null.Int64 `boil:"all_events_count" json:"all_events_count,omitempty" toml:"all_events_count" yaml:"all_events_count,omitempty"`
+	UniqueUsersCount            null.Int64 `boil:"unique_users_count" json:"unique_users_count,omitempty" toml:"unique_users_count" yaml:"unique_users_count,omitempty"`
+	DWHUpdateDatetime           null.Time  `boil:"dwh_update_datetime" json:"dwh_update_datetime,omitempty" toml:"dwh_update_datetime" yaml:"dwh_update_datetime,omitempty"`
+	UniqueUsersWatchingNowCount null.Int64 `boil:"unique_users_watching_now_count" json:"unique_users_watching_now_count,omitempty" toml:"unique_users_watching_now_count" yaml:"unique_users_watching_now_count,omitempty"`
 
 	R *dwhContentUnitsMeasureR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L dwhContentUnitsMeasureL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var DWHContentUnitsMeasureColumns = struct {
-	EventUnitUID              string
-	ContentUnitTypeName       string
-	AllEventsCount            string
-	UniqueUsersLast10minCount string
-	DWHUpdateDatetime         string
+	EventUnitUID                string
+	AllEventsCount              string
+	UniqueUsersCount            string
+	DWHUpdateDatetime           string
+	UniqueUsersWatchingNowCount string
 }{
-	EventUnitUID:              "event_unit_uid",
-	ContentUnitTypeName:       "content_unit_type_name",
-	AllEventsCount:            "all_events_count",
-	UniqueUsersLast10minCount: "unique_users_last10min_count",
-	DWHUpdateDatetime:         "dwh_update_datetime",
+	EventUnitUID:                "event_unit_uid",
+	AllEventsCount:              "all_events_count",
+	UniqueUsersCount:            "unique_users_count",
+	DWHUpdateDatetime:           "dwh_update_datetime",
+	UniqueUsersWatchingNowCount: "unique_users_watching_now_count",
 }
 
 // Generated where
@@ -63,29 +63,6 @@ func (w whereHelperstring) IN(slice []string) qm.QueryMod {
 		values = append(values, value)
 	}
 	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
-}
-
-type whereHelpernull_String struct{ field string }
-
-func (w whereHelpernull_String) EQ(x null.String) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
-}
-func (w whereHelpernull_String) NEQ(x null.String) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
-}
-func (w whereHelpernull_String) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpernull_String) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
-func (w whereHelpernull_String) LT(x null.String) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpernull_String) LTE(x null.String) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpernull_String) GT(x null.String) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpernull_String) GTE(x null.String) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
 }
 
 type whereHelpernull_Int64 struct{ field string }
@@ -135,17 +112,17 @@ func (w whereHelpernull_Time) GTE(x null.Time) qm.QueryMod {
 }
 
 var DWHContentUnitsMeasureWhere = struct {
-	EventUnitUID              whereHelperstring
-	ContentUnitTypeName       whereHelpernull_String
-	AllEventsCount            whereHelpernull_Int64
-	UniqueUsersLast10minCount whereHelpernull_Int64
-	DWHUpdateDatetime         whereHelpernull_Time
+	EventUnitUID                whereHelperstring
+	AllEventsCount              whereHelpernull_Int64
+	UniqueUsersCount            whereHelpernull_Int64
+	DWHUpdateDatetime           whereHelpernull_Time
+	UniqueUsersWatchingNowCount whereHelpernull_Int64
 }{
-	EventUnitUID:              whereHelperstring{field: "\"dwh_content_units_measures\".\"event_unit_uid\""},
-	ContentUnitTypeName:       whereHelpernull_String{field: "\"dwh_content_units_measures\".\"content_unit_type_name\""},
-	AllEventsCount:            whereHelpernull_Int64{field: "\"dwh_content_units_measures\".\"all_events_count\""},
-	UniqueUsersLast10minCount: whereHelpernull_Int64{field: "\"dwh_content_units_measures\".\"unique_users_last10min_count\""},
-	DWHUpdateDatetime:         whereHelpernull_Time{field: "\"dwh_content_units_measures\".\"dwh_update_datetime\""},
+	EventUnitUID:                whereHelperstring{field: "\"dwh_content_units_measures\".\"event_unit_uid\""},
+	AllEventsCount:              whereHelpernull_Int64{field: "\"dwh_content_units_measures\".\"all_events_count\""},
+	UniqueUsersCount:            whereHelpernull_Int64{field: "\"dwh_content_units_measures\".\"unique_users_count\""},
+	DWHUpdateDatetime:           whereHelpernull_Time{field: "\"dwh_content_units_measures\".\"dwh_update_datetime\""},
+	UniqueUsersWatchingNowCount: whereHelpernull_Int64{field: "\"dwh_content_units_measures\".\"unique_users_watching_now_count\""},
 }
 
 // DWHContentUnitsMeasureRels is where relationship names are stored.
@@ -165,8 +142,8 @@ func (*dwhContentUnitsMeasureR) NewStruct() *dwhContentUnitsMeasureR {
 type dwhContentUnitsMeasureL struct{}
 
 var (
-	dwhContentUnitsMeasureAllColumns            = []string{"event_unit_uid", "content_unit_type_name", "all_events_count", "unique_users_last10min_count", "dwh_update_datetime"}
-	dwhContentUnitsMeasureColumnsWithoutDefault = []string{"event_unit_uid", "content_unit_type_name", "all_events_count", "unique_users_last10min_count", "dwh_update_datetime"}
+	dwhContentUnitsMeasureAllColumns            = []string{"event_unit_uid", "all_events_count", "unique_users_count", "dwh_update_datetime", "unique_users_watching_now_count"}
+	dwhContentUnitsMeasureColumnsWithoutDefault = []string{"event_unit_uid", "all_events_count", "unique_users_count", "dwh_update_datetime", "unique_users_watching_now_count"}
 	dwhContentUnitsMeasureColumnsWithDefault    = []string{}
 	dwhContentUnitsMeasurePrimaryKeyColumns     = []string{"event_unit_uid"}
 )

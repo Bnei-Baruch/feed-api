@@ -43,9 +43,9 @@ func (dm *SqlDataModel) AllWatchingNow() (map[string]int64, error) {
 	}()
 	count := []Count(nil)
 	if err := dm.modelsDb.With(models.NewQuery(
-		qm.Select("event_unit_uid as uid, unique_users_last10min_count as count"),
+		qm.Select("event_unit_uid as uid, unique_users_watching_now_count as count"),
 		qm.From("dwh_content_units_measures"),
-		qm.Where("unique_users_last10min_count > 0"),
+		qm.Where("unique_users_watching_now_count > 0"),
 	)).Bind(context.TODO(), &count); err != nil {
 		return nil, err
 	}
