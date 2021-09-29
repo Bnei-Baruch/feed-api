@@ -364,6 +364,9 @@ func handleFeed(suggesterContext core.SuggesterContext, r core.MoreRequest) (*Mo
 		if cis, err := feed.More(r); err != nil {
 			return nil, NewInternalError(err)
 		} else {
+			for i := range cis {
+				cis[i].FeedOrder = int64(i)
+			}
 			return &MoreResponse{Feed: cis}, nil
 		}
 	}
