@@ -124,7 +124,7 @@ type ContentItem struct {
 	CreatedAt     time.Time `json:"created_at"`
 	OriginalOrder []int64   `json:"original_order"`
 	Suggester     string    `json:"suggester"`
-	FeedOrder     int64     `json:"feed_order,omitempty"`
+	FeedOrder     int64     `json:"feed_order"`
 }
 
 type Suggester interface {
