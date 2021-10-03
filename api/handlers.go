@@ -351,9 +351,28 @@ const FEED_SUGGESTER_JSON = `
         }
       ],
       "order_selector": 0
+    },
+	{
+      "name": "DataContentUnitsSuggester",
+      "filters": [
+        {
+          "filter_selector": 0,
+          "args": [
+            "MEAL"
+          ]
+        },
+        {
+          "filter_selector": 10,
+          "args": [
+            "86400"
+          ]
+        }
+      ],
+      "order_selector": 0
     }
   ]
-}`
+}
+`
 
 func handleFeed(suggesterContext core.SuggesterContext, r core.MoreRequest) (*MoreResponse, *HttpError) {
 	log.Debugf("r: %+v", r)
