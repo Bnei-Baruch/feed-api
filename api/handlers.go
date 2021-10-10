@@ -329,7 +329,7 @@ const FEED_SUGGESTER_JSON = `
         {
           "filter_selector": 10,
           "args": [
-            "86400"
+            "172800"
           ]
         }
       ]
@@ -346,7 +346,7 @@ const FEED_SUGGESTER_JSON = `
         {
           "filter_selector": 10,
           "args": [
-            "86400"
+            "172800"
           ]
         }
       ],
@@ -364,7 +364,7 @@ const FEED_SUGGESTER_JSON = `
         {
           "filter_selector": 10,
           "args": [
-            "86400"
+            "172800"
           ]
         }
       ],
