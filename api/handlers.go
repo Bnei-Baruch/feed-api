@@ -351,24 +351,6 @@ const FEED_SUGGESTER_JSON = `
         }
       ],
       "order_selector": 0
-    },
-	{
-      "name": "DataContentUnitsSuggester",
-      "filters": [
-        {
-          "filter_selector": 0,
-          "args": [
-            "MEAL"
-          ]
-        },
-        {
-          "filter_selector": 10,
-          "args": [
-            "172800"
-          ]
-        }
-      ],
-      "order_selector": 0
     }
   ]
 }
