@@ -17,7 +17,7 @@ func MakeFeedFromSuggester(suggester Suggester, suggesterContext SuggesterContex
 }
 
 func MakeFeed(suggesterContext SuggesterContext) *Feed {
-	return MakeFeedFromSuggester(MakeSortSuggester(MakeRoundRobinSuggester([]Suggester{
+	return MakeFeedFromSuggester(MakeSortSuggester([]Suggester{MakeRoundRobinSuggester([]Suggester{
 		// 1. Morning lesson.
 		MakeCollectionSuggester(suggesterContext.DB, consts.CT_DAILY_LESSON),
 		// 2. Additional lessons.
@@ -47,7 +47,7 @@ func MakeFeed(suggesterContext SuggesterContext) *Feed {
 		MakeContentUnitsSuggester(suggesterContext.DB, []string{
 			consts.CT_CLIP,
 		}),
-	})), suggesterContext)
+	})}), suggesterContext)
 }
 
 func (f *Feed) More(r MoreRequest) ([]ContentItem, error) {

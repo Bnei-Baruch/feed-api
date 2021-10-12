@@ -9,12 +9,12 @@ import (
 
 // Sort items by date and then by create at time.
 type SortSuggester struct {
-	suggester Suggester
+	suggesters []Suggester
 }
 
-func MakeSortSuggester(suggester Suggester) *SortSuggester {
+func MakeSortSuggester(suggesters []Suggester) *SortSuggester {
 	return &SortSuggester{
-		suggester: suggester,
+		suggesters: suggesters,
 	}
 }
 
@@ -23,14 +23,18 @@ func init() {
 }
 
 func (suggester *SortSuggester) MarshalSpec() (SuggesterSpec, error) {
-	if spec, err := suggester.suggester.MarshalSpec(); err != nil {
-		return SuggesterSpec{}, err
-	} else {
-		return SuggesterSpec{
-			Name:  "SortSuggester",
-			Specs: []SuggesterSpec{spec},
-		}, nil
+	var specs []SuggesterSpec
+	for i := range suggester.suggesters {
+		if spec, err := suggester.suggesters[i].MarshalSpec(); err != nil {
+			return SuggesterSpec{}, err
+		} else {
+			specs = append(specs, spec)
+		}
 	}
+	return SuggesterSpec{
+		Name:  "SortSuggester",
+		Specs: specs,
+	}, nil
 }
 
 func (suggester *SortSuggester) UnmarshalSpec(suggesterContext SuggesterContext, spec SuggesterSpec) error {
@@ -40,15 +44,17 @@ func (suggester *SortSuggester) UnmarshalSpec(suggesterContext SuggesterContext,
 	if len(spec.Args) != 0 {
 		return errors.New("SortSuggester expected to have no arguments.")
 	}
-	if len(spec.Specs) != 1 {
-		return errors.New(fmt.Sprintf("SortSuggester expected to have 1 suggesters, got %d.", len(spec.Specs)))
+	if len(spec.Specs) == 0 {
+		return errors.New(fmt.Sprintf("SortSuggester expected to have some suggesters got 0."))
 	}
-	if newSuggester, err := MakeSuggesterFromName(suggesterContext, spec.Specs[0].Name); err != nil {
-		return err
-	} else {
-		suggester.suggester = newSuggester
-		if err := suggester.suggester.UnmarshalSpec(suggesterContext, spec.Specs[0]); err != nil {
+	for i := range spec.Specs {
+		if newSuggester, err := MakeSuggesterFromName(suggesterContext, spec.Specs[i].Name); err != nil {
 			return err
+		} else {
+			if err := newSuggester.UnmarshalSpec(suggesterContext, spec.Specs[i]); err != nil {
+				return err
+			}
+			suggester.suggesters = append(suggester.suggesters, newSuggester)
 		}
 	}
 	return nil
@@ -81,27 +87,66 @@ func Unsort(contentItems []ContentItem) []ContentItem {
 	return currentFeed
 }
 
+func (suggester *SortSuggester) Split(contentItems []ContentItem) [][]ContentItem {
+	allItems := make([][]ContentItem, len(suggester.suggesters))
+	for i := range contentItems {
+		order := contentItems[i].OriginalOrder[0]
+		contentItems[i].OriginalOrder = contentItems[i].OriginalOrder[1:]
+		allItems[order] = append(allItems[order], contentItems[i])
+	}
+	fmt.Printf("\nAfter split currentFeed:\n")
+	for i := range allItems {
+		fmt.Printf("%d:\n", i)
+		printFeed(allItems[i])
+	}
+	return allItems
+}
+
 func (suggester *SortSuggester) More(request MoreRequest) ([]ContentItem, error) {
-	currentFeed := Unsort(request.CurrentFeed)
-	suggesterRequest := request
-	suggesterRequest.CurrentFeed = currentFeed
-	items, err := suggester.suggester.More(suggesterRequest)
-	if err != nil {
-		return nil, err
+	maxOriginalOrder := int64(0)
+	for i := range request.CurrentFeed {
+		sortOrder := request.CurrentFeed[i].OriginalOrder[0]
+		if maxOriginalOrder < sortOrder {
+			maxOriginalOrder = sortOrder
+		}
 	}
-	for i := range items {
-		items[i].OriginalOrder = append([]int64{int64(i + len(currentFeed))}, items[i].OriginalOrder...)
+	allCurrentItems := suggester.Split(Unsort(request.CurrentFeed))
+	moreItems := []ContentItem(nil)
+	for order := range allCurrentItems {
+		currentFeed := allCurrentItems[order]
+		suggesterRequest := request
+		suggesterRequest.CurrentFeed = currentFeed
+		fmt.Printf("More[%d]: %+v\n", order, suggesterRequest)
+		items, err := suggester.suggesters[order].More(suggesterRequest)
+		if err != nil {
+			return nil, err
+		}
+		for i := range items {
+			items[i].OriginalOrder = append([]int64{int64(len(moreItems)) + maxOriginalOrder, int64(order)}, items[i].OriginalOrder...)
+			moreItems = append(moreItems, items[i])
+		}
 	}
-	sort.SliceStable(items, func(i, j int) bool {
-		if items[i].Date.Equal(items[j].Date) {
-			return items[i].CreatedAt.After(items[j].CreatedAt)
+	fmt.Printf("After More:\n")
+	for i, ci := range moreItems {
+		fmt.Printf("%d: %+v\n", i+1, ci)
+	}
+	sort.SliceStable(moreItems, func(i, j int) bool {
+		if moreItems[i].Date.Equal(moreItems[j].Date) {
+			return moreItems[i].CreatedAt.After(moreItems[j].CreatedAt)
 		} else {
-			return items[i].Date.After(items[j].Date)
+			return moreItems[i].Date.After(moreItems[j].Date)
 		}
 	})
-	//fmt.Printf("Sort:\n")
-	//for i, ci := range items {
-	//	fmt.Printf("%d: %+v\n", i+1, ci)
-	//}
-	return items, nil
+	fmt.Printf("Sort:\n")
+	for i, ci := range moreItems {
+		fmt.Printf("%d: %+v\n", i+1, ci)
+	}
+	if len(moreItems) > request.MoreItems {
+		moreItems = moreItems[:request.MoreItems]
+	}
+	fmt.Printf("Cut:\n")
+	for i, ci := range moreItems {
+		fmt.Printf("%d: %+v\n", i+1, ci)
+	}
+	return moreItems, nil
 }
