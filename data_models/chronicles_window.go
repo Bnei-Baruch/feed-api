@@ -34,6 +34,11 @@ type ScanHttpErrorRetry struct {
 
 func (e *ScanHttpErrorRetry) Error() string { return fmt.Sprintf("%+v", e.err) }
 
+func (e *ScanHttpErrorRetry) Is(target error) bool {
+	_, ok := target.(*ScanHttpErrorRetry)
+	return ok
+}
+
 type ChroniclesWindowModel struct {
 	localChroniclesDb *sql.DB
 	name              string
@@ -91,6 +96,7 @@ func (m *ChroniclesWindowModel) ScanChroniclesEntries() ([]*models.Entry, error)
 		"application/json",
 		bytes.NewBuffer([]byte(fmt.Sprintf(`{"id":"%s","limit":%d}`, m.lastReadId, SCAN_SIZE))))
 	if err != nil {
+		log.Infof("Non http error %d %+v", m.httpRetries, err)
 		if m.httpRetries > 0 {
 			m.httpRetries -= 1
 			return nil, &ScanHttpErrorRetry{err}
@@ -131,8 +137,9 @@ type SearchSelectedData struct {
 
 func (m *ChroniclesWindowModel) Refresh() error {
 	if entries, err := m.ScanChroniclesEntries(); err != nil {
-		var retryError *ScanHttpErrorRetry
-		if errors.Is(retryError, err) {
+		log.Debugf("Scan error: %+v.", err)
+		retryError := &ScanHttpErrorRetry{}
+		if errors.Is(err, retryError) {
 			log.Infof("Scan http error: %+v. Skipping and retrying.", err)
 			return nil
 		}
