@@ -161,6 +161,9 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 		for _, uid := range request.Options.SkipUids {
 			delete(uids, uid)
 		}
+		for i := range request.CurrentFeed {
+			delete(uids, request.CurrentFeed[i].UID)
+		}
 		delete(uids, recommendInfo.Uid)
 		utils.Profile("DataContentUnitsSuggester.More.Skip", time.Now().Sub(skip_start))
 
@@ -225,7 +228,7 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 				}
 			case core.PopularFilter:
 				suggesterNameParts = append(suggesterNameParts, ";PopularFilter:[", strings.Join(filter.Args, ","), "]")
-				if views, err := dm.SqlDataModel.AllViews(); err != nil {
+				if views, err := dm.SqlDataModel.AllUniqueViews(); err != nil {
 					return nil, err
 				} else {
 					popularMin := int64(0)
@@ -395,6 +398,9 @@ func (s *DataCollectionsSuggester) More(request core.MoreRequest) ([]core.Conten
 		uids := s.initialUids(request)
 		for _, uid := range request.Options.SkipUids {
 			delete(uids, uid)
+		}
+		for i := range request.CurrentFeed {
+			delete(uids, request.CurrentFeed[i].UID)
 		}
 		delete(uids, recommendInfo.Uid)
 		suggesterNameParts := []string{"DataCollectionsSuggester"}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 // Given slice of Suggesters will take the first one, if not enough
@@ -26,7 +25,6 @@ func init() {
 }
 
 func (suggester *CompletionSuggester) MarshalSpec() (SuggesterSpec, error) {
-	log.Infof("Marshal!")
 	var specs []SuggesterSpec
 	for i := range suggester.suggesters {
 		if spec, err := suggester.suggesters[i].MarshalSpec(); err != nil {

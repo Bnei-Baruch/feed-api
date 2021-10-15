@@ -127,6 +127,22 @@ func ViewsHandler(c *gin.Context) {
 	}
 }
 
+func UniqueViewsHandler(c *gin.Context) {
+	r := ViewsRequest{}
+	if c.Bind(&r) != nil {
+		return
+	}
+
+	dm := c.MustGet("DATA_MODELS").(*data_models.DataModels)
+	resp := ViewsResponse{}
+	if views, err := dm.SqlDataModel.UniqueViews(r.Uids); err != nil {
+		concludeRequest(c, resp, NewInternalError(err))
+	} else {
+		resp.Views = views
+		concludeRequest(c, resp, nil)
+	}
+}
+
 // Recommend
 func RecommendHandler(c *gin.Context) {
 	r := core.MoreRequest{}
