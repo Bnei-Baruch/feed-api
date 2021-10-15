@@ -228,7 +228,7 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 				}
 			case core.PopularFilter:
 				suggesterNameParts = append(suggesterNameParts, ";PopularFilter:[", strings.Join(filter.Args, ","), "]")
-				if views, err := dm.SqlDataModel.AllViews(); err != nil {
+				if views, err := dm.SqlDataModel.AllUniqueViews(); err != nil {
 					return nil, err
 				} else {
 					popularMin := int64(0)
