@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // Sort items by date and then by create at time.
@@ -71,19 +72,19 @@ func Unsort(contentItems []ContentItem) []ContentItem {
 	for i := range contentItems {
 		currentFeed = append(currentFeed, contentItems[i])
 	}
-	fmt.Printf("\ncurrentFeed:\n")
-	printFeed(currentFeed)
+	// fmt.Printf("\ncurrentFeed:\n")
+	// printFeed(currentFeed)
 	sort.SliceStable(currentFeed, func(i, j int) bool {
 		return currentFeed[i].OriginalOrder[0] < currentFeed[j].OriginalOrder[0]
 	})
-	fmt.Printf("\nUnsorted currentFeed:\n")
-	printFeed(currentFeed)
+	// fmt.Printf("\nUnsorted currentFeed:\n")
+	// printFeed(currentFeed)
 	// Remove the original order.
 	for i := range currentFeed {
 		currentFeed[i].OriginalOrder = currentFeed[i].OriginalOrder[1:]
 	}
-	fmt.Printf("\nOrder removed currentFeed:\n")
-	printFeed(currentFeed)
+	// fmt.Printf("\nOrder removed currentFeed:\n")
+	// printFeed(currentFeed)
 	return currentFeed
 }
 
@@ -94,11 +95,11 @@ func (suggester *SortSuggester) Split(contentItems []ContentItem) [][]ContentIte
 		contentItems[i].OriginalOrder = contentItems[i].OriginalOrder[1:]
 		allItems[order] = append(allItems[order], contentItems[i])
 	}
-	fmt.Printf("\nAfter split currentFeed:\n")
-	for i := range allItems {
-		fmt.Printf("%d:\n", i)
-		printFeed(allItems[i])
-	}
+	//fmt.Printf("\nAfter split currentFeed:\n")
+	//for i := range allItems {
+	//	fmt.Printf("%d:\n", i)
+	//	printFeed(allItems[i])
+	//}
 	return allItems
 }
 
@@ -109,6 +110,8 @@ func (suggester *SortSuggester) More(request MoreRequest) ([]ContentItem, error)
 		if maxOriginalOrder < sortOrder {
 			maxOriginalOrder = sortOrder
 		}
+		// Skip uids from other suggesters from previous requests (e.g., from current feed)
+		request.Options.SkipUids = append(request.Options.SkipUids, request.CurrentFeed[i].UID)
 	}
 	allCurrentItems := suggester.Split(Unsort(request.CurrentFeed))
 	moreItems := []ContentItem(nil)
@@ -116,7 +119,8 @@ func (suggester *SortSuggester) More(request MoreRequest) ([]ContentItem, error)
 		currentFeed := allCurrentItems[order]
 		suggesterRequest := request
 		suggesterRequest.CurrentFeed = currentFeed
-		fmt.Printf("More[%d]: %+v\n", order, suggesterRequest)
+		// fmt.Printf("More[%d]: %+v\n", order, suggesterRequest)
+		log.Debugf("SortSuggester %d MoreRequest:%d  %+v  %+v", order, suggesterRequest.MoreItems, CurrentFeedsToUidsString(suggesterRequest.CurrentFeed), suggesterRequest.Options.SkipUids)
 		items, err := suggester.suggesters[order].More(suggesterRequest)
 		if err != nil {
 			return nil, err
@@ -124,12 +128,14 @@ func (suggester *SortSuggester) More(request MoreRequest) ([]ContentItem, error)
 		for i := range items {
 			items[i].OriginalOrder = append([]int64{int64(len(moreItems)) + maxOriginalOrder, int64(order)}, items[i].OriginalOrder...)
 			moreItems = append(moreItems, items[i])
+			// Skip uids which previous suggester suggested.
+			request.Options.SkipUids = append(request.Options.SkipUids, items[i].UID)
 		}
 	}
-	fmt.Printf("After More:\n")
-	for i, ci := range moreItems {
-		fmt.Printf("%d: %+v\n", i+1, ci)
-	}
+	// fmt.Printf("After More:\n")
+	//for i, ci := range moreItems {
+	//	fmt.Printf("%d: %+v\n", i+1, ci)
+	//}
 	sort.SliceStable(moreItems, func(i, j int) bool {
 		if moreItems[i].Date.Equal(moreItems[j].Date) {
 			return moreItems[i].CreatedAt.After(moreItems[j].CreatedAt)
@@ -137,16 +143,16 @@ func (suggester *SortSuggester) More(request MoreRequest) ([]ContentItem, error)
 			return moreItems[i].Date.After(moreItems[j].Date)
 		}
 	})
-	fmt.Printf("Sort:\n")
-	for i, ci := range moreItems {
-		fmt.Printf("%d: %+v\n", i+1, ci)
-	}
+	//fmt.Printf("Sort:\n")
+	//for i, ci := range moreItems {
+	//	fmt.Printf("%d: %+v\n", i+1, ci)
+	//}
 	if len(moreItems) > request.MoreItems {
 		moreItems = moreItems[:request.MoreItems]
 	}
-	fmt.Printf("Cut:\n")
-	for i, ci := range moreItems {
-		fmt.Printf("%d: %+v\n", i+1, ci)
-	}
+	//fmt.Printf("Cut:\n")
+	//for i, ci := range moreItems {
+	//	fmt.Printf("%d: %+v\n", i+1, ci)
+	//}
 	return moreItems, nil
 }

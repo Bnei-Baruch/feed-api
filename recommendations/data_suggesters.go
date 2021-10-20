@@ -146,6 +146,7 @@ func (s *DataContentUnitsSuggester) initialUids(request core.MoreRequest) map[st
 }
 
 func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.ContentItem, error) {
+	log.Debugf("DataContentUnitsSuggester MoreRequest:%d  %+v  %+v", request.MoreItems, core.CurrentFeedsToUidsString(request.CurrentFeed), request.Options.SkipUids)
 	start := time.Now()
 	defer func() {
 		utils.Profile("DataContentUnitsSuggester.More", time.Now().Sub(start))
@@ -380,6 +381,7 @@ func (s *DataCollectionsSuggester) initialUids(request core.MoreRequest) map[str
 	}()
 	var ok bool
 	if _, ok = s.suggesterContext.Cache[COLLECTIONS_UIDS_KEY]; !ok {
+		log.Debugf("Initialize collections cache")
 		prefiltered_start := time.Now()
 		dm := s.suggesterContext.DataModels
 		uids := utils.CopyStringMap(dm.CollectionsInfo.Prefiltered())
@@ -391,6 +393,7 @@ func (s *DataCollectionsSuggester) initialUids(request core.MoreRequest) map[str
 }
 
 func (s *DataCollectionsSuggester) More(request core.MoreRequest) ([]core.ContentItem, error) {
+	log.Debugf("DataCollectionsSuggester MoreRequest:%d  %+v %+v", request.MoreItems, core.CurrentFeedsToUidsString(request.CurrentFeed), request.Options.SkipUids)
 	if recommendInfo, err := LoadContentUnitRecommendInfo(request.Options.Recommend.Uid, s.suggesterContext); err != nil {
 		return nil, err
 	} else {

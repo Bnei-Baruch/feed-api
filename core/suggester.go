@@ -3,6 +3,7 @@ package core
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -154,4 +155,12 @@ func MakeSuggesterFromName(suggesterContext SuggesterContext, name string) (Sugg
 	} else {
 		return makeSuggesterFunc(suggesterContext), nil
 	}
+}
+
+func CurrentFeedsToUidsString(currentFeed []ContentItem) string {
+	parts := []string(nil)
+	for i := range currentFeed {
+		parts = append(parts, currentFeed[i].UID)
+	}
+	return strings.Join(parts, ",")
 }

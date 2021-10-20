@@ -21,16 +21,22 @@ class FeedContainer extends Component {
       itemsByUid: {},
       fetchingSubscribeCollections: false,
       subscribeCollections: [],
-      options: {languages: ['he', 'en']},
+      options: {},
       error: '',
       spec: new URLSearchParams(window.location.search).get('spec') || '',
       debugTimestamp: new URLSearchParams(window.location.search).get('debug_timestamp') || '',
+      numItems: new URLSearchParams(window.location.search).get('num_items') || '20',
+      languages: new URLSearchParams(window.location.search).get('languages') || 'he,en',
+      skipUids: new URLSearchParams(window.location.search).get('skip_uids') || '',
     };
     this.moreHandler = this.moreHandler.bind(this);
     this.resetHandler = this.resetHandler.bind(this);
     this.updateOptions = this.updateOptions.bind(this);
     this.updateSpec = this.updateSpec.bind(this);
     this.updateDebugTimestamp = this.updateDebugTimestamp.bind(this);
+    this.updateNumItems = this.updateNumItems.bind(this);
+    this.updateLanguages = this.updateLanguages.bind(this);
+    this.updateSkipUids = this.updateSkipUids.bind(this);
   }
 
   componentDidMount() {
@@ -61,7 +67,7 @@ class FeedContainer extends Component {
 	}
 
 	updateOptions(updateOptions) {
-        const {options} = this.state;
+    const {options} = this.state;
 		this.setState({...this.state, options: merge({}, options, updateOptions)});
 	}
 
@@ -73,10 +79,38 @@ class FeedContainer extends Component {
     this.setState({debugTimestamp}, () => this.updateUrl());
   }
 
+  updateNumItems(numItems) {
+    this.setState({numItems}, () => this.updateUrl());
+  }
+
+  updateLanguages(languages) {
+    this.setState({languages}, () => this.updateUrl());
+  }
+
+  updateSkipUids(skipUids) {
+    this.setState({skipUids}, () => this.updateUrl());
+  }
+
   updateUrl() {
-    const {spec, debugTimestamp} = this.state;
+    const {spec, debugTimestamp, numItems, languages, skipUids} = this.state;
+    const params = [];
+    if (spec) {
+      params.push(`spec=${spec}`);
+    }
+    if (debugTimestamp) {
+      params.push(`debug_timestamp=${debugTimestamp}`);
+    }
+    if (numItems) {
+      params.push(`num_items=${numItems}`);
+    }
+    if (languages) {
+      params.push(`languages=${languages}`);
+    }
+    if (skipUids) {
+      params.push(`skip_uids=${skipUids}`);
+    }
     const url = new URL(window.location.toString());
-    url.search = `?spec=${spec}&debug_timestamp=${debugTimestamp}`;
+    url.search = `?${params.join('&')}`;
     window.history.replaceState({}, 'Feed', url.toString());
   }
 
@@ -86,7 +120,7 @@ class FeedContainer extends Component {
 
 	moreHandler() {
     this.setState({error: ''}, () => {
-      const {feed, itemsByUid, options, spec, debugTimestamp} = this.state;
+      const {feed, itemsByUid, options, spec, debugTimestamp, languages, skipUids, numItems} = this.state;
 
       const parseSpec = (spec) => {
         if (spec) {
@@ -107,8 +141,18 @@ class FeedContainer extends Component {
       } else {
         delete options.debug_timestamp;
       }
+      if (languages) {
+        options.languages = languages.split(',');
+      } else {
+        delete options.languages;
+      }
+      if (skipUids) {
+        options.skip_uids = skipUids.split(',');
+      } else {
+        delete options.skip_uids;
+      }
 
-      more(feed, itemsByUid, options)
+      more(feed, itemsByUid, options, Number(numItems))
         .then(({feed, items, itemsByUid}) => this.setState({feed, items, itemsByUid}))
         .catch((error) => this.setState({error : String(error)}));
     });
@@ -116,7 +160,7 @@ class FeedContainer extends Component {
 
   render() {
     //console.log('render container');
-    const {items, options, fetchingSubscribeCollections, subscribeCollections, spec, error, debugTimestamp} = this.state;
+    const {items, options, fetchingSubscribeCollections, subscribeCollections, spec, error, debugTimestamp, numItems, languages, skipUids} = this.state;
     return (
       <Feed
         items={items}
@@ -131,6 +175,12 @@ class FeedContainer extends Component {
         updateSpec={this.updateSpec}
         debugTimestamp={debugTimestamp}
         updateDebugTimestamp={this.updateDebugTimestamp}
+        numItems={numItems}
+        updateNumItems={this.updateNumItems}
+        languages={languages}
+        updateLanguages={this.updateLanguages}
+        skipUids={skipUids}
+        updateSkipUids={this.updateSkipUids}
       />
     );
   }
