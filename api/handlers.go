@@ -309,64 +309,55 @@ func FeedHandler(c *gin.Context) {
 
 const FEED_SUGGESTER_JSON = `
 {
-  "name": "RoundRobinSuggester",
+  "name": "CompletionSuggester",
   "specs": [
     {
-      "name": "DataCollectionsSuggester",
-      "filters": [
+      "name": "LimitSuggester",
+      "specs": [
         {
-          "filter_selector": 1,
-          "args": [
-            "DAILY_LESSON"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "DataContentUnitsSuggester",
-      "filters": [
-        {
-          "filter_selector": 0,
-          "args": [
-            "VIDEO_PROGRAM_CHAPTER"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "DataCollectionsSuggester",
-      "filters": [
-        {
-          "filter_selector": 1,
-          "args": [
-            "CONGRESS"
-          ]
-        },
-        {
-          "filter_selector": 10,
-          "args": [
-            "172800"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "DataContentUnitsSuggester",
-      "filters": [
-        {
-          "filter_selector": 0,
-          "args": [
-            "FRIENDS_GATHERING"
-          ]
-        },
-        {
-          "filter_selector": 10,
-          "args": [
-            "172800"
+          "name": "DataCollectionsSuggester",
+          "filters": [
+            {
+              "filter_selector": 1,
+              "args": [
+                "DAILY_LESSON"
+              ]
+            }
           ]
         }
       ],
-      "order_selector": 0
+      "args": [
+        "1"
+      ]
+    },
+    {
+      "name": "SortSuggester",
+      "specs": [
+        {
+          "name": "DataCollectionsSuggester",
+          "filters": [
+            {
+              "filter_selector": 1,
+              "args": [
+                "DAILY_LESSON"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DataContentUnitsSuggester",
+          "filters": [
+            {
+              "filter_selector": 0,
+              "args": [
+                "VIDEO_PROGRAM_CHAPTER",
+                "MEAL",
+                "FRIENDS_GATHERING"
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }
