@@ -46,7 +46,7 @@ class Feed extends PureComponent {
 	};
 
 	renderItem(item) {
-		//console.log(item);
+		console.log(item);
 		const {id: mdbUid} = item;
 		const toLink = canonicalLink(item || { id: mdbUid, content_type: item.content_type }, "he");
 		if ([CT_DAILY_LESSON, CT_VIDEO_PROGRAM].includes(item.content_type)) {
@@ -112,42 +112,42 @@ class Feed extends PureComponent {
   }
 
   nextContentTypeState(contentType, options) {
-      return this.nextOptionState(
-          (options.content_types &&
-          contentType in options.content_types &&
-            options.content_types[contentType]) || '');
-    }
+    return this.nextOptionState(
+        (options.content_types &&
+        contentType in options.content_types &&
+          options.content_types[contentType]) || '');
+  }
 
-    nextOptionState(option) {
-        switch (option) {
-            case 'subscribe':
-                return 'unsubscribe';
-            case 'unsubscribe':
-                return 'default';
-            case 'default':
-                return 'subscribe';
-            default:
-                return 'subscribe';
-        }
+  nextOptionState(option) {
+    switch (option) {
+      case 'subscribe':
+        return 'unsubscribe';
+      case 'unsubscribe':
+        return 'default';
+      case 'default':
+        return 'subscribe';
+      default:
+        return 'subscribe';
     }
+  }
 
 	optionsChange(e, elem) {
-        //console.log(elem);
-        const {label} = elem;
+    //console.log(elem);
+    const {label} = elem;
 		const {subscribeCollections, updateOptions, options} = this.props;
-        const c = subscribeCollections.find((c) => c.name === label);
-        const update = c ? {
-            collections: {
-                [c.content_type]: {
-                    [c.id]: this.nextCollectionState(c.content_type, c.id, options),
-                },
+    const c = subscribeCollections.find((c) => c.name === label);
+    const update = c ? {
+        collections: {
+            [c.content_type]: {
+                [c.id]: this.nextCollectionState(c.content_type, c.id, options),
             },
-        } : {
-            content_types: {
-                [label]: this.nextContentTypeState(label, options),
-            },
-        };
-        updateOptions(update);
+        },
+    } : {
+        content_types: {
+            [label]: this.nextContentTypeState(label, options),
+        },
+    };
+    updateOptions(update);
 	}
 
   subscriptionChecked(value) {
@@ -211,7 +211,27 @@ class Feed extends PureComponent {
   }
 
 	render() {
-		const {items, options, more, reset, fetchingSubscribeCollections, subscribeCollections, spec, error, updateSpec, debugTimestamp, updateDebugTimestamp} = this.props;
+		const {
+      debugTimestamp,
+      error,
+      fetchingSubscribeCollections,
+      items,
+      languages,
+      more,
+      numItems,
+      options,
+      reset,
+      skipUids,
+      spec,
+      subscribeCollections,
+      updateDebugTimestamp,
+      updateLanguages,
+      updateNumItems,
+      updateSkipUids,
+      updateSpec,
+    } = this.props;
+
+    console.log('items', items);
 		//console.log(fetchingSubscribeCollections, subscribeCollections);
         //console.log('checked:', this.contentTypeChecked('CT_DAILY_LESSON', options),
         //    'indetermidiate:', this.contentTypeIndeterminate('CT_DAILY_LESSON', options));
@@ -237,6 +257,9 @@ class Feed extends PureComponent {
                 <table>
                   <tbody>
                     <tr><td>Debug timestamp:</td><td><Input placeholder='Debug timestamp...' defaultValue={debugTimestamp} onChange={(event, data) => updateDebugTimestamp(data.value)} /></td></tr>
+                    <tr><td>Num Items:</td><td><Input placeholder='Num Items to Recommend' defaultValue={numItems} onChange={(event, data) => updateNumItems(data.value)} /></td></tr>
+                    <tr><td>Languages:</td><td><Input placeholder='List of preffered languages' defaultValue={languages} onChange={(event, data) => updateLanguages(data.value)} /></td></tr>
+                    <tr><td>Skip Uids:</td><td><Input placeholder='List of uids' defaultValue={skipUids} onChange={(event, data) => updateSkipUids(data.value)} /></td></tr>
                   </tbody>
                 </table>
               </Segment>

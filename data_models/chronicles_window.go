@@ -25,7 +25,19 @@ const (
 	SCAN_SIZE       = 1000
 	MAX_INTERVAL    = time.Duration(time.Minute)
 	MIN_INTERVAL    = time.Duration(100 * time.Millisecond)
+	HTTP_RETRIES    = 3
 )
+
+type ScanHttpErrorRetry struct {
+	err error
+}
+
+func (e *ScanHttpErrorRetry) Error() string { return fmt.Sprintf("%+v", e.err) }
+
+func (e *ScanHttpErrorRetry) Is(target error) bool {
+	_, ok := target.(*ScanHttpErrorRetry)
+	return ok
+}
 
 type ChroniclesWindowModel struct {
 	localChroniclesDb *sql.DB
@@ -34,6 +46,7 @@ type ChroniclesWindowModel struct {
 
 	chroniclesUrl string
 	httpClient    *http.Client
+	httpRetries   int64
 	lastReadId    string
 	prevReadId    string
 }
@@ -58,6 +71,7 @@ func MakeChroniclesWindowModel(localChroniclesDb *sql.DB, chroniclesUrl string) 
 		time.Duration(time.Minute),
 		chroniclesUrl,
 		&http.Client{Timeout: 5 * time.Second},
+		HTTP_RETRIES,
 		lastReadId,
 		"",
 	}
@@ -82,8 +96,15 @@ func (m *ChroniclesWindowModel) ScanChroniclesEntries() ([]*models.Entry, error)
 		"application/json",
 		bytes.NewBuffer([]byte(fmt.Sprintf(`{"id":"%s","limit":%d}`, m.lastReadId, SCAN_SIZE))))
 	if err != nil {
-		return nil, err
+		log.Infof("Non http error %d %+v", m.httpRetries, err)
+		if m.httpRetries > 0 {
+			m.httpRetries -= 1
+			return nil, &ScanHttpErrorRetry{err}
+		} else {
+			return nil, err
+		}
 	}
+	m.httpRetries = HTTP_RETRIES
 	if resp.StatusCode != http.StatusOK { // OK
 		// TODO: Consider adding the body as error message.
 		return nil, errors.New(fmt.Sprintf("Response code %d for scan: %s.", resp.StatusCode, resp.Status))
@@ -116,6 +137,12 @@ type SearchSelectedData struct {
 
 func (m *ChroniclesWindowModel) Refresh() error {
 	if entries, err := m.ScanChroniclesEntries(); err != nil {
+		log.Debugf("Scan error: %+v.", err)
+		retryError := &ScanHttpErrorRetry{}
+		if errors.Is(err, retryError) {
+			log.Infof("Scan http error: %+v. Skipping and retrying.", err)
+			return nil
+		}
 		return err
 	} else {
 		// Insert entries to local table.

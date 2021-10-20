@@ -279,6 +279,7 @@ func ContentUnitsPrefilter(datas map[string]interface{}) map[string]bool {
 	for uid, cui := range datas {
 		data := cui.(*ContentUnitInfo)
 		if data.SecureAndPublished && !data.IsLessonPrep && data.TypeId != mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_KITEI_MAKOR].ID {
+			// Note: false has the same meaning as true, as we use maps for keys only.
 			ret[uid] = true
 		}
 	}
@@ -289,7 +290,10 @@ func CollectionsPrefilter(datas map[string]interface{}) map[string]bool {
 	ret := make(map[string]bool, len(datas))
 	for uid, ci := range datas {
 		data := ci.(*CollectionInfo)
-		ret[uid] = data.SecureAndPublished
+		if data.SecureAndPublished {
+			// Note: false has the same meaning as true, as we use maps for keys only.
+			ret[uid] = true
+		}
 	}
 	return ret
 }

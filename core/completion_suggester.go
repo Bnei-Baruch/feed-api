@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // Given slice of Suggesters will take the first one, if not enough
@@ -63,30 +64,31 @@ func (suggester *CompletionSuggester) UnmarshalSpec(suggesterContext SuggesterCo
 }
 
 func (suggester *CompletionSuggester) More(request MoreRequest) ([]ContentItem, error) {
-	if len(request.CurrentFeed) >= request.MoreItems {
-		return request.CurrentFeed, nil
-	}
 	allItems := make([][]ContentItem, len(suggester.suggesters))
-	suggestedSize := 0
 	for i := range request.CurrentFeed {
 		order := request.CurrentFeed[i].OriginalOrder[0]
 		request.CurrentFeed[i].OriginalOrder = request.CurrentFeed[i].OriginalOrder[1:]
 		allItems[order] = append(allItems[order], request.CurrentFeed[i])
-		suggestedSize++
+		// Skip uids from other suggesters from previous requests (e.g., from current feed)
+		request.Options.SkipUids = append(request.Options.SkipUids, request.CurrentFeed[i].UID)
 	}
+	suggestedSize := 0
 	for i, s := range suggester.suggesters {
 		suggesterRequest := request
 		suggesterRequest.CurrentFeed = allItems[i]
-		suggestedSize -= len(allItems[i])
 		err := error(nil)
+		log.Debugf("CompleteSuggester %d MoreRequest:%d  %+v  %+v", i, suggesterRequest.MoreItems, CurrentFeedsToUidsString(suggesterRequest.CurrentFeed), suggesterRequest.Options.SkipUids)
 		if allItems[i], err = s.More(suggesterRequest); err != nil {
 			return nil, err
 		} else {
 			for j := range allItems[i] {
 				allItems[i][j].OriginalOrder = append([]int64{int64(i)}, allItems[i][j].OriginalOrder...)
+				// Skip uids which previous suggester suggested.
+				request.Options.SkipUids = append(request.Options.SkipUids, allItems[i][j].UID)
 			}
 			suggestedSize += len(allItems[i])
 		}
+		log.Debugf("CompletionSuggester %d Suggested size %d MoreItems %d", i, suggestedSize, request.MoreItems)
 		if suggestedSize >= request.MoreItems {
 			break
 		}

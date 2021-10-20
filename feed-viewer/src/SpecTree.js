@@ -77,6 +77,7 @@ const SUGGESTERS = [
   "NewCollectionsSuggester",
   "DataContentUnitsSuggester",
   "DataCollectionsSuggester",
+  "LimitSuggester",
 ];
 
 const HAS_ARGS = [
@@ -91,6 +92,7 @@ const HAS_ARGS = [
   "PrevContentUnitsSameSourceSuggester",
   "RandomContentTypesSuggester",
   "RandomContentUnitsSameSourceSuggester",
+  "LimitSuggester",
 ];
 
 //const HAS_SECOND_ARGS = [
@@ -111,6 +113,7 @@ const HAS_SPECS = [
   "ContentTypeSuggester",
   "RoundRobinSuggester",
   "SortSuggester",
+  "LimitSuggester",
 ];
 
 const ADVANCED_SUGGESTORS = [
@@ -501,6 +504,11 @@ const SpecTree = (props) => {
   }
 
   const selectedSpec = (selected && find(selected, spec)) || null;
+  const updateLimit = (limit) => {
+    console.log(limit);
+    selectedSpec.args = [limit];
+    onChange(spec);
+  }
   const toggleArg = (contentType) => {
     if (!selectedSpec.args) {
       selectedSpec.args = [];
@@ -517,7 +525,6 @@ const SpecTree = (props) => {
   const selectedSpecName = selected.split('.').slice(-1)[0].split('-')[1];
   return (
     <div>
-      <Button.Group>
         <Dropdown
           button
           scrolling
@@ -528,26 +535,29 @@ const SpecTree = (props) => {
           value={''}
         />
         <Button disabled={!selected} onClick={() => { remove(selected, spec); fixRemoveSelectedExpanded(selected); }}>Remove</Button>
-        <Dropdown
-          button
-          scrolling
-          closeOnChange={false}
-          multiple
-          text='Content Types'
-          disabled={!selected || !HAS_ARGS.includes(selectedSpecName)}>
-          <Dropdown.Menu>
-            {ALL_CONTENT_TYPES.map(contentType => (
-              <Dropdown.Item key={contentType + selectedSpec?.args?.includes(contentType)} onClick={(e) => e.stopPropagation()}>
-                <Checkbox
-                  checked={selectedSpec?.args?.includes(contentType)}
-                  label={`${contentType} (${COLLECTION_TYPES.includes(contentType) ? 'collection' : 'content unit'})`}
-                  onClick={() => toggleArg(contentType)}
-                />
-              </Dropdown.Item>
-            ))}
-          </Dropdown.Menu>
-        </Dropdown>
-      </Button.Group>
+        {selectedSpecName === 'LimitSuggester' ?
+          <Input style={{width: '100px'}} splaceholder='Set limit...' onChange={(event, data) => updateLimit(data.value)}></Input>
+          : 
+          <Dropdown
+            button
+            scrolling
+            closeOnChange={false}
+            multiple
+            text='Content Types'
+            disabled={!selected || !HAS_ARGS.includes(selectedSpecName)}>
+            <Dropdown.Menu>
+              {ALL_CONTENT_TYPES.map(contentType => (
+                <Dropdown.Item key={contentType + selectedSpec?.args?.includes(contentType)} onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={selectedSpec?.args?.includes(contentType)}
+                    label={`${contentType} (${COLLECTION_TYPES.includes(contentType) ? 'collection' : 'content unit'})`}
+                    onClick={() => toggleArg(contentType)}
+                  />
+                </Dropdown.Item>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
+        }
       { spec ? SpecItem('', spec, expanded) : null }
       { selectedSpec && ADVANCED_SUGGESTORS.includes(selectedSpecName) ? SelectedSpec({spec, selectedSpec, selected, onChange}) : null }
     </div>
