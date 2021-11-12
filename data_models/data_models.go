@@ -143,9 +143,12 @@ const (
 			and a.client_event_type='player-play' 
 		order by a.created_at;`
 
-	INSERT_CONTENT_UNITS          = "insert-into_dwh_dim_content_units.sql"
-	INSERT_CONTENT_UNITS_MEASURES = "insert-into_dwh_content_units_measures.sql"
-	INSERT_EVENTS_BY_MINUTES      = "insert-into_dwh_fact_play_units_by_minutes.sql"
+	INSERT_CONTENT_UNITS                    = "dwh_dim_content_units.sql"
+	INSERT_CONTENT_UNITS_MEASURES           = "dwh_content_units_measures.sql"
+	INSERT_CONTENT_UNITS_2018_2021_MEASURES = "dwh_content_units_measures_2018_2021.sql"
+	INSERT_EVENTS_BY_MINUTES                = "dwh_fact_play_units_by_minutes.sql"
+	INSERT_DOWNLOAD_BY_MINUTES              = "dwh_fact_download_units_by_minutes.sql"
+	INSERT_PAGE_ENTER_BY_MINUTES            = "dwh_fact_page_enter_units_by_minutes.sql"
 )
 
 type ContentUnitInfo struct {
@@ -310,7 +313,7 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 	ci := MakeMDBDataModel(localMDB, "CollectionsInfo", time.Duration(time.Minute*10), COLLECTIONS_INFO_SQL, ScanCollectionInfo, CollectionsPrefilter)
 	cwm := MakeChroniclesWindowModel(cDb, chroniclesUrl)
 	sqlInsertContentUnits := MakeSqlRefreshModel([]string{INSERT_CONTENT_UNITS}, modelsDb)
-	sqlInsertEventsByDayUser := MakeSqlRefreshModel([]string{INSERT_EVENTS_BY_MINUTES, INSERT_CONTENT_UNITS_MEASURES}, modelsDb)
+	sqlInsertEventsByDayUser := MakeSqlRefreshModel([]string{INSERT_EVENTS_BY_MINUTES, INSERT_DOWNLOAD_BY_MINUTES, INSERT_PAGE_ENTER_BY_MINUTES, INSERT_CONTENT_UNITS_2018_2021_MEASURES, INSERT_CONTENT_UNITS_MEASURES}, modelsDb)
 	sqlDataModel := MakeSqlDataModel(modelsDb)
 
 	models := []RefreshModel{

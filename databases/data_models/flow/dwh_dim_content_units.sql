@@ -32,3 +32,4 @@ insert into dwh_dim_content_units (
   select * from dwh_dim_content_units_tmp
 );
 drop table dwh_dim_content_units_tmp;
+

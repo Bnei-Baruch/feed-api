@@ -54,6 +54,7 @@ func (cm *SqlRefreshModel) Refresh() error {
 	params := make(map[string]string)
 	cm.modelsDb.FillParams(params)
 
+	// Play units by minutes.
 	minutesPrevEndReadId := []struct {
 		IdMax null.String `boil:"id_max"`
 	}(nil)
@@ -63,10 +64,52 @@ func (cm *SqlRefreshModel) Refresh() error {
 	if len(minutesPrevEndReadId) == 1 && minutesPrevEndReadId[0].IdMax.Valid {
 		params["$minutes-prev-read-id"] = minutesPrevEndReadId[0].IdMax.String
 	} else {
-		params["$minutes-read-id"] = ""
+		params["$minutes-prev-read-id"] = ""
+	}
+
+	// Downloads by minutes.
+	downloadsMinutesPrevReadId := []struct {
+		IdMax null.String `boil:"id_max"`
+	}(nil)
+	if err := cm.modelsDb.With(models.NewQuery(qm.Select("max(event_id_max) as id_max"), qm.From("dwh_fact_download_units_by_minutes"))).Bind(context.TODO(), &downloadsMinutesPrevReadId); err != nil {
+		return err
+	}
+	if len(downloadsMinutesPrevReadId) == 1 && downloadsMinutesPrevReadId[0].IdMax.Valid {
+		params["$download-minutes-prev-read-id"] = downloadsMinutesPrevReadId[0].IdMax.String
+	} else {
+		params["$download-minutes-prev-read-id"] = ""
+	}
+
+	// Page enter by minutes.
+	pageEnterMinutesPrevReadId := []struct {
+		IdMax null.String `boil:"id_max"`
+	}(nil)
+	if err := cm.modelsDb.With(models.NewQuery(qm.Select("max(event_id_max) as id_max"), qm.From("dwh_fact_download_units_by_minutes"))).Bind(context.TODO(), &pageEnterMinutesPrevReadId); err != nil {
+		return err
+	}
+	if len(pageEnterMinutesPrevReadId) == 1 && pageEnterMinutesPrevReadId[0].IdMax.Valid {
+		params["$page-enter-minutes-prev-read-id"] = pageEnterMinutesPrevReadId[0].IdMax.String
+	} else {
+		params["$page-enter-minutes-prev-read-id"] = ""
+	}
+
+	// 2018 - 2021 odl content user measures.
+	contentUnitMeasuresOldCount := []struct {
+		Count null.Int64 `boil:"count"`
+	}(nil)
+	if err := cm.modelsDb.With(models.NewQuery(qm.Select("count(*) as count"), qm.From("dwh_content_units_measures_2018_2021"))).Bind(context.TODO(), &contentUnitMeasuresOldCount); err != nil {
+		return err
 	}
 
 	for i, sql := range cm.sqls {
+		// Skip adding old measures more than once.
+		if cm.sqlFiles[i] == INSERT_CONTENT_UNITS_2018_2021_MEASURES &&
+			len(contentUnitMeasuresOldCount) == 1 &&
+			contentUnitMeasuresOldCount[0].Count.Valid &&
+			contentUnitMeasuresOldCount[0].Count.Int64 > 0 {
+			log.Debugf("Skipping %s", cm.sqlFiles[i])
+			continue
+		}
 		for param, value := range params {
 			sql = strings.ReplaceAll(sql, param, value)
 		}
