@@ -149,13 +149,11 @@ func InitModelsDb() (db *sql.DB, params map[string]string, err error) {
 		return
 	} else {
 		params["mdb_conn"] = fmt.Sprintf("dbname=mdb user=%s password=%s", username, password)
-		log.Debugf("mdb_conn %s", params["mdb_conn"])
 	}
 	if username, password, err = GetUserPasswordFromConnectionString(viper.GetString("chronicles.local_url")); err != nil {
 		return
 	} else {
 		params["chronicles_conn"] = fmt.Sprintf("dbname=chronicles user=%s password=%s", username, password)
-		log.Infof("chronicles_conn dblink_connected")
 	}
 	return
 }

@@ -1,3 +1,5 @@
+CREATE EXTENSION dblink;
+
 DROP TABLE IF EXISTS dwh_content_units_measures;
 CREATE TABLE IF NOT EXISTS dwh_content_units_measures
 (
