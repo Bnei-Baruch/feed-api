@@ -72,7 +72,8 @@ insert into dwh_content_units_measures (
 	unique_users_watching_now_count,
 	page_enter_events_count,
 	download_events_count,
-	page_enter_count as page_enter_events_count_2018
+	page_enter_count as page_enter_events_count_2018,
+  COALESCE(page_enter_events_count, 0) + COALESCE(download_events_count, 0) + COALESCE(page_enter_count, 0) as total_page_enter_count
 	from 
 	(select distinct content_unit_uid as event_unit_uid from dwh_dim_content_units
 	) u
