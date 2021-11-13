@@ -8,6 +8,7 @@ import (
 	"github.com/Bnei-Baruch/feed-api/common"
 	"github.com/Bnei-Baruch/feed-api/databases/data_models/models"
 	"github.com/Bnei-Baruch/feed-api/utils"
+	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/queries/qm"
 )
 
@@ -20,8 +21,8 @@ func MakeSqlDataModel(modelsDb *common.Connection) *SqlDataModel {
 }
 
 type Count struct {
-	Uid   string `boil:"uid"`
-	Count int64  `boil:"count"`
+	Uid   null.String `boil:"uid"`
+	Count null.Int64  `boil:"count"`
 }
 
 func (dm *SqlDataModel) WatchingNow(uids []string) ([]int64, error) {
@@ -52,7 +53,9 @@ func (dm *SqlDataModel) AllWatchingNow() (map[string]int64, error) {
 	utils.Profile("AllWatchingNow.Sql", time.Now().Sub(start))
 	cMap := make(map[string]int64, len(count))
 	for _, c := range count {
-		cMap[c.Uid] = c.Count
+		if c.Uid.Valid && c.Count.Valid {
+			cMap[c.Uid.String] = c.Count.Int64
+		}
 	}
 	return cMap, nil
 }
@@ -83,15 +86,19 @@ func (dm *SqlDataModel) Views(uids []string) ([]int64, error) {
 func (dm *SqlDataModel) AllViews() (map[string]int64, error) {
 	count := []Count(nil)
 	if err := dm.modelsDb.With(models.NewQuery(
-		qm.Select("event_unit_uid as uid, all_events_count as count"),
+		qm.Select("event_unit_uid as uid, total_page_enter_count as count"),
 		qm.From("dwh_content_units_measures"),
-		qm.Where("unique_users_count > 0"),
+		qm.Where("total_page_enter_count > 0"),
 	)).Bind(context.TODO(), &count); err != nil {
 		return nil, err
 	}
 	cMap := make(map[string]int64, len(count))
 	for _, c := range count {
-		cMap[c.Uid] = c.Count
+		if c.Uid.Valid && c.Uid.String == "6GMGi67e" {
+		}
+		if c.Uid.Valid && c.Count.Valid {
+			cMap[c.Uid.String] = c.Count.Int64
+		}
 	}
 	return cMap, nil
 }
@@ -138,7 +145,9 @@ func (dm *SqlDataModel) AllUniqueViews() (map[string]int64, error) {
 	}
 	cMap := make(map[string]int64, len(count))
 	for _, c := range count {
-		cMap[c.Uid] = c.Count
+		if c.Uid.Valid && c.Count.Valid {
+			cMap[c.Uid.String] = c.Count.Int64
+		}
 	}
 	return cMap, nil
 }
