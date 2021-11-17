@@ -84,7 +84,7 @@ func (cm *SqlRefreshModel) Refresh() error {
 	pageEnterMinutesPrevReadId := []struct {
 		IdMax null.String `boil:"id_max"`
 	}(nil)
-	if err := cm.modelsDb.With(models.NewQuery(qm.Select("max(event_id_max) as id_max"), qm.From("dwh_fact_download_units_by_minutes"))).Bind(context.TODO(), &pageEnterMinutesPrevReadId); err != nil {
+	if err := cm.modelsDb.With(models.NewQuery(qm.Select("max(event_id_max) as id_max"), qm.From("dwh_fact_page_enter_units_by_minutes"))).Bind(context.TODO(), &pageEnterMinutesPrevReadId); err != nil {
 		return err
 	}
 	if len(pageEnterMinutesPrevReadId) == 1 && pageEnterMinutesPrevReadId[0].IdMax.Valid {
