@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/volatiletech/sqlboiler/boil"
 	"github.com/volatiletech/sqlboiler/queries"
 	"github.com/volatiletech/sqlboiler/queries/qm"
 
@@ -21,11 +21,12 @@ import (
 )
 
 const (
-	MAX_WINDOW_SIZE = 2000000
-	SCAN_SIZE       = 1000
-	MAX_INTERVAL    = time.Duration(time.Minute)
-	MIN_INTERVAL    = time.Duration(100 * time.Millisecond)
-	HTTP_RETRIES    = 3
+	MAX_WINDOW_SIZE     = 2000000
+	SCAN_SIZE           = 50000
+	MAX_INTERVAL        = time.Duration(10 * 1000 * time.Millisecond)
+	MIN_INTERVAL        = time.Duration(100 * time.Millisecond)
+	HTTP_RETRIES        = 3
+	DELETE_INSERT_RATIO = 10
 )
 
 type ScanHttpErrorRetry struct {
@@ -49,6 +50,9 @@ type ChroniclesWindowModel struct {
 	httpRetries   int64
 	lastReadId    string
 	prevReadId    string
+
+	refreshCount int64
+	totalCount   int64
 }
 
 func (m *ChroniclesWindowModel) LastReadId() string {
@@ -65,15 +69,19 @@ func MakeChroniclesWindowModel(localChroniclesDb *sql.DB, chroniclesUrl string) 
 		lastReadId = entry.ID
 	}
 
+	log.Debugf("Chronicles Window last read id: %+s", lastReadId)
+
 	return &ChroniclesWindowModel{
 		localChroniclesDb,
 		"ChroniclesWindowModel",
-		time.Duration(time.Minute),
+		MAX_INTERVAL,
 		chroniclesUrl,
 		&http.Client{Timeout: 5 * time.Second},
 		HTTP_RETRIES,
 		lastReadId,
 		"",
+		0,
+		0,
 	}
 }
 
@@ -136,8 +144,9 @@ type SearchSelectedData struct {
 }
 
 func (m *ChroniclesWindowModel) Refresh() error {
+	log.Debugf("Scanning entries...")
 	if entries, err := m.ScanChroniclesEntries(); err != nil {
-		log.Debugf("Scan error: %+v.", err)
+		log.Infof("Scan error: %+v.", err)
 		retryError := &ScanHttpErrorRetry{}
 		if errors.Is(err, retryError) {
 			log.Infof("Scan http error: %+v. Skipping and retrying.", err)
@@ -146,14 +155,15 @@ func (m *ChroniclesWindowModel) Refresh() error {
 		return err
 	} else {
 		// Insert entries to local table.
-		log.Debugf("Inserting %d entries.", len(entries))
 		if len(entries) == SCAN_SIZE {
 			m.interval = utils.MaxDuration(m.interval/2, MIN_INTERVAL)
 		} else {
 			m.interval = utils.MinDuration(m.interval*2, MAX_INTERVAL)
 		}
 		log.Debugf("Updated interval to %s", m.interval)
+		log.Debugf("Inserting %d entries.", len(entries))
 		start := time.Now()
+		allValues := []string(nil)
 		for _, entry := range entries {
 			instrumentation.Stats.EntriesCounterVec.WithLabelValues(entry.ClientEventType).Inc()
 			switch entry.ClientEventType {
@@ -184,7 +194,6 @@ func (m *ChroniclesWindowModel) Refresh() error {
 			case "search":
 				instrumentation.Stats.SearchCounter.Inc()
 			case "search-selected":
-				log.Debugf("search-selected: %+v", entry)
 				instrumentation.Stats.SearchSelectedCounter.Inc()
 				if entry.Data.Valid {
 					var ssd SearchSelectedData
@@ -192,7 +201,6 @@ func (m *ChroniclesWindowModel) Refresh() error {
 						return err
 					}
 					if ssd.Rank != nil {
-						log.Debugf("Rank %d", *ssd.Rank)
 						instrumentation.Stats.SearchSelectedRankHistogram.Observe(float64(*ssd.Rank))
 					}
 				} else {
@@ -203,28 +211,68 @@ func (m *ChroniclesWindowModel) Refresh() error {
 			case "autocomplete-selected":
 				instrumentation.Stats.AutocompleteSelectedCounter.Inc()
 			}
-			if err := entry.Insert(m.localChroniclesDb, boil.Infer()); err != nil {
-				return err
+
+			entryValues := []string{
+				fmt.Sprintf("'%s'", entry.ID),
+				fmt.Sprintf("timestamp with time zone 'epoch' + %d * interval '1 microseconds'", entry.CreatedAt.UnixNano()/1000),
+				fmt.Sprintf("'%s'", entry.UserID),
+				fmt.Sprintf("'%s'", entry.IPAddr),
+				fmt.Sprintf("'%s'", strings.ReplaceAll(entry.UserAgent, "'", "''")),
+				fmt.Sprintf("'%s'", entry.Namespace),
+				utils.NullStringToValue(entry.ClientEventID),
+				fmt.Sprintf("'%s'", entry.ClientEventType),
+				utils.NullStringToValue(entry.ClientFlowID),
+				utils.NullStringToValue(entry.ClientFlowType),
+				utils.NullStringToValue(entry.ClientSessionID),
+				utils.NullJSONToValue(entry.Data),
 			}
+			allValues = append(allValues, fmt.Sprintf("(%s)", strings.Join(entryValues, ",")))
 		}
-		log.Debugf("Insert done in %s", time.Now().Sub(start))
-		if entry, err := models.Entries(qm.OrderBy("id desc"), qm.Offset(MAX_WINDOW_SIZE)).One(m.localChroniclesDb); err == nil && entry != nil {
-			log.Debugf("Deleting from id: %s", entry.ID)
-			if result, err := queries.Raw(fmt.Sprintf("delete from entries where id <= '%s'", entry.ID)).Exec(m.localChroniclesDb); err != nil {
-				log.Warnf("Failed deleting from local chronicles %+v", err)
+
+		entryAllColumns := []string{"id", "created_at", "user_id", "ip_addr", "user_agent", "namespace", "client_event_id", "client_event_type", "client_flow_id", "client_flow_type", "client_session_id", "data"}
+		insertQuery := fmt.Sprintf("INSERT INTO entries (%s) VALUES %s", strings.Join(entryAllColumns, ","), strings.Join(allValues, ","))
+		if result, err := queries.Raw(insertQuery).Exec(m.localChroniclesDb); err != nil {
+			log.Warnf("SQL: %s", insertQuery)
+			log.Warnf("Failed inserting into local chronicles %+v", err)
+			return err
+		} else {
+			if rowsInserted, err := result.RowsAffected(); err != nil {
+				log.Warnf("Failed getting inserted count %+v", err)
 				return err
 			} else {
-				if rowsDeleted, err := result.RowsAffected(); err != nil {
-					log.Warnf("Failed getting deleted count %+v", err)
+				m.totalCount += rowsInserted
+				log.Debugf("Inserted %d entries to local chronicles by offset. Total of %d.", rowsInserted, m.totalCount)
+			}
+		}
+
+		log.Debugf("Insert done in %s", time.Now().Sub(start))
+
+		m.refreshCount += 1
+		if m.interval == MAX_INTERVAL || m.refreshCount == DELETE_INSERT_RATIO {
+			m.refreshCount = 0
+			log.Debugf("Checking delete window.")
+			start = time.Now()
+			if entry, err := models.Entries(qm.OrderBy("id desc"), qm.Offset(MAX_WINDOW_SIZE)).One(m.localChroniclesDb); err == nil && entry != nil {
+				log.Debugf("Deleting from id: %s (%s)", entry.ID, time.Now().Sub(start))
+				start = time.Now()
+				if result, err := queries.Raw(fmt.Sprintf("delete from entries where id <= '%s'", entry.ID)).Exec(m.localChroniclesDb); err != nil {
+					log.Warnf("Failed deleting from local chronicles %+v", err)
 					return err
 				} else {
-					log.Debugf("Deleted %d entries from local chronicles by offset.", rowsDeleted)
+					if rowsDeleted, err := result.RowsAffected(); err != nil {
+						log.Warnf("Failed getting deleted count %+v", err)
+						return err
+					} else {
+						log.Debugf("Deleted %d entries from local chronicles by offset.", rowsDeleted)
+					}
 				}
+			} else {
+				log.Debugf("No delete required.")
 			}
+			log.Debugf("Delete done in %s", time.Now().Sub(start))
 		} else {
-			log.Debugf("No delete required.")
+			log.Debugf("Skipping delete")
 		}
-		log.Debugf("Delete done in %s", time.Now().Sub(start))
 	}
 	return nil
 }
