@@ -119,7 +119,7 @@ func (cm *SqlRefreshModel) Refresh() error {
 		if result, err := cm.modelsDb.With(queries.Raw(sql)).Exec(); err != nil {
 			log.Warnf("Error running sql %s: %+v", cm.sqlFiles[i], err)
 		} else {
-			log.Infof("Updated sql %s, result: %+v", cm.sqlFiles[i], result)
+			log.Debugf("Updated sql %s, result: %+v", cm.sqlFiles[i], result)
 		}
 		utils.Profile(fmt.Sprintf("SqlDataModel: %s", cm.sqlFiles[i]), time.Now().Sub(start))
 	}
