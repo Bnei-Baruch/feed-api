@@ -233,6 +233,7 @@ func (cm *ChainModel) Name() string {
 func (cm *ChainModel) Refresh() error {
 	for i := range cm.models {
 		if when, ok := cm.nextRefresh[i]; ok && when.Before(time.Now()) {
+			log.Debugf("Refreshing %d: %s", i, cm.models[i].Name())
 			if err := cm.models[i].Refresh(); err != nil {
 				return err
 			}
@@ -372,6 +373,7 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 }
 
 func refreshModel(model RefreshModel) error {
+	log.Debugf("Refreshing Model %s", model.Name())
 	start := time.Now()
 	err := model.Refresh()
 	end := time.Now()

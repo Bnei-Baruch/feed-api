@@ -29,9 +29,9 @@ select
 
 	from entries a join entries b on (a.client_event_id=b.client_flow_id and b.client_event_type=''player-stop'')
     where 
-	a.client_event_type=''player-play''
     /** for incremental loading **/ 
-	and b.id > ''$minutes-prev-read-id''
+    b.id > ''$minutes-prev-read-id'' and
+	  a.client_event_type=''player-play''
   ') as a(
     event_unit_uid character varying,
     event_user_id character varying(64),	  

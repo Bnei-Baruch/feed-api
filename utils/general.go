@@ -10,6 +10,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/volatiletech/null"
 )
 
 type ProfileData struct {
@@ -343,4 +344,18 @@ func reverseAny(s interface{}) {
 	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
 		swap(i, j)
 	}
+}
+
+func NullStringToValue(s null.String) string {
+	if s.Valid {
+		return fmt.Sprintf("'%s'", strings.ReplaceAll(s.String, "'", "''"))
+	}
+	return "NULL"
+}
+
+func NullJSONToValue(j null.JSON) string {
+	if j.Valid {
+		return fmt.Sprintf("'%s'", strings.ReplaceAll(string(j.JSON), "'", "''"))
+	}
+	return "NULL"
 }
