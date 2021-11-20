@@ -23,7 +23,7 @@ import (
 const (
 	MAX_WINDOW_SIZE     = 2000000
 	SCAN_SIZE           = 50000
-	MAX_INTERVAL        = time.Duration(10 * 1000 * time.Millisecond)
+	MAX_INTERVAL        = time.Duration(time.Minute)
 	MIN_INTERVAL        = time.Duration(100 * time.Millisecond)
 	HTTP_RETRIES        = 3
 	DELETE_INSERT_RATIO = 10

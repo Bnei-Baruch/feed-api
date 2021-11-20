@@ -93,14 +93,12 @@ func (dm *SqlDataModel) AllViews() (map[string]int64, error) {
 		return nil, err
 	}
 	cMap := make(map[string]int64, len(count))
-	return cMap, nil
-	/* NOTE: For now return empty views map, until fixed the chronicles sqls.
 	for _, c := range count {
 		if c.Uid.Valid && c.Count.Valid {
 			cMap[c.Uid.String] = c.Count.Int64
 		}
 	}
-	return cMap, nil*/
+	return cMap, nil
 }
 
 func (dm *SqlDataModel) SortPopular(uids []string) error {
