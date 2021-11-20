@@ -50,8 +50,8 @@ func (cm *SqlRefreshModel) Name() string {
 }
 
 func (cm *SqlRefreshModel) Refresh() error {
-	log.Info("Update sql models.")
-	defer log.Infof("Update sql models done.")
+	log.Debug("Update sql models.")
+	defer log.Debugf("Update sql models done.")
 	params := make(map[string]string)
 	cm.modelsDb.FillParams(params)
 
@@ -115,7 +115,7 @@ func (cm *SqlRefreshModel) Refresh() error {
 			sql = strings.ReplaceAll(sql, param, value)
 		}
 		start := time.Now()
-		log.Infof("Running %s with %+v", cm.sqlFiles[i], params)
+		log.Debugf("Running %s with %+v", cm.sqlFiles[i], params)
 		if result, err := cm.modelsDb.With(queries.Raw(sql)).Exec(); err != nil {
 			log.Warnf("Error running sql %s: %+v", cm.sqlFiles[i], err)
 		} else {
