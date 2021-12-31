@@ -122,7 +122,7 @@ const (
 		select
 			c.type_id,
 			c.uid as uid,
-			coalesce(c.properties->>'start_date', c.created_at::text)::date as date,
+			coalesce(c.properties->>'film_date', c.properties->>'start_date', c.created_at::text)::date as date,
 			c.created_at as created_at,
 			c.secure = 0 AND c.published IS TRUE as secure_and_published,
 			c.properties->>'source'

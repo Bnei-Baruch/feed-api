@@ -1,7 +1,19 @@
 import React, { PureComponent } from 'react';
 
 import PropTypes from 'prop-types';
-import { Button, Checkbox, Container, Dimmer, Grid, Icon, Input, Loader, Segment, TextArea } from 'semantic-ui-react'
+import {
+  Button,
+  // Checkbox,
+  Container,
+  // Dimmer,
+  Grid,
+  Icon,
+  Input,
+  // Loader,
+  Radio,
+  Segment,
+  TextArea,
+} from 'semantic-ui-react'
 
 import SpecTree from './SpecTree.js'
 
@@ -10,10 +22,10 @@ import { CT_DAILY_LESSON, CT_VIDEO_PROGRAM } from './helpers/consts';
 import { canonicalLink } from './helpers/links';
 
 class Feed extends PureComponent {
-  constructor() {
+  /*constructor() {
     super();
-    this.optionsChange = this.optionsChange.bind(this);
-  }
+    /*this.optionsChange = this.optionsChange.bind(this);* /
+  }*/
 
 	static propTypes = {
 		items: PropTypes.arrayOf(PropTypes.shape({})),
@@ -21,8 +33,8 @@ class Feed extends PureComponent {
 		more: PropTypes.func,
 		reset: PropTypes.func,
 		updateOptions: PropTypes.func,
-		fetchingSubscribeCollections: PropTypes.bool,
-		subscribeCollections: PropTypes.arrayOf(PropTypes.shape({})),
+		/*fetchingSubscribeCollections: PropTypes.bool,
+		subscribeCollections: PropTypes.arrayOf(PropTypes.shape({})),*/
     error: PropTypes.string,
 	};
 
@@ -103,6 +115,7 @@ class Feed extends PureComponent {
 		}
 	}
 
+  /*
   nextCollectionState(contentType, mid, options) {
       return this.nextOptionState(
           (options.collections &&
@@ -209,22 +222,25 @@ class Feed extends PureComponent {
       }
       return this.subscriptionIndeterminate(options.collections[contentType][collectionMid]);
   }
+  */
 
 	render() {
 		const {
       debugTimestamp,
       error,
-      fetchingSubscribeCollections,
+      feedOrMore,
+      // fetchingSubscribeCollections,
       items,
       languages,
       more,
       numItems,
-      options,
+      // options,
       reset,
       skipUids,
       spec,
-      subscribeCollections,
+      // subscribeCollections,
       updateDebugTimestamp,
+      updateFeedOrMore,
       updateLanguages,
       updateNumItems,
       updateSkipUids,
@@ -256,10 +272,11 @@ class Feed extends PureComponent {
               <Segment textAlign='left'>
                 <table>
                   <tbody>
-                    <tr><td>Debug timestamp:</td><td><Input placeholder='Debug timestamp...' defaultValue={debugTimestamp} onChange={(event, data) => updateDebugTimestamp(data.value)} /></td></tr>
-                    <tr><td>Num Items:</td><td><Input placeholder='Num Items to Recommend' defaultValue={numItems} onChange={(event, data) => updateNumItems(data.value)} /></td></tr>
-                    <tr><td>Languages:</td><td><Input placeholder='List of preffered languages' defaultValue={languages} onChange={(event, data) => updateLanguages(data.value)} /></td></tr>
-                    <tr><td>Skip Uids:</td><td><Input placeholder='List of uids' defaultValue={skipUids} onChange={(event, data) => updateSkipUids(data.value)} /></td></tr>
+                    <tr><td>Feed</td><td><Radio toggle defaultChecked={feedOrMore !== 'feed'} onChange={(event, data) => { console.log(event, data); updateFeedOrMore(data.checked ? 'more' : 'feed')}} /></td><td>More</td></tr>
+                    <tr><td>Debug timestamp:</td><td colSpan="2"><Input placeholder='Debug timestamp...' defaultValue={debugTimestamp} onChange={(event, data) => updateDebugTimestamp(data.value)} /></td></tr>
+                    <tr><td>Num Items:</td><td colSpan="2"><Input placeholder='Num Items to Recommend' defaultValue={numItems} onChange={(event, data) => updateNumItems(data.value)} /></td></tr>
+                    <tr><td>Languages:</td><td colSpan="2"><Input placeholder='List of preffered languages' defaultValue={languages} onChange={(event, data) => updateLanguages(data.value)} /></td></tr>
+                    <tr><td>Skip Uids:</td><td colSpan="2"><Input placeholder='List of uids' defaultValue={skipUids} onChange={(event, data) => updateSkipUids(data.value)} /></td></tr>
                   </tbody>
                 </table>
               </Segment>
@@ -273,82 +290,85 @@ class Feed extends PureComponent {
                   <TextArea placeholder='Spec' rows="10" style={{'width': '100%'}} value={spec} onChange={(event, data) => updateSpec(data.value)} />
                 </div>
               </Segment>
-							<h3>Subscriptions</h3>
-							<Segment textAlign='left'>
-								<Checkbox label='CT_DAILY_LESSON'
-                                    checked={this.contentTypeChecked('CT_DAILY_LESSON', options)}
-                                    indeterminate={this.contentTypeIndeterminate('CT_DAILY_LESSON', options)}
-                                    onChange={this.optionsChange} />
-							</Segment>
-							<Segment textAlign='left'>
-								<Checkbox label='CT_LECTURE'
-                                    checked={this.contentTypeChecked('CT_LECTURE', options)}
-                                    indeterminate={this.contentTypeIndeterminate('CT_LECTURE', options)}
-                                    onChange={this.optionsChange} /><br />
-								<Checkbox label='CT_VIRTUAL_LESSON'
-                                    checked={this.contentTypeChecked('CT_VIRTUAL_LESSON', options)}
-                                    indeterminate={this.contentTypeIndeterminate('CT_VIRTUAL_LESSON', options)}
-                                    onChange={this.optionsChange} /><br />
-								<Checkbox label='CT_WOMEN_LESSON'
-                                    checked={this.contentTypeChecked('CT_WOMEN_LESSON', options)}
-                                    indeterminate={this.contentTypeIndeterminate('CT_WOMEN_LESSON', options)}
-                                    onChange={this.optionsChange} /><br />
-								<Checkbox label='CT_EVENT_PART'
-                                    checked={this.contentTypeChecked('CT_EVENT_PART', options)}
-                                    indeterminate={this.contentTypeIndeterminate('CT_EVENT_PART', options)}
-                                    onChange={this.optionsChange} />
-							</Segment>
-							<Segment textAlign='left'>
-								<Checkbox label='CT_VIDEO_PROGRAM_CHAPTER'
-                                    checked={this.contentTypeChecked('CT_VIDEO_PROGRAM_CHAPTER', options)}
-                                    indeterminate={this.contentTypeIndeterminate('CT_VIDEO_PROGRAM_CHAPTER', options)}
-                                    onChange={this.optionsChange} />
-                            </Segment>
-                            <Segment textAlign='left'>
-                                <Checkbox label='CT_BLOG_POST'
-                                    checked={this.contentTypeChecked('CT_BLOG_POST', options)}
-                                    indeterminate={this.contentTypeIndeterminate('CT_BLOG_POST', options)}
-                                    onChange={this.optionsChange} /><br />
-                                <Checkbox label='CT_ARTICLE'
-                                    checked={this.contentTypeChecked('CT_ARTICLE', options)}
-                                    indeterminate={this.contentTypeIndeterminate('CT_ARTICLE', options)}
-                                    onChange={this.optionsChange} /><br />
-                                <Checkbox label='CT_PUBLICATION'
-                                    checked={this.contentTypeChecked('CT_PUBLICATION', options)}
-                                    indeterminate={this.contentTypeIndeterminate('CT_PUBLICATION', options)}
-                                    onChange={this.optionsChange} /><br />
-                            </Segment>
-                            <Segment textAlign='left'>
-                                <Checkbox label='CT_FRIENDS_GATHERING'
-                                    checked={this.contentTypeChecked('CT_FRIENDS_GATHERING', options)}
-                                    indeterminate={this.contentTypeIndeterminate('CT_FRIENDS_GATHERING', options)}
-                                    onChange={this.optionsChange} /><br />
-                                <Checkbox label='CT_MEAL'
-                                    checked={this.contentTypeChecked('CT_MEAL', options)}
-                                    indeterminate={this.contentTypeIndeterminate('CT_MEAL', options)}
-                                    onChange={this.optionsChange} />
-                            </Segment>
-                            <Segment textAlign='left'>
-                                <Checkbox label='CT_CLIP'
-                                    checked={this.contentTypeChecked('CT_CLIP', options)}
-                                    indeterminate={this.contentTypeIndeterminate('CT_CLIP', options)}
-                                    onChange={this.optionsChange} />
-                            </Segment>
-                            <h4>Subscribe programs, clips or articles:</h4>
-                            <Segment textAlign='left' style={{overflow: 'auto', maxHeight: 200, minHeight: 50}}>
-                                <Dimmer active={fetchingSubscribeCollections} inverted>
-                                    <Loader inverted/>
-                                </Dimmer>
-                                {subscribeCollections.map(option => {
-                                    return (<Container key={option.id}>
-                                        <Checkbox label={option.name}
-                                            checked={this.collectionChecked(option.content_type, option.id, options)}
-                                            indeterminate={this.collectionIndeterminate(option.content_type, option.id, options)}
-                                            onChange={this.optionsChange} />
-                                    </Container>);
-                                })}
-                            </Segment>
-						</Segment>
+              { null /*
+                <h3>Subscriptions</h3>
+                <Segment textAlign='left'>
+                  <Checkbox label='CT_DAILY_LESSON'
+                                      checked={this.contentTypeChecked('CT_DAILY_LESSON', options)}
+                                      indeterminate={this.contentTypeIndeterminate('CT_DAILY_LESSON', options)}
+                                      onChange={this.optionsChange} />
+                </Segment>
+                <Segment textAlign='left'>
+                  <Checkbox label='CT_LECTURE'
+                                      checked={this.contentTypeChecked('CT_LECTURE', options)}
+                                      indeterminate={this.contentTypeIndeterminate('CT_LECTURE', options)}
+                                      onChange={this.optionsChange} /><br />
+                  <Checkbox label='CT_VIRTUAL_LESSON'
+                                      checked={this.contentTypeChecked('CT_VIRTUAL_LESSON', options)}
+                                      indeterminate={this.contentTypeIndeterminate('CT_VIRTUAL_LESSON', options)}
+                                      onChange={this.optionsChange} /><br />
+                  <Checkbox label='CT_WOMEN_LESSON'
+                                      checked={this.contentTypeChecked('CT_WOMEN_LESSON', options)}
+                                      indeterminate={this.contentTypeIndeterminate('CT_WOMEN_LESSON', options)}
+                                      onChange={this.optionsChange} /><br />
+                  <Checkbox label='CT_EVENT_PART'
+                                      checked={this.contentTypeChecked('CT_EVENT_PART', options)}
+                                      indeterminate={this.contentTypeIndeterminate('CT_EVENT_PART', options)}
+                                      onChange={this.optionsChange} />
+                </Segment>
+                <Segment textAlign='left'>
+                  <Checkbox label='CT_VIDEO_PROGRAM_CHAPTER'
+                                      checked={this.contentTypeChecked('CT_VIDEO_PROGRAM_CHAPTER', options)}
+                                      indeterminate={this.contentTypeIndeterminate('CT_VIDEO_PROGRAM_CHAPTER', options)}
+                                      onChange={this.optionsChange} />
+                              </Segment>
+                              <Segment textAlign='left'>
+                                  <Checkbox label='CT_BLOG_POST'
+                                      checked={this.contentTypeChecked('CT_BLOG_POST', options)}
+                                      indeterminate={this.contentTypeIndeterminate('CT_BLOG_POST', options)}
+                                      onChange={this.optionsChange} /><br />
+                                  <Checkbox label='CT_ARTICLE'
+                                      checked={this.contentTypeChecked('CT_ARTICLE', options)}
+                                      indeterminate={this.contentTypeIndeterminate('CT_ARTICLE', options)}
+                                      onChange={this.optionsChange} /><br />
+                                  <Checkbox label='CT_PUBLICATION'
+                                      checked={this.contentTypeChecked('CT_PUBLICATION', options)}
+                                      indeterminate={this.contentTypeIndeterminate('CT_PUBLICATION', options)}
+                                      onChange={this.optionsChange} /><br />
+                              </Segment>
+                              <Segment textAlign='left'>
+                                  <Checkbox label='CT_FRIENDS_GATHERING'
+                                      checked={this.contentTypeChecked('CT_FRIENDS_GATHERING', options)}
+                                      indeterminate={this.contentTypeIndeterminate('CT_FRIENDS_GATHERING', options)}
+                                      onChange={this.optionsChange} /><br />
+                                  <Checkbox label='CT_MEAL'
+                                      checked={this.contentTypeChecked('CT_MEAL', options)}
+                                      indeterminate={this.contentTypeIndeterminate('CT_MEAL', options)}
+                                      onChange={this.optionsChange} />
+                              </Segment>
+                              <Segment textAlign='left'>
+                                  <Checkbox label='CT_CLIP'
+                                      checked={this.contentTypeChecked('CT_CLIP', options)}
+                                      indeterminate={this.contentTypeIndeterminate('CT_CLIP', options)}
+                                      onChange={this.optionsChange} />
+                              </Segment>
+                              <h4>Subscribe programs, clips or articles:</h4>
+                              <Segment textAlign='left' style={{overflow: 'auto', maxHeight: 200, minHeight: 50}}>
+                                  <Dimmer active={fetchingSubscribeCollections} inverted>
+                                      <Loader inverted/>
+                                  </Dimmer>
+                                  {subscribeCollections.map(option => {
+                                      return (<Container key={option.id}>
+                                          <Checkbox label={option.name}
+                                              checked={this.collectionChecked(option.content_type, option.id, options)}
+                                              indeterminate={this.collectionIndeterminate(option.content_type, option.id, options)}
+                                              onChange={this.optionsChange} />
+                                      </Container>);
+                                  })}
+                              </Segment>
+                              */
+                }
+              </Segment>
 					</Grid.Column>
 					<Grid.Column>
 						<Segment style={{overflow: 'auto', maxHeight: '80vh'}}>

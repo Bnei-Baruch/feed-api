@@ -2,14 +2,15 @@ import React, { Component } from 'react'
 import merge from 'lodash/merge';
 import isEqual from 'lodash/isEqual'
 import Feed from './Feed.js'
-import {
+/*import {
 	CT_VIDEO_PROGRAM,
 	CT_CLIPS,
 	CT_ARTICLES,
-} from './helpers/consts'
+} from './helpers/consts'*/
 import {
   more,
-  paramsToUrl,
+  feed as feedFunc,
+//  paramsToUrl,
 } from './api'
 
 class FeedContainer extends Component {
@@ -19,8 +20,8 @@ class FeedContainer extends Component {
       feed: [],
       items: [],
       itemsByUid: {},
-      fetchingSubscribeCollections: false,
-      subscribeCollections: [],
+      /*fetchingSubscribeCollections: false,
+      subscribeCollections: [],*/
       options: {},
       error: '',
       spec: new URLSearchParams(window.location.search).get('spec') || '',
@@ -28,6 +29,7 @@ class FeedContainer extends Component {
       numItems: new URLSearchParams(window.location.search).get('num_items') || '20',
       languages: new URLSearchParams(window.location.search).get('languages') || 'he,en',
       skipUids: new URLSearchParams(window.location.search).get('skip_uids') || '',
+      feedOrMore: new URLSearchParams(window.location.search).get('feed_or_more') || 'feed',
     };
     this.moreHandler = this.moreHandler.bind(this);
     this.resetHandler = this.resetHandler.bind(this);
@@ -37,11 +39,12 @@ class FeedContainer extends Component {
     this.updateNumItems = this.updateNumItems.bind(this);
     this.updateLanguages = this.updateLanguages.bind(this);
     this.updateSkipUids = this.updateSkipUids.bind(this);
+    this.updateFeedOrMore = this.updateFeedOrMore.bind(this);
   }
 
   componentDidMount() {
     this.moreHandler();
-    this.fetchSubscribeCollections();
+    // this.fetchSubscribeCollections();
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -50,6 +53,7 @@ class FeedContainer extends Component {
     return !stateEqual;
   }
 
+  /*
 	fetchSubscribeCollections() {
 		this.setState({...this.state, fetchingSubscribeCollections: true})
 
@@ -65,6 +69,7 @@ class FeedContainer extends Component {
 			this.setState({...this.state, fetchingSubscribeCollections: false, subscribeCollections: json.collections});
 		});
 	}
+  */
 
 	updateOptions(updateOptions) {
     const {options} = this.state;
@@ -91,8 +96,20 @@ class FeedContainer extends Component {
     this.setState({skipUids}, () => this.updateUrl());
   }
 
+  updateFeedOrMore(feedOrMore) {
+    console.log(feedOrMore);
+    this.setState({feedOrMore}, () => this.updateUrl());
+  }
+
   updateUrl() {
-    const {spec, debugTimestamp, numItems, languages, skipUids} = this.state;
+    const {
+      debugTimestamp,
+      feedOrMore,
+      languages,
+      numItems,
+      skipUids,
+      spec,
+    } = this.state;
     const params = [];
     if (spec) {
       params.push(`spec=${spec}`);
@@ -109,6 +126,9 @@ class FeedContainer extends Component {
     if (skipUids) {
       params.push(`skip_uids=${skipUids}`);
     }
+    if (feedOrMore) {
+      params.push(`feed_or_more=${feedOrMore}`);
+    }
     const url = new URL(window.location.toString());
     url.search = `?${params.join('&')}`;
     window.history.replaceState({}, 'Feed', url.toString());
@@ -120,7 +140,17 @@ class FeedContainer extends Component {
 
 	moreHandler() {
     this.setState({error: ''}, () => {
-      const {feed, itemsByUid, options, spec, debugTimestamp, languages, skipUids, numItems} = this.state;
+      const {
+        debugTimestamp,
+        feed,
+        feedOrMore,
+        itemsByUid,
+        languages,
+        numItems,
+        options,
+        skipUids,
+        spec,
+      } = this.state;
 
       const parseSpec = (spec) => {
         if (spec) {
@@ -132,7 +162,7 @@ class FeedContainer extends Component {
         }
         return [null, null];
       }
-      const [specObj, specParseErr] = parseSpec(spec);
+      const [specObj/*, specParseErr*/] = parseSpec(spec);
       if (specObj) {
         options.spec = specObj;
       }
@@ -152,7 +182,9 @@ class FeedContainer extends Component {
         delete options.skip_uids;
       }
 
-      more(feed, itemsByUid, options, Number(numItems))
+      const feedOrMoreFunc = feedOrMore === 'feed' ? feedFunc : more;
+      
+      feedOrMoreFunc(feed, itemsByUid, options, Number(numItems))
         .then(({feed, items, itemsByUid}) => this.setState({feed, items, itemsByUid}))
         .catch((error) => this.setState({error : String(error)}));
     });
@@ -160,7 +192,18 @@ class FeedContainer extends Component {
 
   render() {
     //console.log('render container');
-    const {items, options, fetchingSubscribeCollections, subscribeCollections, spec, error, debugTimestamp, numItems, languages, skipUids} = this.state;
+    const {
+      /*fetchingSubscribeCollections, subscribeCollections,*/ 
+      debugTimestamp, 
+      error, 
+      feedOrMore,
+      items, 
+      languages, 
+      numItems, 
+      options, 
+      skipUids,
+      spec, 
+    } = this.state;
     return (
       <Feed
         items={items}
@@ -168,8 +211,8 @@ class FeedContainer extends Component {
         more={this.moreHandler}
         reset={this.resetHandler}
         updateOptions={this.updateOptions}
-        fetchingSubscribeCollections={fetchingSubscribeCollections}
-        subscribeCollections={subscribeCollections}
+        /*fetchingSubscribeCollections={fetchingSubscribeCollections}
+        subscribeCollections={subscribeCollections}*/
         error={error}
         spec={spec}
         updateSpec={this.updateSpec}
@@ -181,6 +224,8 @@ class FeedContainer extends Component {
         updateLanguages={this.updateLanguages}
         skipUids={skipUids}
         updateSkipUids={this.updateSkipUids}
+        feedOrMore={feedOrMore}
+        updateFeedOrMore={this.updateFeedOrMore}
       />
     );
   }
