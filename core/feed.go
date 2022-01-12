@@ -116,12 +116,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 								},
 								{
 									"filter_selector": FSameSource
-								},
-								{
-									"filter_selector": FPopularFilter
 								}
 							],
-							"order_selector": OPopular
+							"order_selector": ORand
 						},
 						{
 							"name": "DataContentUnitsSuggester",
@@ -134,12 +131,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 								},
 								{
 									"filter_selector": FSameTag
-								},
-								{
-									"filter_selector": FPopularFilter
 								}
 							],
-							"order_selector": OPopular
+							"order_selector": ORand
 						}
 					]
 				},
@@ -187,12 +181,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 								},
 								{
 									"filter_selector": FSameSource
-								},
-								{
-									"filter_selector": FPopularFilter
 								}
 							],
-							"order_selector": OPopular
+							"order_selector": ORand
 						},
 						{
 							"name": "DataContentUnitsSuggester",
@@ -205,12 +196,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 								},
 								{
 									"filter_selector": FSameTag
-								},
-								{
-									"filter_selector": FPopularFilter
 								}
 							],
-							"order_selector": OPopular
+							"order_selector": ORand
 						}
 					]
 				},
@@ -255,12 +243,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 								},
 								{
 									"filter_selector": FSameSource
-								},
-								{
-									"filter_selector": FPopularFilter
 								}
 							],
-							"order_selector": OPopular
+							"order_selector": ORand
 						}
 					]
 				},
@@ -293,12 +278,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 								},
 								{
 									"filter_selector": FSameSource
-								},
-								{
-									"filter_selector": FPopularFilter
 								}
 							],
-							"order_selector": OPopular
+							"order_selector": ORand
 						},
 						{
 							"name": "DataContentUnitsSuggester",
@@ -308,12 +290,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									"args": [
 										"LECTURE"
 									]
-								},
-								{
-									"filter_selector": FPopularFilter
 								}
 							],
-							"order_selector": OPopular
+							"order_selector": ORand
 						}
 					]
 				},
@@ -343,12 +322,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									"args": [
 										"VIDEO_PROGRAM_CHAPTER"
 									]
-								},
-								{
-									"filter_selector": FPopularFilter
 								}
 							],
-							"order_selector": OPopular
+							"order_selector": ORand
 						}
 					]
 				},
@@ -378,12 +354,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									"args": [
 										"VIDEO_PROGRAM_CHAPTER"
 									]
-								},
-								{
-									"filter_selector": FPopularFilter
 								}
 							],
-							"order_selector": OPopular
+							"order_selector": ORand
 						}
 					]
 				},
@@ -413,12 +386,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									"args": [
 										"CLIP"
 									]
-								},
-								{
-									"filter_selector": FPopularFilter
 								}
 							],
-							"order_selector": OPopular
+							"order_selector": ORand
 						}
 					]
 				},
@@ -448,12 +418,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 									"args": [
 										"CLIP"
 									]
-								},
-								{
-									"filter_selector": FPopularFilter
 								}
 							],
-							"order_selector": OPopular
+							"order_selector": ORand
 						}
 					]
 				},
@@ -465,12 +432,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 							"args": [
 								"CLIP"
 							]
-						},
-								{
-									"filter_selector": FPopularFilter
-								}
+						}
 					],
-					"order_selector": OPopular
+					"order_selector": ORand
 				},
 				{
 					"name": "DataContentUnitsSuggester",
@@ -480,12 +444,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 							"args": [
 								"CLIP"
 							]
-						},
-								{
-									"filter_selector": FPopularFilter
-								}
+						}
 					],
-					"order_selector": OPopular
+					"order_selector": ORand
 				}
 			]
 		}
@@ -735,12 +696,9 @@ func MakeDefaultSuggester(suggesterContext SuggesterContext) (Suggester, error) 
 								"LESSON_PART",
 								"VIDEO_PROGRAM_CHAPTER"
 							]
-						},
-								{
-									"filter_selector": FPopularFilter
-								}
+						}
 					],
-					"order_selector": OPopular
+					"order_selector": ORand
 				}
 			]
 		}
