@@ -229,23 +229,39 @@ func (m *ChroniclesWindowModel) Refresh() error {
 			allValues = append(allValues, fmt.Sprintf("(%s)", strings.Join(entryValues, ",")))
 		}
 
-		entryAllColumns := []string{"id", "created_at", "user_id", "ip_addr", "user_agent", "namespace", "client_event_id", "client_event_type", "client_flow_id", "client_flow_type", "client_session_id", "data"}
-		insertQuery := fmt.Sprintf("INSERT INTO entries (%s) VALUES %s", strings.Join(entryAllColumns, ","), strings.Join(allValues, ","))
-		if result, err := queries.Raw(insertQuery).Exec(m.localChroniclesDb); err != nil {
-			log.Warnf("SQL: %s", insertQuery)
-			log.Warnf("Failed inserting into local chronicles %+v", err)
-			return err
-		} else {
-			if rowsInserted, err := result.RowsAffected(); err != nil {
-				log.Warnf("Failed getting inserted count %+v", err)
+		if len(allValues) > 0 {
+			entryAllColumns := []string{
+				"id",
+				"created_at",
+				"user_id", "ip_addr",
+				"user_agent",
+				"namespace",
+				"client_event_id",
+				"client_event_type",
+				"client_flow_id",
+				"client_flow_type",
+				"client_session_id",
+				"data",
+			}
+			insertQuery := fmt.Sprintf("INSERT INTO entries (%s) VALUES %s", strings.Join(entryAllColumns, ","), strings.Join(allValues, ","))
+			if result, err := queries.Raw(insertQuery).Exec(m.localChroniclesDb); err != nil {
+				log.Warnf("SQL: %s", insertQuery)
+				log.Warnf("Failed inserting into local chronicles %+v", err)
 				return err
 			} else {
-				m.totalCount += rowsInserted
-				log.Debugf("Inserted %d entries to local chronicles by offset. Total of %d.", rowsInserted, m.totalCount)
+				if rowsInserted, err := result.RowsAffected(); err != nil {
+					log.Warnf("Failed getting inserted count %+v", err)
+					return err
+				} else {
+					m.totalCount += rowsInserted
+					log.Debugf("Inserted %d entries to local chronicles by offset. Total of %d.", rowsInserted, m.totalCount)
+				}
 			}
-		}
 
-		log.Debugf("Insert done in %s", time.Now().Sub(start))
+			log.Debugf("Insert done in %s", time.Now().Sub(start))
+		} else {
+			log.Debugf("No values to add in %s", time.Now().Sub(start))
+		}
 
 		m.refreshCount += 1
 		if m.interval == MAX_INTERVAL || m.refreshCount == DELETE_INSERT_RATIO {
