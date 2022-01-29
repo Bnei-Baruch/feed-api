@@ -85,6 +85,16 @@ func (c *Collectors) Init() {
 			float64(7),
 			float64(8),
 			float64(9),
+			float64(10),
+			float64(11),
+			float64(12),
+			float64(13),
+			float64(14),
+			float64(15),
+			float64(16),
+			float64(17),
+			float64(18),
+			float64(19),
 		},
 	})
 
