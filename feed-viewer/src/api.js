@@ -116,3 +116,44 @@ export const moreOrReccomend = (feed, itemsByUid, options, handler, numItems) =>
     });
   });
 };
+
+export const scan = (id, limit, eventTypes, userIds, namespaces, keycloak) => {
+  const request = {
+		id,
+		limit,
+		event_types: eventTypes,
+		user_ids: userIds,
+		namespaces,
+		keycloak,
+	};
+  console.log('scan', JSON.stringify(request));
+  return fetch(`https://chronicles.kli.one/scan`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(request),
+  }).then(results => {
+    console.log(results);
+    if (results.status !== 200) {
+      return results.text().then((text) => {
+        return Promise.reject(`${results.status}: ${results.statusText}. Error from server: ${text}`);
+      });
+    }
+    return results.json();
+  }).then(data => {
+    console.log('scan', data);
+    return data.entries || [];
+  });
+};
+
+export const fetchUnitsSimple = (uids) => {
+  if (uids.length === 0) {
+    return Promise.resolve({content_units: [], total: 0});
+  }
+  const params = {
+    'page_size': uids.length,
+    'language': 'he',
+  };
+  const uidsParam = uids.map((uid) => `id=${uid}`).join('&')
+  return fetch(`https://kabbalahmedia.info/backend/content_units?${uidsParam}`)
+    .then((results) => results.json());
+};
