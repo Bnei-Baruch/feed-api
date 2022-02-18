@@ -154,6 +154,6 @@ export const fetchUnitsSimple = (uids) => {
     'language': 'he',
   };
   const uidsParam = uids.map((uid) => `id=${uid}`).join('&')
-  return fetch(`https://kabbalahmedia.info/backend/content_units?${uidsParam}`)
+  return fetch(`https://kabbalahmedia.info/backend/content_units?${uidsParam}&${paramsToUrl(params)}`)
     .then((results) => results.json());
 };
