@@ -17,6 +17,7 @@ type Collectors struct {
 	AutocompleteSelectedCounter prometheus.Counter
 	SearchSelectedRankHistogram prometheus.Histogram
 	EntriesCounterVec           *prometheus.CounterVec
+	ActiveUsersVec              *prometheus.GaugeVec
 }
 
 func (c *Collectors) Init() {
@@ -105,7 +106,13 @@ func (c *Collectors) Init() {
 		Help:      "Counts number of entries.",
 	}, []string{"event_type"})
 
-	prometheus.MustRegister(c.RequestDurationHistogram)
+	c.ActiveUsersVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "feed_api",
+		Subsystem: "chronicles",
+		Name:      "active_users",
+		Help:      "Counts number of active users.",
+	}, []string{"duration", "user_type"})
+
 	prometheus.MustRegister(c.RecommendCounter)
 	prometheus.MustRegister(c.RecommendSelectedCounter)
 	prometheus.MustRegister(c.SearchCounter)
@@ -114,6 +121,7 @@ func (c *Collectors) Init() {
 	prometheus.MustRegister(c.AutocompleteSelectedCounter)
 	prometheus.MustRegister(c.SearchSelectedRankHistogram)
 	prometheus.MustRegister(c.EntriesCounterVec)
+	prometheus.MustRegister(c.ActiveUsersVec)
 
 	prometheus.MustRegister(collectors.NewBuildInfoCollector())
 }

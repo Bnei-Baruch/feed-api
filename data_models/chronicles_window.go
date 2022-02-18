@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -40,6 +41,93 @@ func (e *ScanHttpErrorRetry) Is(target error) bool {
 	return ok
 }
 
+type TimestampCount struct {
+	Timestamp int64
+	UserId    string
+	Prev      *TimestampCount
+	Next      *TimestampCount
+}
+
+type ActiveUsers struct {
+	interval time.Duration
+	users    map[string]*TimestampCount
+	head     *TimestampCount
+	tail     *TimestampCount
+	mu       sync.Mutex
+}
+
+func MakeActiveUsers(t time.Duration) *ActiveUsers {
+	activeUsers := &ActiveUsers{t, make(map[string]*TimestampCount), nil, nil, sync.Mutex{}}
+	ticker := time.NewTicker(time.Second)
+	go func() {
+		for range ticker.C {
+			activeUsers.Remove()
+		}
+	}()
+	return activeUsers
+}
+
+func (au *ActiveUsers) Add(id string) {
+	au.mu.Lock()
+	defer au.mu.Unlock()
+
+	// Remove user old timestamp from linked list.
+	if tc, ok := au.users[id]; ok {
+		if tc.Prev == nil {
+			au.head = tc.Next
+		} else {
+			tc.Prev.Next = tc.Next
+		}
+		if tc.Next == nil {
+			au.tail = tc.Prev
+		} else {
+			tc.Next.Prev = tc.Prev
+		}
+	}
+
+	// Add new timestamp to linked list.
+	tc := &TimestampCount{time.Now().Unix(), id, nil, nil}
+	if au.tail != nil {
+		tc.Prev = au.tail
+		au.tail.Next = tc
+		au.tail = tc
+	} else {
+		au.tail = tc
+		au.head = tc
+	}
+
+	au.users[id] = tc
+}
+
+func (au *ActiveUsers) Remove() {
+	au.mu.Lock()
+	defer au.mu.Unlock()
+
+	// Remove all "old" timestamps and users.
+	now := time.Now()
+	timestamp := now.Add(-au.interval).Unix()
+	for au.head != nil {
+		if au.head.Timestamp >= timestamp {
+			break
+		}
+
+		delete(au.users, au.head.UserId)
+		au.head = au.head.Next
+		if au.head != nil {
+			au.head.Prev = nil
+		}
+	}
+	if au.head == nil {
+		au.tail = nil
+	}
+}
+
+func (au *ActiveUsers) Count() int {
+	au.mu.Lock()
+	defer au.mu.Unlock()
+	return len(au.users)
+}
+
 type ChroniclesWindowModel struct {
 	localChroniclesDb *sql.DB
 	name              string
@@ -53,6 +141,14 @@ type ChroniclesWindowModel struct {
 
 	refreshCount int64
 	totalCount   int64
+
+	dailyActiveUsers   *ActiveUsers
+	weeklyActiveUsers  *ActiveUsers
+	monthlyActiveUsers *ActiveUsers
+
+	anonymousDailyActiveUsers   *ActiveUsers
+	anonymousWeeklyActiveUsers  *ActiveUsers
+	anonymousMonthlyActiveUsers *ActiveUsers
 }
 
 func (m *ChroniclesWindowModel) LastReadId() string {
@@ -82,6 +178,14 @@ func MakeChroniclesWindowModel(localChroniclesDb *sql.DB, chroniclesUrl string) 
 		"",
 		0,
 		0,
+		// Keycloak
+		MakeActiveUsers(24 * time.Hour),
+		MakeActiveUsers(7 * 24 * time.Hour),
+		MakeActiveUsers(30 * 7 * 24 * time.Hour),
+		// Anonymouse.
+		MakeActiveUsers(24 * time.Hour),
+		MakeActiveUsers(7 * 24 * time.Hour),
+		MakeActiveUsers(30 * 7 * 24 * time.Hour),
 	}
 }
 
@@ -165,6 +269,25 @@ func (m *ChroniclesWindowModel) Refresh() error {
 		start := time.Now()
 		allValues := []string(nil)
 		for _, entry := range entries {
+			// Update active users.
+			if strings.HasPrefix(entry.UserID, "client:") {
+				m.anonymousDailyActiveUsers.Add(entry.UserID)
+				m.anonymousWeeklyActiveUsers.Add(entry.UserID)
+				m.anonymousMonthlyActiveUsers.Add(entry.UserID)
+
+				instrumentation.Stats.ActiveUsersVec.WithLabelValues("1d", "anonymous").Set(float64(m.anonymousDailyActiveUsers.Count()))
+				instrumentation.Stats.ActiveUsersVec.WithLabelValues("1w", "anonymous").Set(float64(m.anonymousWeeklyActiveUsers.Count()))
+				instrumentation.Stats.ActiveUsersVec.WithLabelValues("1m", "anonymous").Set(float64(m.anonymousMonthlyActiveUsers.Count()))
+			} else {
+				m.dailyActiveUsers.Add(entry.UserID)
+				m.weeklyActiveUsers.Add(entry.UserID)
+				m.monthlyActiveUsers.Add(entry.UserID)
+
+				instrumentation.Stats.ActiveUsersVec.WithLabelValues("1d", "keycloak").Set(float64(m.dailyActiveUsers.Count()))
+				instrumentation.Stats.ActiveUsersVec.WithLabelValues("1w", "keycloak").Set(float64(m.weeklyActiveUsers.Count()))
+				instrumentation.Stats.ActiveUsersVec.WithLabelValues("1m", "keycloak").Set(float64(m.monthlyActiveUsers.Count()))
+			}
+
 			instrumentation.Stats.EntriesCounterVec.WithLabelValues(entry.ClientEventType).Inc()
 			switch entry.ClientEventType {
 			case "recommend":
