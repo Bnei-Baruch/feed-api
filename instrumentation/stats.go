@@ -113,6 +113,7 @@ func (c *Collectors) Init() {
 		Help:      "Counts number of active users.",
 	}, []string{"duration", "user_type"})
 
+	prometheus.MustRegister(c.RequestDurationHistogram)
 	prometheus.MustRegister(c.RecommendCounter)
 	prometheus.MustRegister(c.RecommendSelectedCounter)
 	prometheus.MustRegister(c.SearchCounter)
