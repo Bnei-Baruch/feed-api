@@ -23,15 +23,49 @@ type RecommendData struct {
 	RequestData core.MoreRequest `json:"request_data,ompitempty"`
 }
 
+func uidsMapToUnits(uidsMap map[string]int, unitsMap map[string]interface{}) []interface{} {
+	ret := []interface{}(nil)
+	for uid, count := range uidsMap {
+		if unit, ok := unitsMap[uid]; ok {
+			for i := 0; i < count; i++ {
+				ret = append(ret, unit)
+			}
+		}
+	}
+	return ret
+}
+
+func uidsToUnits(uids []string, unitsMap map[string]interface{}) []interface{} {
+	ret := []interface{}(nil)
+	for _, uid := range uids {
+		if unit, ok := unitsMap[uid]; ok {
+			ret = append(ret, unit)
+		}
+	}
+	return ret
+}
+
+func sampleRandomUids(skipUidsMap map[string]int, count int) (uids []string, err error) {
+	// Content units
+	var units mdbModels.ContentUnitSlice
+	if units, err = mdbModels.ContentUnits(qm.Select("uid"), qm.OrderBy("random()"), qm.Limit(count)).All(common.LocalMdb); err != nil {
+		return nil, err
+	}
+	for _, unit := range units {
+		uids = append(uids, unit.UID)
+	}
+	return uids, nil
+}
+
 func LoadUids(uidsToLoad map[string]bool) (unitsMap map[string]interface{}, err error) {
-	uids := make(map[string]interface{})
+	unitsMap = make(map[string]interface{})
 	// Content units
 	var units mdbModels.ContentUnitSlice
 	if units, err = mdbModels.ContentUnits(qm.WhereIn("uid in ?", utils.ToInterfaceSlice(utils.StringKeys(uidsToLoad))...)).All(common.LocalMdb); err != nil {
 		return nil, err
 	}
 	for _, unit := range units {
-		uids[unit.UID] = unit
+		unitsMap[unit.UID] = unit
 	}
 	// Collections
 	var collections mdbModels.CollectionSlice
@@ -39,7 +73,7 @@ func LoadUids(uidsToLoad map[string]bool) (unitsMap map[string]interface{}, err 
 		return nil, err
 	}
 	for _, collection := range collections {
-		uids[collection.UID] = collection
+		unitsMap[collection.UID] = collection
 	}
 	// Tags
 	var tags mdbModels.TagSlice
@@ -47,7 +81,7 @@ func LoadUids(uidsToLoad map[string]bool) (unitsMap map[string]interface{}, err 
 		return nil, err
 	}
 	for _, tag := range tags {
-		uids[tag.UID] = tag
+		unitsMap[tag.UID] = tag
 	}
 	// Sources
 	var sources mdbModels.SourceSlice
@@ -55,9 +89,9 @@ func LoadUids(uidsToLoad map[string]bool) (unitsMap map[string]interface{}, err 
 		return nil, err
 	}
 	for _, source := range sources {
-		uids[source.UID] = source
+		unitsMap[source.UID] = source
 	}
-	return uids, nil
+	return unitsMap, nil
 }
 
 func LoadEntries(clientEventType string) (cModels.EntrySlice, error) {
@@ -146,6 +180,7 @@ func Learn(prodChronicles bool, chroniclesUrl string) error {
 	noClientFlowId := 0
 	flowNotFound := 0
 	uidsToLoad := make(map[string]bool)
+	sUids := make(map[string]int)
 	recommendedToSelected := make(map[string][]RecommendPair)
 	selectedToRecommended := make(map[string][]RecommendPair)
 	for _, selectEntry := range selected {
@@ -171,6 +206,7 @@ func Learn(prodChronicles bool, chroniclesUrl string) error {
 						log.Warnf("Failed getting recommend data, skipping.", err)
 						continue
 					} else {
+						sUids[selectedData.Uid]++
 						uidsToLoad[selectedData.Uid] = true
 						rUid := recommendData.RequestData.Options.Recommend.Uid
 						uidsToLoad[rUid] = true
@@ -184,52 +220,60 @@ func Learn(prodChronicles bool, chroniclesUrl string) error {
 	}
 	log.Infof("Recommend selected: %d, without flow: %d, flow not found: %d", len(selected), noClientFlowId, flowNotFound)
 
+	randomUids, err := sampleRandomUids(sUids, 10000)
+	if err != nil {
+		return err
+	}
+	for _, uid := range randomUids {
+		uidsToLoad[uid] = true
+	}
+
 	rToSTypeMap := make(map[string]map[string]int)
 	sToRTypeMap := make(map[string]map[string]int)
 
 	log.Infof("Loading %d uids", len(uidsToLoad))
-	log.Infof("%+v", uidsToLoad)
 	recommendNotLoaded := 0
 	selectedNotLoaded := 0
-	if uids, err := LoadUids(uidsToLoad); err != nil {
+	unitsMap, err := LoadUids(uidsToLoad)
+	if err != nil {
 		return err
-	} else {
-		log.Infof("Loaded %d uids.", len(uids))
+	}
+	log.Infof("Loaded %d uids.", len(unitsMap))
 
-		for rUid, rToSPairs := range recommendedToSelected {
-			if _, ok := uids[rUid]; !ok {
-				log.Infof("Recommend uid %s could not be loaded, skipping.", rUid)
-				recommendNotLoaded++
+	for rUid, rToSPairs := range recommendedToSelected {
+		if _, ok := unitsMap[rUid]; !ok {
+			log.Infof("Recommend uid %s could not be loaded, skipping.", rUid)
+			recommendNotLoaded++
+			continue
+		}
+		log.Infof("%s %25s ==>", rUid, ContentItemType(unitsMap[rUid]))
+		for _, rToSPair := range rToSPairs {
+			var sUid string
+			selectedEntry := selectedMap[rToSPair.SelectedClientEventID]
+			if selectData, err := GetSelectedData(selectedEntry); err != nil {
+				return err
+			} else {
+				sUid = selectData.Uid
+			}
+			if _, ok := unitsMap[sUid]; !ok {
+				log.Infof("Selected uid %s could not be loaded, skipping.", sUid)
+				selectedNotLoaded++
 				continue
 			}
-			log.Infof("%s %25s ==>", rUid, ContentItemType(uids[rUid]))
-			for _, rToSPair := range rToSPairs {
-				var sUid string
-				selectedEntry := selectedMap[rToSPair.SelectedClientEventID]
-				if selectData, err := GetSelectedData(selectedEntry); err != nil {
-					return err
-				} else {
-					sUid = selectData.Uid
-				}
-				if _, ok := uids[sUid]; !ok {
-					log.Infof("Selected uid %s could not be loaded, skipping.", sUid)
-					selectedNotLoaded++
-					continue
-				}
-				log.Infof("\t%s %25s %15s", sUid, ContentItemType(uids[sUid]), selectedEntry.CreatedAt.Format("2006-02-01 15:04"))
-				rContentItemType := ContentItemType(uids[rUid])
-				sContentItemType := ContentItemType(uids[sUid])
-				if _, ok := rToSTypeMap[rContentItemType]; !ok {
-					rToSTypeMap[rContentItemType] = make(map[string]int)
-				}
-				rToSTypeMap[rContentItemType][sContentItemType] = rToSTypeMap[rContentItemType][sContentItemType] + 1
-				if _, ok := sToRTypeMap[sContentItemType]; !ok {
-					sToRTypeMap[sContentItemType] = make(map[string]int)
-				}
-				sToRTypeMap[sContentItemType][rContentItemType] = sToRTypeMap[sContentItemType][rContentItemType] + 1
+			log.Infof("\t%s %25s %15s", sUid, ContentItemType(unitsMap[sUid]), selectedEntry.CreatedAt.Format("2006-02-01 15:04"))
+			rContentItemType := ContentItemType(unitsMap[rUid])
+			sContentItemType := ContentItemType(unitsMap[sUid])
+			if _, ok := rToSTypeMap[rContentItemType]; !ok {
+				rToSTypeMap[rContentItemType] = make(map[string]int)
 			}
+			rToSTypeMap[rContentItemType][sContentItemType] = rToSTypeMap[rContentItemType][sContentItemType] + 1
+			if _, ok := sToRTypeMap[sContentItemType]; !ok {
+				sToRTypeMap[sContentItemType] = make(map[string]int)
+			}
+			sToRTypeMap[sContentItemType][rContentItemType] = sToRTypeMap[sContentItemType][rContentItemType] + 1
 		}
 	}
+
 	log.Infof("Could not load recommended %d, selected %d", recommendNotLoaded, selectedNotLoaded)
 	log.Info("Selected to Recommended types:")
 	for rContentItemType, sTypeMap := range rToSTypeMap {
@@ -253,5 +297,9 @@ func Learn(prodChronicles bool, chroniclesUrl string) error {
 			log.Infof("\t\t%5d %25s", rTypeMap[rType], rType)
 		}
 	}
-	return nil
+
+	positiveUnits := uidsMapToUnits(sUids, unitsMap)
+	negativeUnits := uidsToUnits(randomUids, unitsMap)
+	log.Infof("Learning classifier %d positives and %d negatives.", len(positiveUnits), len(negativeUnits))
+	return CrossValidate(positiveUnits, negativeUnits)
 }

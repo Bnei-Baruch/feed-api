@@ -24,3 +24,7 @@ subject="mdb"
 durable=true
 durable-name="archive-backend-events"
 mode="debug"
+
+[elasticsearch]
+url="localhost:9200"
+index_template="index_<LANG>_template"

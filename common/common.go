@@ -13,8 +13,10 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/volatiletech/sqlboiler/queries"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries"
+	elastic "gopkg.in/olivere/elastic.v6"
 
 	"github.com/Bnei-Baruch/feed-api/databases/mdb"
 	"github.com/Bnei-Baruch/feed-api/instrumentation"
@@ -120,6 +122,8 @@ var (
 	LocalMdb          *sql.DB     // Local MDB
 	LocalChroniclesDb *sql.DB     // Chronicles
 	ModelsDb          *Connection // Models
+
+	ESC *elastic.Client // Elastic
 )
 
 func Init() time.Time {
@@ -188,6 +192,25 @@ func InitWithDefault() time.Time {
 	boil.DebugMode = viper.GetString("server.boiler-mode") == "debug"
 	log.Infof("boil.DebugMode: %+v", boil.DebugMode)
 
+	if ESC == nil {
+		log.Info("Trying to set up new connection to ElasticSearch")
+		url := viper.GetString("elasticsearch.url")
+
+		ESC, err = elastic.NewClient(
+			elastic.SetURL(url),
+			elastic.SetSniff(false),
+			elastic.SetHealthcheckInterval(10*time.Second),
+			elastic.SetErrorLog(log.StandardLogger()),
+			// Should be commented out in prod.
+			// elastic.SetInfoLog(log.StandardLogger()),
+			// elastic.SetTraceLog(log.StandardLogger()),
+		)
+		if err == nil && ESC == nil {
+			err = errors.New("Initializing elastic client returns nil.")
+		}
+		utils.Must(err)
+	}
+
 	log.Infof("Settin up instrumentation")
 	instrumentation.Stats.Init()
 
@@ -200,4 +223,7 @@ func Shutdown() {
 	utils.Must(LocalMdb.Close())
 	utils.Must(LocalChroniclesDb.Close())
 	utils.Must(ModelsDb.Shutdown())
+	if ESC != nil {
+		ESC.Stop()
+	}
 }

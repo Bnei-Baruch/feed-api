@@ -215,7 +215,7 @@ func IntersectSorted(first []string, second []string) (ret []string) {
 	return
 }
 
-// Changes the frist map.
+// Changes the first map.
 func UnionMaps(a map[string]bool, b map[string]bool) {
 	start := time.Now()
 	defer func() {
