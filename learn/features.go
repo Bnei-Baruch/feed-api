@@ -1,12 +1,15 @@
 package learn
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,23 +37,122 @@ var (
 
 func InitFeatures() error {
 	unitsCache = make(map[string]interface{})
-	termvectorCache = make(map[string]map[string]float64)
+
 	var err error
+	termvectorCache, err = termVectorFromFile("termvector.dat")
+	if err != nil {
+		return err
+	}
+
 	tagsCache, err = loadTags()
 	if err != nil {
 		return err
 	}
-	sourcesCache, err = loadSources()
 	log.Infof("tags: %d", len(tagsCache))
+
+	sourcesCache, err = loadSources()
+	if err != nil {
+		return err
+	}
 	log.Infof("sources: %d", len(sourcesCache))
+
 	return err
+}
+
+func termVectorFromFile(filename string) (map[string]map[string]float64, error) {
+	cache := make(map[string]map[string]float64)
+
+	fp, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	reader := bufio.NewReaderSize(fp, 4096*64)
+	lineNum := 0
+	for {
+		line, _, err := reader.ReadLine()
+		lineNum += 1
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+		if strings.HasPrefix(string(line), "#") {
+			continue /* ignore comment */
+		}
+		// log.Infof("Parsing: [%s]", line)
+		uidTv := strings.SplitN(string(line), " ", 2)
+		if len(uidTv) != 2 {
+			log.Infof("line:%d has no termvector. This line is ignored.", lineNum)
+			continue
+		}
+		uid := uidTv[0]
+		// log.Infof("Uid: %s", uid)
+		termsValues := strings.Split(uidTv[1], " ")
+		terms := make(map[string]float64)
+		for _, termValue := range termsValues {
+			// log.Infof("Term value: %s", termValue)
+			tv := strings.Split(termValue, ":")
+			if len(tv) < 2 {
+				return nil, errors.New(fmt.Sprintf("Expected term value %s to have 2 (or more) parts.", termValue))
+			} else if len(tv) > 2 {
+				tv[0] = strings.Join(tv[:len(tv)-2], ":")
+				tv[1] = tv[len(tv)-1]
+			}
+			if valueFloat64, err := strconv.ParseFloat(tv[1], 64); err != nil {
+				return nil, errors.New(fmt.Sprintf("Failed parsing float %s: %s", valueFloat64, err))
+			} else {
+				terms[tv[0]] = valueFloat64
+			}
+		}
+		// log.Infof("%s %+v", uid, terms)
+		cache[uid] = terms
+	}
+	return cache, nil
+}
+
+func termVectorToFile(filename string, cache map[string]map[string]float64) error {
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	datawriter := bufio.NewWriter(file)
+
+	keys := utils.StringKeys(cache)
+	sort.Strings(keys)
+
+	count := 0
+	for _, key := range keys {
+		features := cache[key]
+		featuresKeys := utils.StringKeys(features)
+		sort.Strings(featuresKeys)
+		featuresParts := []string(nil)
+		for _, featureKey := range featuresKeys {
+			featuresParts = append(featuresParts, fmt.Sprintf("%s:%f", featureKey, features[featureKey]))
+		}
+		if len(featuresParts) > 0 {
+			line := fmt.Sprintf("%s %s\n", key, strings.Join(featuresParts, " "))
+			_, err = datawriter.WriteString(line)
+			if err != nil {
+				return err
+			}
+			count += 1
+		}
+	}
+	if err := datawriter.Flush(); err != nil {
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	log.Infof("Writing %d lines to termvector cache.", count)
+	return nil
 }
 
 type Classifier struct {
 	Learner gonline.LearnerInterface
 }
 
-func UnitToFeatures(unit *mdbModels.ContentUnit) (map[string]float64, error) {
+func UnitToFeatures(prefix string, unit *mdbModels.ContentUnit) (map[string]float64, error) {
 	// log.Infof("Unit: %+v", unit)
 	cache, ok := unitsCache[unit.UID]
 	if !ok {
@@ -65,21 +167,21 @@ func UnitToFeatures(unit *mdbModels.ContentUnit) (map[string]float64, error) {
 
 	features := make(map[string]float64)
 
-	features[fmt.Sprintf("uid:%s", cu.UID)] = 1.0
-	features[fmt.Sprintf("content_unit:%s", cu.UID)] = 1.0
-	features[fmt.Sprintf("content_type:%s", mdb.CONTENT_TYPE_REGISTRY.ByID[cu.TypeID].Name)] = 1.0
+	features[fmt.Sprintf("%suid_%s", prefix, cu.UID)] = 1.0
+	features[fmt.Sprintf("%scontent_unit_%s", prefix, cu.UID)] = 1.0
+	features[fmt.Sprintf("%scontent_type_%s", prefix, mdb.CONTENT_TYPE_REGISTRY.ByID[cu.TypeID].Name)] = 1.0
 
 	for _, ccu := range cu.R.CollectionsContentUnits {
-		features[fmt.Sprintf("collection:%s", ccu.R.Collection.UID)] = 1.0
-		features[fmt.Sprintf("collection_content_type:%s", mdb.CONTENT_TYPE_REGISTRY.ByID[ccu.R.Collection.TypeID].Name)] = 1.0
+		features[fmt.Sprintf("%scollection_%s", prefix, ccu.R.Collection.UID)] = 1.0
+		features[fmt.Sprintf("%scollection_content_type_%s", prefix, mdb.CONTENT_TYPE_REGISTRY.ByID[ccu.R.Collection.TypeID].Name)] = 1.0
 	}
 
 	for _, tagUid := range tagsCache[cu.UID] {
-		features[fmt.Sprintf("tag:%s", tagUid)] = 1.0
+		features[fmt.Sprintf("%stag_%s", prefix, tagUid)] = 1.0
 	}
 
 	for _, sourceUid := range sourcesCache[cu.UID] {
-		features[fmt.Sprintf("source:%s", sourceUid)] = 1.0
+		features[fmt.Sprintf("%ssource_%s", prefix, sourceUid)] = 1.0
 	}
 
 	if cu.Properties.Valid {
@@ -92,38 +194,39 @@ func UnitToFeatures(unit *mdbModels.ContentUnit) (map[string]float64, error) {
 			if val, err := time.Parse("2006-01-02", dateStr); err != nil {
 				return nil, errors.New(fmt.Sprintf("Failed parsing time %s for %s", dateStr, cu.UID))
 			} else {
-				features["effective_date_year"] = float64(val.Year())
-				features["effective_date_month"] = float64(val.Month())
-				features["effective_date_day"] = float64(val.Day())
-				features["effective_date_weekday"] = float64(val.Weekday())
-				features["effective_date_timestamp"] = float64(val.Unix())
+				features[fmt.Sprintf("%seffective_date_year", prefix)] = float64(val.Year())
+				features[fmt.Sprintf("%seffective_date_month", prefix)] = float64(val.Month())
+				features[fmt.Sprintf("%seffective_date_day", prefix)] = float64(val.Day())
+				features[fmt.Sprintf("%seffective_date_weekday", prefix)] = float64(val.Weekday())
+				features[fmt.Sprintf("%seffective_date_timestamp", prefix)] = float64(val.Unix())
 			}
 		}
 		if originalLanguage, ok := props["original_language"]; ok {
-			features[fmt.Sprintf("original_language:%s", originalLanguage.(string))] = 1.0
+			features[fmt.Sprintf("%soriginal_language_%s", prefix, originalLanguage.(string))] = 1.0
 		}
 		if duration, ok := props["duration"]; ok {
-			features["duration"] = duration.(float64)
+			features[fmt.Sprintf("%sduration", prefix)] = duration.(float64)
 		}
 	}
 
 	termvector, ok := termvectorCache[unit.UID]
 	if ok {
 		for term, score := range termvector {
-			features[term] = score
+			features[fmt.Sprintf("%s%s", prefix, term)] = score
 		}
 	}
 
 	parts := []string(nil)
 	for k, v := range features {
-		parts = append(parts, fmt.Sprintf("%s:%.1f", k, v))
+		parts = append(parts, fmt.Sprintf("%s_%.1f", k, v))
 	}
 	sort.Strings(parts)
-	log.Infof("example: %s", strings.Join(parts, ","))
+	// log.Infof("example: %s", strings.Join(parts, ","))
 	return features, nil
 }
 
 func PreloadUnits(units []interface{}) error {
+	addedUids := make(map[string]bool)
 	uids := []string(nil)
 	for i := range units {
 		cu, ok := units[i].(*mdbModels.ContentUnit)
@@ -133,7 +236,11 @@ func PreloadUnits(units []interface{}) error {
 		if _, exist := unitsCache[cu.UID]; exist {
 			continue
 		}
+		if _, added := addedUids[cu.UID]; added {
+			continue
+		}
 		uids = append(uids, cu.UID)
+		addedUids[cu.UID] = true
 	}
 	if len(uids) == 0 {
 		return nil
@@ -155,12 +262,27 @@ func PreloadUnits(units []interface{}) error {
 	return nil
 }
 
-func ExampleFeatures(example interface{}) (map[string]float64, error) {
-	cu, ok := example.(*mdbModels.ContentUnit)
-	if !ok {
+func ExampleFeatures(example RecommendItemsPair) (map[string]float64, error) {
+	rCu, rOk := example.Recommended.(*mdbModels.ContentUnit)
+	if !rOk {
 		return nil, errors.New("Implemented for content unit only.")
 	}
-	return UnitToFeatures(cu)
+	sCu, sOk := example.Selected.(*mdbModels.ContentUnit)
+	if !sOk {
+		return nil, errors.New("Implemented for content unit only.")
+	}
+	rFeatures, err := UnitToFeatures("r_", rCu)
+	if err != nil {
+		return nil, err
+	}
+	sFeatures, err := UnitToFeatures("s_", sCu)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range sFeatures {
+		rFeatures[k] = v
+	}
+	return rFeatures, nil
 }
 
 func EvalLearner(epoch int, learner *gonline.LearnerInterface, x_test *[]map[string]float64, y_test *[]string) {
@@ -183,24 +305,36 @@ func EvalLearner(epoch int, learner *gonline.LearnerInterface, x_test *[]map[str
 	fmt.Printf("epoch:%d test accuracy: %f (%d/%d)\n", epoch, acc, numCorr, numTotal)
 }
 
-func Examples(examples []interface{}, label string) (*[]map[string]float64, *[]string, error) {
+func Examples(examples []RecommendItemsPair, label string) (*[]map[string]float64, *[]string, error) {
 	x := []map[string]float64(nil)
 	y := []string(nil)
+	skipped := 0
 	for i := range examples {
 		features, err := ExampleFeatures(examples[i])
 		if err != nil {
 			// return nil, nil, err
-			log.Warnf("Skipping %+v, not supported yet: %+v.", examples[i], err)
+			if skipped < 3 {
+				log.Warnf("Skipping %s example %+v, not supported yet: %+v.", label, examples[i], err)
+			}
+			skipped += 1
 			continue
 		}
 		x = append(x, features)
 		y = append(y, label)
 	}
+	if skipped >= 3 {
+		log.Info("...")
+		log.Info("...")
+	}
+	log.Infof("Skipped total of %d %s examples.", label, skipped)
 	return &x, &y, nil
 }
 
-func PrepareExamples(positives []interface{}, negatives []interface{}) (*[]map[string]float64, *[]string, *[]map[string]float64, *[]string, error) {
-	units := append(positives, negatives...)
+func PrepareExamples(positives []RecommendItemsPair, negatives []RecommendItemsPair) (*[]map[string]float64, *[]string, *[]map[string]float64, *[]string, error) {
+	units := []interface{}(nil)
+	for _, example := range append(positives, negatives...) {
+		units = append(units, example.Recommended, example.Selected)
+	}
 	if err := PreloadUnits(units); err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -218,7 +352,7 @@ func PrepareExamples(positives []interface{}, negatives []interface{}) (*[]map[s
 	return x_pos, y_pos, x_neg, y_neg, nil
 }
 
-func CrossValidate(positives []interface{}, negatives []interface{}) error {
+func CrossValidate(positives []RecommendItemsPair, negatives []RecommendItemsPair) error {
 	x_pos, y_pos, x_neg, y_neg, err := PrepareExamples(positives, negatives)
 	if err != nil {
 		return err
@@ -232,7 +366,7 @@ func CrossValidate(positives []interface{}, negatives []interface{}) error {
 	log.Infof("Cross validating %d examples. Fold size: %d.", len(x_examples), size)
 	for i := 0; i < folds; i++ {
 		x_test := x_examples[size*i : utils.MinInt(len(x_examples), size*(1+i))]
-		y_test := y_examples[size*i : utils.MinInt(len(x_examples), size*(1+i))]
+		y_test := y_examples[size*i : utils.MinInt(len(y_examples), size*(1+i))]
 
 		x_train := []map[string]float64(nil)
 		y_train := []string(nil)
@@ -247,14 +381,24 @@ func CrossValidate(positives []interface{}, negatives []interface{}) error {
 
 		log.Infof("Train size: %d, Test size: %d.", len(x_train), len(x_test))
 
-		var learner gonline.LearnerInterface
-		learner = gonline.NewPA("II", 1)
-		times := 5
-		for j := 0; j < times; j++ {
-			gonline.ShuffleData(&x_train, &y_train)
-			learner.Fit(&x_train, &y_train)
+		learners := make(map[string]gonline.LearnerInterface)
+		learners["p"] = gonline.NewPerceptron()
+		learners["pa"] = gonline.NewPA("", 0.01)
+		learners["pa1"] = gonline.NewPA("I", 0.01)
+		learners["pa2"] = gonline.NewPA("II", 0.01)
+		learners["cw"] = gonline.NewCW(0.8)
+		learners["arow"] = gonline.NewArow(10.)
+		// learners["adam"] = gonline.NewAdam()
+
+		for algorithm, learner := range learners {
+			log.Infof("Algorithm: %s Fold: %d/%d", algorithm, i+1, folds)
+			times := 5
+			for j := 0; j < times; j++ {
+				gonline.ShuffleData(&x_train, &y_train)
+				learner.Fit(&x_train, &y_train)
+			}
+			EvalLearner(i, &learner, &x_test, &y_test)
 		}
-		EvalLearner(i, &learner, &x_test, &y_test)
 	}
 	return nil
 }
@@ -351,8 +495,9 @@ type MdbUid struct {
 }
 
 func CacheTermVectors(units []interface{}) error {
-	log.Infof("Caching term vectors for %d units.", len(units))
+	log.Infof("Caching term vectors for %d units. Cache size: %d", len(units), len(termvectorCache))
 	uidsByLanguage := make(map[string][]string)
+	termvectorExist := 0
 	for i := range units {
 		cu, ok := units[i].(*mdbModels.ContentUnit)
 		if !ok {
@@ -363,6 +508,7 @@ func CacheTermVectors(units []interface{}) error {
 			continue
 		}
 		if _, ok := termvectorCache[cu.UID]; ok {
+			termvectorExist += 1
 			continue
 		}
 		if cu.R != nil {
@@ -376,9 +522,9 @@ func CacheTermVectors(units []interface{}) error {
 	if len(uidsByLanguage) == 0 {
 		return nil
 	}
-	log.Infof("Loaded %d languages.", len(uidsByLanguage))
+	log.Infof("Loading %d languages (%d units were found).", len(uidsByLanguage), termvectorExist)
 	for lang, uids := range uidsByLanguage {
-		log.Infof("\t%s: %d", lang, len(uids))
+		log.Infof("    %s: %d", lang, len(uids))
 	}
 	indexTemplate := viper.GetString("elasticsearch.index_template")
 	for lang, uids := range uidsByLanguage {
@@ -386,13 +532,13 @@ func CacheTermVectors(units []interface{}) error {
 
 		var searchResult *elastic.SearchResult
 
-		log.Infof("Fetching document ids.")
+		log.Infof("Fetching document ids for %s.", lang)
 		ids := make(map[string]string)
 		total := -1
 		for true {
 			if searchResult != nil && searchResult.Hits != nil {
 				if total == -1 {
-					log.Infof("lang: %s, total: %d", lang, searchResult.Hits.TotalHits)
+					log.Infof("    lang: %s, total: %d", lang, searchResult.Hits.TotalHits)
 					total = int(searchResult.Hits.TotalHits)
 				}
 				for _, h := range searchResult.Hits.Hits {
@@ -429,7 +575,7 @@ func CacheTermVectors(units []interface{}) error {
 				return err
 			}
 		}
-		log.Infof("%s: %d", lang, len(ids))
+		log.Infof("Unique ids %s: %d", lang, len(ids))
 
 		if len(ids) == 0 {
 			continue
@@ -455,11 +601,12 @@ func CacheTermVectors(units []interface{}) error {
 		body := make(map[string]interface{})
 		body["docs"] = docs
 
-		log.Infof("Fetching term vectors...")
+		log.Infof("Fetching %d term vectors...", len(docs))
 		results, err := common.ESC.MultiTermVectors().BodyJson(body).Do(context.TODO())
 		if err != nil {
 			return err
 		}
+		log.Infof("Fetched %d docs for %s", len(results.Docs), lang)
 		for _, doc := range results.Docs {
 			uid := ids[doc.Id]
 			if _, ok := termvectorCache[uid]; !ok {
@@ -476,5 +623,5 @@ func CacheTermVectors(units []interface{}) error {
 		}
 		log.Infof("Done fetching terms for lang: %s", lang)
 	}
-	return nil
+	return termVectorToFile("termvector.dat", termvectorCache)
 }

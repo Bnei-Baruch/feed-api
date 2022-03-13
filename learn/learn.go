@@ -2,6 +2,7 @@ package learn
 
 import (
 	"encoding/json"
+	"math/rand"
 	"sort"
 
 	log "github.com/sirupsen/logrus"
@@ -15,12 +16,20 @@ import (
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
+const NEGATIVE_MULTIPLIER = 5
+
 type SelectedData struct {
 	Uid string `json:"uid,omitempty"`
 }
 
+type TypedItem struct {
+	Uid         string `json:"uid,omitempty"`
+	ContentType string `json:"content_type,omitempty"`
+}
+
 type RecommendData struct {
-	RequestData core.MoreRequest `json:"request_data,ompitempty"`
+	RequestData     core.MoreRequest       `json:"request_data,ompitempty"`
+	Recommendations map[string][]TypedItem `json:"recommendations,omitempty"`
 }
 
 func uidsMapToUnits(uidsMap map[string]int, unitsMap map[string]interface{}) []interface{} {
@@ -141,104 +150,59 @@ func GetSelectedData(entry *cModels.Entry) (SelectedData, error) {
 func GetRecommendData(entry *cModels.Entry) (RecommendData, error) {
 	var recommendData RecommendData
 	err := json.Unmarshal(entry.Data.JSON, &recommendData)
+	if err != nil {
+		log.Warnf("Failed unmarshling %+v", string(entry.Data.JSON))
+	}
 	return recommendData, err
 }
 
-type RecommendPair struct {
+type RecommendClientEventIDPair struct {
 	RecommendedClientEventID string
 	SelectedClientEventID    string
 }
 
-func Learn(prodChronicles bool, chroniclesUrl string) error {
-	log.Infof("Reading recommendations...")
+type RecommendUidsPair struct {
+	Recommended string
+	Selected    string
+}
 
-	var err error
-	selected := cModels.EntrySlice(nil)
-	if prodChronicles {
-		if selected, err = MakeScanner("recommend-selected", "22" /* 2022-01-03 lastReadId*/, chroniclesUrl).ScanAll(); err != nil {
-			return err
-		}
-	} else {
-		if selected, err = LoadEntries("recommend-selected"); err != nil {
-			return err
-		}
-	}
-	selectedMap := EntriesMap(selected)
+type RecommendItemsPair struct {
+	Recommended interface{}
+	Selected    interface{}
+}
 
-	recommended := cModels.EntrySlice(nil)
-	if prodChronicles {
-		if recommended, err = MakeScanner("recommend", "22" /* 2022-01-03 lastReadId*/, chroniclesUrl).ScanAll(); err != nil {
-			return err
-		}
-	} else {
-		if recommended, err = LoadEntries("recommend"); err != nil {
-			return err
-		}
-	}
-	recommendedMap := EntriesMap(recommended)
-
-	noClientFlowId := 0
-	flowNotFound := 0
-	uidsToLoad := make(map[string]bool)
-	sUids := make(map[string]int)
-	recommendedToSelected := make(map[string][]RecommendPair)
-	selectedToRecommended := make(map[string][]RecommendPair)
-	for _, selectEntry := range selected {
-		// log.Infof("Entry: %+v", selectEntry)
-		if !selectEntry.ClientFlowID.Valid || selectEntry.ClientFlowID.String == "" {
-			noClientFlowId++
+func RecommendsToNegativeExamples(recommends cModels.EntrySlice, rToSMap map[string]map[string]bool) ([]RecommendUidsPair, error) {
+	ret := []RecommendUidsPair(nil)
+	for _, entry := range recommends {
+		// Converts one recommendation to number of pairs of
+		// source uid => recommend uid (filter actually selected uids)
+		recommendData, err := GetRecommendData(entry)
+		if err != nil {
+			log.Warnf("Failed unmarshling recommend data: %+v", err)
 			continue
 		}
-		if !selectEntry.Data.Valid {
-			log.Warnf("Non valid select data: %s", selectEntry.ID)
-			continue
-		}
-		if selectedData, err := GetSelectedData(selectEntry); err != nil {
-			log.Warnf("Failed getting select data, skipping.", err)
-			continue
-		} else {
-			if selectEntry.ClientFlowID.Valid && selectEntry.ClientFlowID.String != "" {
-				if recommendEntry, ok := recommendedMap[selectEntry.ClientFlowID.String]; !ok {
-					flowNotFound++
-					log.Infof("Could not find recommend for recommend selected. FlowClientID: %s", selectEntry.ClientFlowID.String)
-				} else {
-					if recommendData, err := GetRecommendData(recommendEntry); err != nil {
-						log.Warnf("Failed getting recommend data, skipping.", err)
-						continue
-					} else {
-						sUids[selectedData.Uid]++
-						uidsToLoad[selectedData.Uid] = true
-						rUid := recommendData.RequestData.Options.Recommend.Uid
-						uidsToLoad[rUid] = true
-						recommendedToSelected[rUid] = append(recommendedToSelected[rUid], RecommendPair{recommendEntry.ClientEventID.String, selectEntry.ClientEventID.String})
-						selectedToRecommended[selectedData.Uid] = append(selectedToRecommended[selectedData.Uid], RecommendPair{recommendEntry.ClientEventID.String, selectEntry.ClientEventID.String})
-						// log.Infof("%+v %s => %s", selectEntry.CreatedAt, recommendData.RequestData.Options.Recommend.Uid, selectedData.Uid)
+		rUid := recommendData.RequestData.Options.Recommend.Uid
+		for _, typedItems := range recommendData.Recommendations {
+			for _, typedItem := range typedItems {
+				sUid := typedItem.Uid
+				if sMap, rOk := rToSMap[rUid]; rOk {
+					if _, sOk := sMap[sUid]; sOk {
+						continue // Don't take positive example as negative.
 					}
 				}
+				ret = append(ret, RecommendUidsPair{Recommended: rUid, Selected: sUid})
 			}
 		}
 	}
-	log.Infof("Recommend selected: %d, without flow: %d, flow not found: %d", len(selected), noClientFlowId, flowNotFound)
+	return ret, nil
+}
 
-	randomUids, err := sampleRandomUids(sUids, 10000)
-	if err != nil {
-		return err
-	}
-	for _, uid := range randomUids {
-		uidsToLoad[uid] = true
-	}
-
+func PrintTypesMap(unitsMap map[string]interface{}, recommendedToSelected map[string][]RecommendClientEventIDPair, selectedMap map[string]*cModels.Entry) error {
 	rToSTypeMap := make(map[string]map[string]int)
 	sToRTypeMap := make(map[string]map[string]int)
 
-	log.Infof("Loading %d uids", len(uidsToLoad))
 	recommendNotLoaded := 0
 	selectedNotLoaded := 0
-	unitsMap, err := LoadUids(uidsToLoad)
-	if err != nil {
-		return err
-	}
-	log.Infof("Loaded %d uids.", len(unitsMap))
 
 	for rUid, rToSPairs := range recommendedToSelected {
 		if _, ok := unitsMap[rUid]; !ok {
@@ -297,9 +261,150 @@ func Learn(prodChronicles bool, chroniclesUrl string) error {
 			log.Infof("\t\t%5d %25s", rTypeMap[rType], rType)
 		}
 	}
+	return nil
+}
 
-	positiveUnits := uidsMapToUnits(sUids, unitsMap)
-	negativeUnits := uidsToUnits(randomUids, unitsMap)
-	log.Infof("Learning classifier %d positives and %d negatives.", len(positiveUnits), len(negativeUnits))
-	return CrossValidate(positiveUnits, negativeUnits)
+func uidsToItems(uidsPairs []RecommendUidsPair, unitsMap map[string]interface{}) []RecommendItemsPair {
+	ret := []RecommendItemsPair(nil)
+	for _, pair := range uidsPairs {
+		rCu, rOk := unitsMap[pair.Recommended]
+		if sCu, sOk := unitsMap[pair.Selected]; rOk && sOk {
+			ret = append(ret, RecommendItemsPair{Recommended: rCu, Selected: sCu})
+		} else {
+			log.Warnf("Skipping uids pair due to one of the uids not loaded: %s, %s", pair.Recommended, pair.Selected)
+		}
+	}
+	return ret
+}
+
+func Learn(prodChronicles bool, chroniclesUrl string) error {
+	log.Infof("Reading recommendations...")
+
+	var err error
+	selected := cModels.EntrySlice(nil)
+	// lastReadId := "22" // 2021-12-08
+	// lastReadId := "23" // 2021-12-30
+	// lastReadId := "24" // 2022-01-21
+	lastReadId := "25" // 2022-02-12
+	if prodChronicles {
+		if selected, err = MakeScanner("recommend-selected", lastReadId, chroniclesUrl).ScanAll(); err != nil {
+			return err
+		}
+	} else {
+		if selected, err = LoadEntries("recommend-selected"); err != nil {
+			return err
+		}
+	}
+	// selectedMap := EntriesMap(selected)
+
+	recommended := cModels.EntrySlice(nil)
+	if prodChronicles {
+		if recommended, err = MakeScanner("recommend", lastReadId, chroniclesUrl).ScanAll(); err != nil {
+			return err
+		}
+	} else {
+		if recommended, err = LoadEntries("recommend"); err != nil {
+			return err
+		}
+	}
+	recommendedMap := EntriesMap(recommended)
+
+	noClientFlowId := 0
+	flowNotFound := 0
+	uidsToLoad := make(map[string]bool)
+	sUids := make(map[string]int)
+	sUidsCount := 0
+	recommendedToSelected := make(map[string][]RecommendClientEventIDPair)
+	rToSUidsMap := make(map[string]map[string]bool)
+	selectedToRecommended := make(map[string][]RecommendClientEventIDPair)
+	positiveUidsPairs := []RecommendUidsPair(nil)
+
+	for _, selectEntry := range selected {
+		// log.Infof("Entry: %+v", selectEntry)
+		if !selectEntry.ClientFlowID.Valid || selectEntry.ClientFlowID.String == "" {
+			noClientFlowId++
+			continue
+		}
+		if !selectEntry.Data.Valid {
+			log.Warnf("Non valid select data: %s", selectEntry.ID)
+			continue
+		}
+		if selectedData, err := GetSelectedData(selectEntry); err != nil {
+			log.Warnf("Failed getting select data, skipping.", err)
+			continue
+		} else {
+			if selectEntry.ClientFlowID.Valid && selectEntry.ClientFlowID.String != "" {
+				if recommendEntry, ok := recommendedMap[selectEntry.ClientFlowID.String]; !ok {
+					flowNotFound++
+					log.Infof("Could not find recommend for recommend selected. FlowClientID: %s", selectEntry.ClientFlowID.String)
+				} else {
+					if recommendData, err := GetRecommendData(recommendEntry); err != nil {
+						log.Warnf("Failed getting recommend data, skipping.", err)
+						continue
+					} else {
+						sUids[selectedData.Uid]++
+						sUidsCount += 1
+						uidsToLoad[selectedData.Uid] = true
+						rUid := recommendData.RequestData.Options.Recommend.Uid
+						positiveUidsPairs = append(positiveUidsPairs, RecommendUidsPair{Recommended: rUid, Selected: selectedData.Uid})
+						uidsToLoad[rUid] = true
+						recommendedToSelected[rUid] = append(recommendedToSelected[rUid], RecommendClientEventIDPair{recommendEntry.ClientEventID.String, selectEntry.ClientEventID.String})
+						selectedToRecommended[selectedData.Uid] = append(selectedToRecommended[selectedData.Uid], RecommendClientEventIDPair{recommendEntry.ClientEventID.String, selectEntry.ClientEventID.String})
+						// log.Infof("%+v %s => %s", selectEntry.CreatedAt, recommendData.RequestData.Options.Recommend.Uid, selectedData.Uid)
+						if _, ok := rToSUidsMap[rUid]; !ok {
+							rToSUidsMap[rUid] = make(map[string]bool)
+						}
+						rToSUidsMap[rUid][selectedData.Uid] = true
+					}
+				}
+			}
+		}
+	}
+	log.Infof("Recommend selected: %d, without flow: %d, flow not found: %d", len(selected), noClientFlowId, flowNotFound)
+
+	// Random negative uids.
+	/*randomSize := sUidsCount * NEGATIVE_MULTIPLIER
+	randomUids, err := sampleRandomUids(sUids, randomSize)
+	if err != nil {
+		return err
+	}
+	for _, uid := range randomUids {
+		uidsToLoad[uid] = true
+	}*/
+
+	// Negative pairs from logs.
+	negativeUidsPairs, err := RecommendsToNegativeExamples(recommended, rToSUidsMap)
+	if err != nil {
+		return err
+	}
+	for _, pair := range negativeUidsPairs {
+		uidsToLoad[pair.Recommended] = true
+		uidsToLoad[pair.Selected] = true
+	}
+
+	log.Infof("Loading %d uids", len(uidsToLoad))
+	unitsMap, err := LoadUids(uidsToLoad)
+	if err != nil {
+		return err
+	}
+	log.Infof("Loaded %d uids.", len(unitsMap))
+
+	// Prints some statistical info
+	//if err := PrintTypesMap(unitsMap, recommendedToSelected, selectedMap); err != nil {
+	//	return err
+	//}
+
+	positiveItemPairs := uidsToItems(positiveUidsPairs, unitsMap)
+	negativeItemPairs := uidsToItems(negativeUidsPairs, unitsMap)
+	// positiveUnits := uidsMapToUnits(sUids, unitsMap)
+	// negativeUnits := uidsToUnits(randomUids, unitsMap)
+	log.Infof("Learning classifier %d positives and %d negatives.", len(positiveItemPairs), len(negativeItemPairs))
+	if len(negativeItemPairs) > len(positiveItemPairs)*NEGATIVE_MULTIPLIER {
+		rand.Shuffle(len(negativeItemPairs), func(i, j int) {
+			negativeItemPairs[i], negativeItemPairs[j] = negativeItemPairs[j], negativeItemPairs[i]
+		})
+		negativeItemPairs = negativeItemPairs[:len(positiveItemPairs)*NEGATIVE_MULTIPLIER]
+		log.Infof("Using only %d negatives.", len(negativeItemPairs))
+	}
+	return CrossValidate(positiveItemPairs, negativeItemPairs)
 }

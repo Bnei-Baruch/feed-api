@@ -42,6 +42,7 @@ func learnFn(cmd *cobra.Command, args []string) {
 
 	if err = learn.InitFeatures(); err != nil {
 		log.Error("Failed initializing features: ", err)
+		return
 	}
 
 	if err = learn.Learn(prodChronicles, viper.GetString("chronicles.remote_api")); err != nil {
