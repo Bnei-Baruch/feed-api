@@ -351,7 +351,6 @@ const FEED_SUGGESTER_JSON = `
               "filter_selector": 0,
               "args": [
                 "VIDEO_PROGRAM_CHAPTER",
-                "MEAL",
                 "FRIENDS_GATHERING"
               ]
             }
