@@ -17,6 +17,121 @@ import (
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
+const FEED_SUGGESTER_JSON = `
+{
+  "name": "CompletionSuggester",
+  "specs": [
+    {
+      "name": "LimitSuggester",
+      "specs": [
+        {
+          "name": "DataCollectionsSuggester",
+          "filters": [
+            {
+              "filter_selector": 1,
+              "args": [
+                "DAILY_LESSON"
+              ]
+            }
+          ]
+        }
+      ],
+      "args": [
+        "1"
+      ]
+    },
+    {
+      "name": "SortSuggester",
+      "specs": [
+        {
+          "name": "DataCollectionsSuggester",
+          "filters": [
+            {
+              "filter_selector": 1,
+              "args": [
+                "DAILY_LESSON"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DataContentUnitsSuggester",
+          "filters": [
+            {
+              "filter_selector": 0,
+              "args": [
+                "VIDEO_PROGRAM_CHAPTER"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+`
+
+const FEED_SUGGESTER_JSON_V2 = `
+{
+  "name": "CompletionSuggester",
+  "specs": [
+    {
+      "name": "LimitSuggester",
+      "specs": [
+        {
+          "name": "DataCollectionsSuggester",
+          "filters": [
+            {
+              "filter_selector": 1,
+              "args": [
+                "DAILY_LESSON"
+              ]
+            }
+          ]
+        }
+      ],
+      "args": [
+        "1"
+      ]
+    },
+    {
+      "name": "SortSuggester",
+      "specs": [
+        {
+          "name": "DataCollectionsSuggester",
+          "filters": [
+            {
+              "filter_selector": 1,
+              "args": [
+                "DAILY_LESSON"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "DataContentUnitsSuggester",
+          "filters": [
+            {
+              "filter_selector": 0,
+              "args": [
+                "VIDEO_PROGRAM_CHAPTER",
+				"MEAL",
+                "FRIENDS_GATHERING"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+`
+
+var NAMESPACE_TO_SUGGESTER_JSON = map[string]string{
+	"kmedia-app-1":    FEED_SUGGESTER_JSON,
+	"kmedia-app-1.31": FEED_SUGGESTER_JSON_V2,
+}
+
 // Premetheus handler.
 func PrometheusHandler() gin.HandlerFunc {
 	h := promhttp.Handler()
@@ -307,64 +422,15 @@ func FeedHandler(c *gin.Context) {
 	concludeRequest(c, resp, err)
 }
 
-const FEED_SUGGESTER_JSON = `
-{
-  "name": "CompletionSuggester",
-  "specs": [
-    {
-      "name": "LimitSuggester",
-      "specs": [
-        {
-          "name": "DataCollectionsSuggester",
-          "filters": [
-            {
-              "filter_selector": 1,
-              "args": [
-                "DAILY_LESSON"
-              ]
-            }
-          ]
-        }
-      ],
-      "args": [
-        "1"
-      ]
-    },
-    {
-      "name": "SortSuggester",
-      "specs": [
-        {
-          "name": "DataCollectionsSuggester",
-          "filters": [
-            {
-              "filter_selector": 1,
-              "args": [
-                "DAILY_LESSON"
-              ]
-            }
-          ]
-        },
-        {
-          "name": "DataContentUnitsSuggester",
-          "filters": [
-            {
-              "filter_selector": 0,
-              "args": [
-                "VIDEO_PROGRAM_CHAPTER",
-                "FRIENDS_GATHERING"
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-`
-
 func handleFeed(suggesterContext core.SuggesterContext, r core.MoreRequest) (*MoreResponse, *HttpError) {
 	log.Debugf("r: %+v", r)
-	if s, err := core.MakeSuggesterFromJson(suggesterContext, FEED_SUGGESTER_JSON); err != nil {
+	suggesterJSON := FEED_SUGGESTER_JSON // default suggester json
+	if len(r.Namespace) > 0 {
+		if val, ok := NAMESPACE_TO_SUGGESTER_JSON[r.Namespace]; ok {
+			suggesterJSON = val
+		}
+	}
+	if s, err := core.MakeSuggesterFromJson(suggesterContext, suggesterJSON); err != nil {
 		return nil, NewInternalError(err)
 	} else {
 		feed := core.MakeFeedFromSuggester(s, suggesterContext)
