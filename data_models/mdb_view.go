@@ -11,16 +11,14 @@ import (
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/volatiletech/sqlboiler/boil"
-	"github.com/volatiletech/sqlboiler/queries"
-	"github.com/volatiletech/sqlboiler/queries/qm"
+	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
 	"github.com/Bnei-Baruch/feed-api/databases/mdb/models"
 	"github.com/Bnei-Baruch/feed-api/events"
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
-
-const ()
 
 type MdbView struct {
 	remote   *sql.DB

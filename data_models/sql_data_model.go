@@ -5,11 +5,12 @@ import (
 	"sort"
 	"time"
 
+	"github.com/volatiletech/null/v8"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+
 	"github.com/Bnei-Baruch/feed-api/common"
 	"github.com/Bnei-Baruch/feed-api/databases/data_models/models"
 	"github.com/Bnei-Baruch/feed-api/utils"
-	"github.com/volatiletech/null/v8"
-	"github.com/volatiletech/sqlboiler/queries/qm"
 )
 
 type SqlDataModel struct {
