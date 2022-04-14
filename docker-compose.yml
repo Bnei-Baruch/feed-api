@@ -1,10 +1,30 @@
 version: '3'
 
 services:
-  db:
+  postgres_mdb:
     image: postgres:9
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_DB: mdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
     ports:
       - 5432:5432
+  postgres_data_models:
+    image: postgres:13
+    restart: unless-stopped
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_DB: data_models
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+  postgres_chronicles:
+    image: postgres:12
+    restart: unless-stopped
+    ports:
+      - 5434:5432
+    environment:
+      POSTGRES_DB: chronicles
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
