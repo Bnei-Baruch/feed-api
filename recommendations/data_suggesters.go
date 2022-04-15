@@ -128,7 +128,7 @@ func (s *DataContentUnitsSuggester) initialUids(request core.MoreRequest) map[st
 	var ok bool
 	if _, ok = s.suggesterContext.Cache[CONTENT_UNITS_UIDS_KEY]; !ok {
 		prefiltered_start := time.Now()
-		dm := s.suggesterContext.DataModels
+		dm := s.suggesterContext.DataModels.(*data_models.DataModels)
 		uids := utils.CopyStringMap(dm.ContentUnitsInfo.Prefiltered())
 		log.Debugf("prefilter uids: %d", len(uids))
 		utils.Profile("DataContentUnitsSuggester.More.Prefiltered", time.Now().Sub(prefiltered_start))
@@ -154,7 +154,7 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 	if recommendInfo, err := LoadContentUnitRecommendInfo(request.Options.Recommend.Uid, s.suggesterContext); err != nil {
 		return nil, err
 	} else {
-		dm := s.suggesterContext.DataModels
+		dm := s.suggesterContext.DataModels.(*data_models.DataModels)
 		uids := s.initialUids(request)
 
 		log.Debugf("before skip uids: %d", len(uids))
@@ -383,7 +383,7 @@ func (s *DataCollectionsSuggester) initialUids(request core.MoreRequest) map[str
 	if _, ok = s.suggesterContext.Cache[COLLECTIONS_UIDS_KEY]; !ok {
 		log.Debugf("Initialize collections cache")
 		prefiltered_start := time.Now()
-		dm := s.suggesterContext.DataModels
+		dm := s.suggesterContext.DataModels.(*data_models.DataModels)
 		uids := utils.CopyStringMap(dm.CollectionsInfo.Prefiltered())
 		log.Debugf("prefilter uids: %d", len(uids))
 		utils.Profile("DataCollectionsSuggester.More.Prefiltered", time.Now().Sub(prefiltered_start))
@@ -397,7 +397,7 @@ func (s *DataCollectionsSuggester) More(request core.MoreRequest) ([]core.Conten
 	if recommendInfo, err := LoadContentUnitRecommendInfo(request.Options.Recommend.Uid, s.suggesterContext); err != nil {
 		return nil, err
 	} else {
-		dm := s.suggesterContext.DataModels
+		dm := s.suggesterContext.DataModels.(*data_models.DataModels)
 		uids := s.initialUids(request)
 		for _, uid := range request.Options.SkipUids {
 			delete(uids, uid)

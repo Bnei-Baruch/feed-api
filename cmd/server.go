@@ -11,6 +11,7 @@ import (
 	"github.com/Bnei-Baruch/feed-api/common"
 	"github.com/Bnei-Baruch/feed-api/data_models"
 	"github.com/Bnei-Baruch/feed-api/events"
+	"github.com/Bnei-Baruch/feed-api/learn"
 	"github.com/Bnei-Baruch/feed-api/utils"
 	"github.com/Bnei-Baruch/feed-api/version"
 )
@@ -41,12 +42,18 @@ func serverFn(cmd *cobra.Command, args []string) {
 	log.SetLevel(logLevel)
 
 	log.Infof("Starting feed api server version %s", version.Version)
+
 	common.Init()
 	defer common.Shutdown()
 	shutDownEvents := events.RunListener()
 	defer shutDownEvents()
 
 	dataModels := data_models.MakeDataModels(common.LocalMdb, common.RemoteMdb, common.LocalChroniclesDb, common.ModelsDb, viper.GetString("chronicles.remote_api"))
+
+	if err = learn.InitFeatures(); err != nil {
+		log.Error("Failed initializing features: ", err)
+		return
+	}
 
 	// TODO: Setup Rollbar
 	// rollbar.Token = viper.GetString("server.rollbar-token")

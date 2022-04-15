@@ -28,6 +28,8 @@ import (
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
+const TERMVECTOR_DAT = "/tmp/termvector.dat"
+
 var (
 	unitsCache      map[string]interface{}
 	termvectorCache map[string]map[string]float64
@@ -39,7 +41,7 @@ func InitFeatures() error {
 	unitsCache = make(map[string]interface{})
 
 	var err error
-	termvectorCache, err = termVectorFromFile("termvector.dat")
+	termvectorCache, err = termVectorFromFile(TERMVECTOR_DAT)
 	if err != nil {
 		return err
 	}
@@ -305,7 +307,7 @@ func EvalLearner(epoch int, learner *gonline.LearnerInterface, x_test *[]map[str
 	fmt.Printf("epoch:%d test accuracy: %f (%d/%d)\n", epoch, acc, numCorr, numTotal)
 }
 
-func Examples(examples []RecommendItemsPair, label string) (*[]map[string]float64, *[]string, error) {
+func ExamplesFromPairs(examples []RecommendItemsPair, label string) (*[]map[string]float64, *[]string, error) {
 	x := []map[string]float64(nil)
 	y := []string(nil)
 	skipped := 0
@@ -326,7 +328,7 @@ func Examples(examples []RecommendItemsPair, label string) (*[]map[string]float6
 		log.Info("...")
 		log.Info("...")
 	}
-	log.Infof("Skipped total of %d %s examples.", label, skipped)
+	log.Infof("Skipped total of %d %s examples.", skipped, label)
 	return &x, &y, nil
 }
 
@@ -341,11 +343,11 @@ func PrepareExamples(positives []RecommendItemsPair, negatives []RecommendItemsP
 	if err := CacheTermVectors(units); err != nil {
 		return nil, nil, nil, nil, err
 	}
-	x_pos, y_pos, err := Examples(positives, "p")
+	x_pos, y_pos, err := ExamplesFromPairs(positives, "p")
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	x_neg, y_neg, err := Examples(negatives, "n")
+	x_neg, y_neg, err := ExamplesFromPairs(negatives, "n")
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -623,5 +625,5 @@ func CacheTermVectors(units []interface{}) error {
 		}
 		log.Infof("Done fetching terms for lang: %s", lang)
 	}
-	return termVectorToFile("termvector.dat", termvectorCache)
+	return termVectorToFile(TERMVECTOR_DAT, termvectorCache)
 }

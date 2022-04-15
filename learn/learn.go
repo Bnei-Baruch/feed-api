@@ -16,6 +16,7 @@ import (
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
+// Desired scale between positive and negative examples.
 const NEGATIVE_MULTIPLIER = 5
 
 type SelectedData struct {
@@ -284,8 +285,8 @@ func Learn(prodChronicles bool, chroniclesUrl string) error {
 	selected := cModels.EntrySlice(nil)
 	// lastReadId := "22" // 2021-12-08
 	// lastReadId := "23" // 2021-12-30
-	// lastReadId := "24" // 2022-01-21
-	lastReadId := "25" // 2022-02-12
+	lastReadId := "24" // 2022-01-21
+	// lastReadId := "25" // 2022-02-12
 	if prodChronicles {
 		if selected, err = MakeScanner("recommend-selected", lastReadId, chroniclesUrl).ScanAll(); err != nil {
 			return err
@@ -336,7 +337,11 @@ func Learn(prodChronicles bool, chroniclesUrl string) error {
 			if selectEntry.ClientFlowID.Valid && selectEntry.ClientFlowID.String != "" {
 				if recommendEntry, ok := recommendedMap[selectEntry.ClientFlowID.String]; !ok {
 					flowNotFound++
-					log.Infof("Could not find recommend for recommend selected. FlowClientID: %s", selectEntry.ClientFlowID.String)
+					if flowNotFound < 10 {
+						log.Infof("Could not find recommend for recommend selected. Select id: %s FlowClientID: %s", selectEntry.ID, selectEntry.ClientFlowID.String)
+					} else if flowNotFound < 11 {
+						log.Infof("Skipping other not found recommend for recommend selected.")
+					}
 				} else {
 					if recommendData, err := GetRecommendData(recommendEntry); err != nil {
 						log.Warnf("Failed getting recommend data, skipping.", err)

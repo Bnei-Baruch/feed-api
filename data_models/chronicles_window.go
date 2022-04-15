@@ -160,7 +160,10 @@ func (m *ChroniclesWindowModel) PrevReadId() string {
 }
 
 func MakeChroniclesWindowModel(localChroniclesDb *sql.DB, chroniclesUrl string) *ChroniclesWindowModel {
-	lastReadId := ""
+	// lastReadId := "22" // 2021-12-08
+	// lastReadId := "23" // 2021-12-30
+	lastReadId := "24" // 2022-01-21
+	// lastReadId := "25" // 2022-02-12
 	if entry, err := models.Entries(qm.OrderBy("id desc"), qm.Limit(1)).One(localChroniclesDb); err == nil && entry != nil {
 		lastReadId = entry.ID
 	}
@@ -248,7 +251,7 @@ type SearchSelectedData struct {
 }
 
 func (m *ChroniclesWindowModel) Refresh() error {
-	log.Debugf("Scanning entries...")
+	log.Infof("Scanning entries...")
 	if entries, err := m.ScanChroniclesEntries(); err != nil {
 		log.Infof("Scan error: %+v.", err)
 		retryError := &ScanHttpErrorRetry{}
@@ -264,7 +267,7 @@ func (m *ChroniclesWindowModel) Refresh() error {
 		} else {
 			m.interval = utils.MinDuration(m.interval*2, MAX_INTERVAL)
 		}
-		log.Debugf("Updated interval to %s", m.interval)
+		log.Infof("--------------------------   Updated interval to %s", m.interval)
 		log.Debugf("Inserting %d entries.", len(entries))
 		start := time.Now()
 		allValues := []string(nil)
@@ -381,15 +384,15 @@ func (m *ChroniclesWindowModel) Refresh() error {
 				}
 			}
 
-			log.Debugf("Insert done in %s", time.Now().Sub(start))
+			log.Infof("Insert done in %s", time.Now().Sub(start))
 		} else {
-			log.Debugf("No values to add in %s", time.Now().Sub(start))
+			log.Infof("No values to add in %s", time.Now().Sub(start))
 		}
 
 		m.refreshCount += 1
 		if m.interval == MAX_INTERVAL || m.refreshCount == DELETE_INSERT_RATIO {
 			m.refreshCount = 0
-			log.Debugf("Checking delete window.")
+			log.Infof("Checking delete window.")
 			start = time.Now()
 			if entry, err := models.Entries(qm.OrderBy("id desc"), qm.Offset(MAX_WINDOW_SIZE)).One(m.localChroniclesDb); err == nil && entry != nil {
 				log.Debugf("Deleting from id: %s (%s)", entry.ID, time.Now().Sub(start))
@@ -406,11 +409,11 @@ func (m *ChroniclesWindowModel) Refresh() error {
 					}
 				}
 			} else {
-				log.Debugf("No delete required.")
+				log.Infof("No delete required.")
 			}
-			log.Debugf("Delete done in %s", time.Now().Sub(start))
+			log.Infof("Delete done in %s", time.Now().Sub(start))
 		} else {
-			log.Debugf("Skipping delete")
+			log.Infof("Skipping delete")
 		}
 	}
 	return nil

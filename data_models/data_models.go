@@ -17,6 +17,7 @@ import (
 	"github.com/Bnei-Baruch/feed-api/common"
 	"github.com/Bnei-Baruch/feed-api/consts"
 	"github.com/Bnei-Baruch/feed-api/databases/mdb"
+	"github.com/Bnei-Baruch/feed-api/learn"
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
@@ -231,10 +232,16 @@ func (cm *ChainModel) Name() string {
 }
 
 func (cm *ChainModel) Refresh() error {
+	log.Infof("Refreshing chain model %s", cm.Name())
+	chainStart := time.Now()
 	for i := range cm.models {
 		if when, ok := cm.nextRefresh[i]; ok && when.Before(time.Now()) {
-			log.Debugf("Refreshing %d: %s", i, cm.models[i].Name())
-			if err := cm.models[i].Refresh(); err != nil {
+			log.Infof("Refreshing %d: %s", i, cm.models[i].Name())
+			start := time.Now()
+			err := cm.models[i].Refresh()
+			end := time.Now()
+			log.Infof("Chain model Refreshed %s in %s", cm.models[i].Name(), end.Sub(start))
+			if err != nil {
 				return err
 			}
 			cm.nextRefresh[i] = time.Now().Add(cm.models[i].Interval())
@@ -244,6 +251,8 @@ func (cm *ChainModel) Refresh() error {
 			break
 		}
 	}
+	chainEnd := time.Now()
+	log.Infof("Refreshed chain model %s in %s", cm.Name(), chainEnd.Sub(chainStart))
 	return nil
 }
 
@@ -316,6 +325,7 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 	sqlInsertContentUnits := MakeSqlRefreshModel([]string{INSERT_CONTENT_UNITS}, modelsDb)
 	sqlInsertEventsByDayUser := MakeSqlRefreshModel([]string{INSERT_EVENTS_BY_MINUTES, INSERT_DOWNLOAD_BY_MINUTES, INSERT_PAGE_ENTER_BY_MINUTES, INSERT_CONTENT_UNITS_2018_2021_MEASURES, INSERT_CONTENT_UNITS_MEASURES}, modelsDb)
 	sqlDataModel := MakeSqlDataModel(modelsDb)
+	learnSuggester := learn.MakeLearnSuggester(cDb)
 
 	models := []RefreshModel{
 		MakeChainModels([]RefreshModel{mv, sqlInsertContentUnits}),
@@ -327,7 +337,7 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 		cucf,
 		cui,
 		ci,
-		MakeChainModels([]RefreshModel{cwm, sqlInsertEventsByDayUser}),
+		MakeChainModels([]RefreshModel{cwm, sqlInsertEventsByDayUser, learnSuggester}),
 	}
 
 	dataModels := &DataModels{
@@ -373,11 +383,11 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 }
 
 func refreshModel(model RefreshModel) error {
-	log.Debugf("Refreshing Model %s", model.Name())
+	log.Infof("Refreshing Model %s", model.Name())
 	start := time.Now()
 	err := model.Refresh()
 	end := time.Now()
-	log.Debugf("Model Refreshed %s in %s", model.Name(), end.Sub(start))
+	log.Infof("Model Refreshed %s in %s", model.Name(), end.Sub(start))
 	if err != nil {
 		return errors.Wrap(err, model.Name())
 	}

@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
-	"github.com/Bnei-Baruch/feed-api/data_models"
 )
 
 const (
@@ -137,7 +135,7 @@ type Suggester interface {
 
 type SuggesterContext struct {
 	DB         *sql.DB
-	DataModels *data_models.DataModels
+	DataModels interface{}
 	Cache      map[string]interface{}
 }
 
