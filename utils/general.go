@@ -10,7 +10,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/volatiletech/null"
+	"github.com/volatiletech/null/v8"
 )
 
 type ProfileData struct {

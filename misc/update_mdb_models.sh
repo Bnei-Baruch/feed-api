@@ -4,9 +4,9 @@
 
 set -ev
 
-rm -f mdb/models/*
+rm -f databases/mdb/models/*
 cp  $GOPATH/src/github.com/Bnei-Baruch/archive-backend/mdb/models/*.go mdb/models
-sed -i .bak 's/models/mdbmodels/' mdb/models/*
-rm mdb/models/*.bak
-rm mdb/models/*_test.go
+sed -i .bak 's/models/mdbmodels/' databases/mdb/models/*
+rm databases/mdb/models/*.bak
+rm databases/mdb/models/*_test.go
 

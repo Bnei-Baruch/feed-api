@@ -6,12 +6,12 @@ This is a modified version of the github.com/Bnei-Baruch/mdb/api/registry.go
 */
 
 import (
-	"github.com/volatiletech/sqlboiler/boil"
-	"github.com/volatiletech/sqlboiler/queries/qm"
+	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
 	"github.com/pkg/errors"
 
-	mdbmodels "github.com/Bnei-Baruch/feed-api/databases/mdb/models"
+	"github.com/Bnei-Baruch/feed-api/databases/mdb/models"
 )
 
 var (
@@ -47,18 +47,18 @@ type TypeRegistry interface {
 }
 
 type ContentTypeRegistry struct {
-	ByName map[string]*mdbmodels.ContentType
-	ByID   map[int64]*mdbmodels.ContentType
+	ByName map[string]*models.ContentType
+	ByID   map[int64]*models.ContentType
 }
 
 func (r *ContentTypeRegistry) Init(exec boil.ContextExecutor) error {
-	types, err := mdbmodels.ContentTypes().All(exec)
+	types, err := models.ContentTypes().All(exec)
 	if err != nil {
 		return errors.Wrap(err, "Load content_types from DB")
 	}
 
-	r.ByName = make(map[string]*mdbmodels.ContentType)
-	r.ByID = make(map[int64]*mdbmodels.ContentType)
+	r.ByName = make(map[string]*models.ContentType)
+	r.ByID = make(map[int64]*models.ContentType)
 	for _, t := range types {
 		r.ByName[t.Name] = t
 		r.ByID[t.ID] = t
@@ -68,16 +68,16 @@ func (r *ContentTypeRegistry) Init(exec boil.ContextExecutor) error {
 }
 
 type ContentRoleTypeRegistry struct {
-	ByName map[string]*mdbmodels.ContentRoleType
+	ByName map[string]*models.ContentRoleType
 }
 
 func (r *ContentRoleTypeRegistry) Init(exec boil.ContextExecutor) error {
-	types, err := mdbmodels.ContentRoleTypes().All(exec)
+	types, err := models.ContentRoleTypes().All(exec)
 	if err != nil {
 		return errors.Wrap(err, "Load content_role_types from DB")
 	}
 
-	r.ByName = make(map[string]*mdbmodels.ContentRoleType)
+	r.ByName = make(map[string]*models.ContentRoleType)
 	for _, t := range types {
 		r.ByName[t.Name] = t
 	}
@@ -86,16 +86,16 @@ func (r *ContentRoleTypeRegistry) Init(exec boil.ContextExecutor) error {
 }
 
 type PersonsRegistry struct {
-	ByPattern map[string]*mdbmodels.Person
+	ByPattern map[string]*models.Person
 }
 
 func (r *PersonsRegistry) Init(exec boil.ContextExecutor) error {
-	types, err := mdbmodels.Persons(qm.Where("pattern is not null")).All(exec)
+	types, err := models.Persons(qm.Where("pattern is not null")).All(exec)
 	if err != nil {
 		return errors.Wrap(err, "Load persons from DB")
 	}
 
-	r.ByPattern = make(map[string]*mdbmodels.Person)
+	r.ByPattern = make(map[string]*models.Person)
 	for _, t := range types {
 		r.ByPattern[t.Pattern.String] = t
 	}
@@ -104,16 +104,16 @@ func (r *PersonsRegistry) Init(exec boil.ContextExecutor) error {
 }
 
 type AuthorRegistry struct {
-	ByCode map[string]*mdbmodels.Author
+	ByCode map[string]*models.Author
 }
 
 func (r *AuthorRegistry) Init(exec boil.ContextExecutor) error {
-	authors, err := mdbmodels.Authors().All(exec)
+	authors, err := models.Authors().All(exec)
 	if err != nil {
 		return errors.Wrap(err, "Load authors from DB")
 	}
 
-	r.ByCode = make(map[string]*mdbmodels.Author)
+	r.ByCode = make(map[string]*models.Author)
 	for _, a := range authors {
 		r.ByCode[a.Code] = a
 	}
@@ -122,18 +122,18 @@ func (r *AuthorRegistry) Init(exec boil.ContextExecutor) error {
 }
 
 type SourceTypeRegistry struct {
-	ByName map[string]*mdbmodels.SourceType
-	ByID   map[int64]*mdbmodels.SourceType
+	ByName map[string]*models.SourceType
+	ByID   map[int64]*models.SourceType
 }
 
 func (r *SourceTypeRegistry) Init(exec boil.ContextExecutor) error {
-	types, err := mdbmodels.SourceTypes().All(exec)
+	types, err := models.SourceTypes().All(exec)
 	if err != nil {
 		return errors.Wrap(err, "Load source_types from DB")
 	}
 
-	r.ByName = make(map[string]*mdbmodels.SourceType)
-	r.ByID = make(map[int64]*mdbmodels.SourceType)
+	r.ByName = make(map[string]*models.SourceType)
+	r.ByID = make(map[int64]*models.SourceType)
 	for _, t := range types {
 		r.ByName[t.Name] = t
 		r.ByID[t.ID] = t
@@ -143,18 +143,18 @@ func (r *SourceTypeRegistry) Init(exec boil.ContextExecutor) error {
 }
 
 type TwitterUsersRegistry struct {
-	ByUsername map[string]*mdbmodels.TwitterUser
-	ByID       map[int64]*mdbmodels.TwitterUser
+	ByUsername map[string]*models.TwitterUser
+	ByID       map[int64]*models.TwitterUser
 }
 
 func (r *TwitterUsersRegistry) Init(exec boil.ContextExecutor) error {
-	users, err := mdbmodels.TwitterUsers().All(exec)
+	users, err := models.TwitterUsers().All(exec)
 	if err != nil {
 		return errors.Wrap(err, "Load twitter users from DB")
 	}
 
-	r.ByUsername = make(map[string]*mdbmodels.TwitterUser)
-	r.ByID = make(map[int64]*mdbmodels.TwitterUser)
+	r.ByUsername = make(map[string]*models.TwitterUser)
+	r.ByID = make(map[int64]*models.TwitterUser)
 	for _, t := range users {
 		r.ByUsername[t.Username] = t
 		r.ByID[t.ID] = t
@@ -164,18 +164,18 @@ func (r *TwitterUsersRegistry) Init(exec boil.ContextExecutor) error {
 }
 
 type BlogsRegistry struct {
-	ByName map[string]*mdbmodels.Blog
-	ByID   map[int64]*mdbmodels.Blog
+	ByName map[string]*models.Blog
+	ByID   map[int64]*models.Blog
 }
 
 func (r *BlogsRegistry) Init(exec boil.ContextExecutor) error {
-	blogs, err := mdbmodels.Blogs().All(exec)
+	blogs, err := models.Blogs().All(exec)
 	if err != nil {
 		return errors.Wrap(err, "Load blogs from DB")
 	}
 
-	r.ByName = make(map[string]*mdbmodels.Blog)
-	r.ByID = make(map[int64]*mdbmodels.Blog)
+	r.ByName = make(map[string]*models.Blog)
+	r.ByID = make(map[int64]*models.Blog)
 	for _, b := range blogs {
 		r.ByName[b.Name] = b
 		r.ByID[b.ID] = b

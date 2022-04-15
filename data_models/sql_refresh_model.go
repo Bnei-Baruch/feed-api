@@ -8,14 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Bnei-Baruch/feed-api/common"
-	"github.com/Bnei-Baruch/feed-api/databases/data_models/models"
-	"github.com/Bnei-Baruch/feed-api/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/volatiletech/null/v8"
-	"github.com/volatiletech/sqlboiler/queries"
-	"github.com/volatiletech/sqlboiler/queries/qm"
+	"github.com/volatiletech/sqlboiler/v4/queries"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+
+	"github.com/Bnei-Baruch/feed-api/common"
+	"github.com/Bnei-Baruch/feed-api/databases/data_models/models"
+	"github.com/Bnei-Baruch/feed-api/utils"
 )
 
 type SqlRefreshModel struct {
