@@ -15,7 +15,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
-	"github.com/Bnei-Baruch/feed-api/databases/mdb/models"
+	mdbModels "github.com/Bnei-Baruch/feed-api/databases/mdb/models"
 	"github.com/Bnei-Baruch/feed-api/events"
 	"github.com/Bnei-Baruch/feed-api/utils"
 )
@@ -62,15 +62,15 @@ type BoilRow interface {
 	Delete(exec boil.Executor) (int64, error)
 }
 
-func ToFileSlice(s interface{}) []*models.File {
+func ToFileSlice(s interface{}) []*mdbModels.File {
 	slice := reflect.ValueOf(s).Elem()
 	if slice.Kind() != reflect.Slice {
 		panic(fmt.Sprintf("Expected slice! got: %+v %+v", slice.Kind(), slice))
 	}
 	c := slice.Len()
-	out := make([]*models.File, c)
+	out := make([]*mdbModels.File, c)
 	for i := 0; i < c; i++ {
-		out[i] = slice.Index(i).Interface().(*models.File)
+		out[i] = slice.Index(i).Interface().(*mdbModels.File)
 	}
 	return out
 }
@@ -158,7 +158,7 @@ type move struct {
 	To   int64
 }
 
-func appendF(f *models.File, filesMap map[int64]*models.File, sortedFiles *[]*models.File) {
+func appendF(f *mdbModels.File, filesMap map[int64]*mdbModels.File, sortedFiles *[]*mdbModels.File) {
 	if f.ParentID.Valid {
 		if _, found := filesMap[f.ParentID.Int64]; found {
 			appendF(filesMap[f.ParentID.Int64], filesMap, sortedFiles)
@@ -179,11 +179,11 @@ func fetchRows(info TableInfo, ids []IdsTuple, exec boil.ContextExecutor) ([]Boi
 	} else {
 		// Order rows by parent first, so insert will work properly.
 		files := ToFileSlice(slice)
-		filesMap := make(map[int64]*models.File)
+		filesMap := make(map[int64]*mdbModels.File)
 		for _, f := range files {
 			filesMap[f.ID] = f
 		}
-		sortedFiles := []*models.File(nil)
+		sortedFiles := []*mdbModels.File(nil)
 		for _, f := range filesMap {
 			appendF(f, filesMap, &sortedFiles)
 		}
@@ -280,7 +280,7 @@ func InsertToTable(info TableInfo, ids []IdsTuple, local *sql.DB, remote *sql.DB
 func RelationQuery(table, field1, field2 string) BoilQueryFunc {
 	return func(mods ...qm.QueryMod) Bindable {
 		mods = append([]qm.QueryMod{qm.Select(fmt.Sprintf("%s as id1", field1), fmt.Sprintf("%s as id2", field2)), qm.From(table)}, mods...)
-		return models.NewQuery(mods...)
+		return mdbModels.NewQuery(mods...)
 	}
 }
 
@@ -292,17 +292,17 @@ type ContentUnitTag struct {
 func (cut *ContentUnitTag) Insert(exec boil.Executor, columns boil.Columns) error {
 	query := fmt.Sprintf("INSERT INTO \"content_units_tags\" (\"content_unit_id\", \"tag_id\") VALUES (%d, %d)", cut.ContentUnitID, cut.TagID)
 	if _, err := exec.Exec(query); err != nil {
-		return errors.Wrap(err, "models: unable to insert into content_units_tags")
+		return errors.Wrap(err, "mdbModels: unable to insert into content_units_tags")
 	}
 	return nil
 }
 
 func (cut *ContentUnitTag) Delete(exec boil.Executor) (int64, error) {
 	if result, err := exec.Exec("DELETE FROM \"content_units_tags\" WHERE \"content_unit_id\"=$1 AND \"tag_id\"=$2", cut.ContentUnitID, cut.TagID); err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete from content_units_tags")
+		return 0, errors.Wrap(err, "mdbModels: unable to delete from content_units_tags")
 	} else {
 		if rowsAff, err := result.RowsAffected(); err != nil {
-			return 0, errors.Wrap(err, "models: failed to get rows affected by delete for content_units_tags")
+			return 0, errors.Wrap(err, "mdbModels: failed to get rows affected by delete for content_units_tags")
 		} else {
 			return rowsAff, nil
 		}
@@ -317,17 +317,17 @@ type ContentUnitSource struct {
 func (cut *ContentUnitSource) Insert(exec boil.Executor, columns boil.Columns) error {
 	query := fmt.Sprintf("INSERT INTO \"content_units_sources\" (\"content_unit_id\", \"source_id\") VALUES (%d, %d)", cut.ContentUnitID, cut.SourceID)
 	if _, err := exec.Exec(query); err != nil {
-		return errors.Wrap(err, "models: unable to insert into content_units_sources")
+		return errors.Wrap(err, "mdbModels: unable to insert into content_units_sources")
 	}
 	return nil
 }
 
 func (cut *ContentUnitSource) Delete(exec boil.Executor) (int64, error) {
 	if result, err := exec.Exec("DELETE FROM \"content_units_sources\" WHERE \"content_unit_id\"=$1 AND \"source_id\"=$2", cut.ContentUnitID, cut.SourceID); err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete from content_units_sources")
+		return 0, errors.Wrap(err, "mdbModels: unable to delete from content_units_sources")
 	} else {
 		if rowsAff, err := result.RowsAffected(); err != nil {
-			return 0, errors.Wrap(err, "models: failed to get rows affected by delete for content_units_sources")
+			return 0, errors.Wrap(err, "mdbModels: failed to get rows affected by delete for content_units_sources")
 		} else {
 			return rowsAff, nil
 		}
@@ -342,17 +342,17 @@ type ContentUnitPublisher struct {
 func (cut *ContentUnitPublisher) Insert(exec boil.Executor, columns boil.Columns) error {
 	query := fmt.Sprintf("INSERT INTO \"content_units_publishers\" (\"content_unit_id\", \"publisher_id\") VALUES (%d, %d)", cut.ContentUnitID, cut.PublisherID)
 	if _, err := exec.Exec(query); err != nil {
-		return errors.Wrap(err, "models: unable to insert into content_units_publishers")
+		return errors.Wrap(err, "mdbModels: unable to insert into content_units_publishers")
 	}
 	return nil
 }
 
 func (cut *ContentUnitPublisher) Delete(exec boil.Executor) (int64, error) {
 	if result, err := exec.Exec("DELETE FROM \"content_units_publishers\" WHERE \"content_unit_id\"=$1 AND \"publisher_id\"=$2", cut.ContentUnitID, cut.PublisherID); err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete from content_units_publishers")
+		return 0, errors.Wrap(err, "mdbModels: unable to delete from content_units_publishers")
 	} else {
 		if rowsAff, err := result.RowsAffected(); err != nil {
-			return 0, errors.Wrap(err, "models: failed to get rows affected by delete for content_units_publishers")
+			return 0, errors.Wrap(err, "mdbModels: failed to get rows affected by delete for content_units_publishers")
 		} else {
 			return rowsAff, nil
 		}
@@ -367,17 +367,17 @@ type FileOperation struct {
 func (cut *FileOperation) Insert(exec boil.Executor, columns boil.Columns) error {
 	query := fmt.Sprintf("INSERT INTO \"files_operations\" (\"file_id\", \"operation_id\") VALUES (%d, %d)", cut.FileID, cut.OperationID)
 	if _, err := exec.Exec(query); err != nil {
-		return errors.Wrap(err, "models: unable to insert into files_operations")
+		return errors.Wrap(err, "mdbModels: unable to insert into files_operations")
 	}
 	return nil
 }
 
 func (cut *FileOperation) Delete(exec boil.Executor) (int64, error) {
 	if result, err := exec.Exec("DELETE FROM \"files_operations\" WHERE \"file_id\"=$1 AND \"operation_id\"=$2", cut.FileID, cut.OperationID); err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete from files_operations")
+		return 0, errors.Wrap(err, "mdbModels: unable to delete from files_operations")
 	} else {
 		if rowsAff, err := result.RowsAffected(); err != nil {
-			return 0, errors.Wrap(err, "models: failed to get rows affected by delete for files_operations")
+			return 0, errors.Wrap(err, "mdbModels: failed to get rows affected by delete for files_operations")
 		} else {
 			return rowsAff, nil
 		}
@@ -392,17 +392,17 @@ type FileStorage struct {
 func (cut *FileStorage) Insert(exec boil.Executor, columns boil.Columns) error {
 	query := fmt.Sprintf("INSERT INTO \"files_storages\" (\"file_id\", \"storage_id\") VALUES (%d, %d)", cut.FileID, cut.StorageID)
 	if _, err := exec.Exec(query); err != nil {
-		return errors.Wrap(err, "models: unable to insert into files_storages")
+		return errors.Wrap(err, "mdbModels: unable to insert into files_storages")
 	}
 	return nil
 }
 
 func (cut *FileStorage) Delete(exec boil.Executor) (int64, error) {
 	if result, err := exec.Exec("DELETE FROM \"files_storages\" WHERE \"file_id\"=$1 AND \"storage_id\"=$2", cut.FileID, cut.StorageID); err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete from files_storages")
+		return 0, errors.Wrap(err, "mdbModels: unable to delete from files_storages")
 	} else {
 		if rowsAff, err := result.RowsAffected(); err != nil {
-			return 0, errors.Wrap(err, "models: failed to get rows affected by delete for files_storages")
+			return 0, errors.Wrap(err, "mdbModels: failed to get rows affected by delete for files_storages")
 		} else {
 			return rowsAff, nil
 		}
@@ -417,17 +417,17 @@ type AuthorSource struct {
 func (cut *AuthorSource) Insert(exec boil.Executor, columns boil.Columns) error {
 	query := fmt.Sprintf("INSERT INTO \"authors_sources\" (\"author_id\", \"source_id\") VALUES (%d, %d)", cut.AuthorID, cut.SourceID)
 	if _, err := exec.Exec(query); err != nil {
-		return errors.Wrap(err, "models: unable to insert into authors_sources")
+		return errors.Wrap(err, "mdbModels: unable to insert into authors_sources")
 	}
 	return nil
 }
 
 func (cut *AuthorSource) Delete(exec boil.Executor) (int64, error) {
 	if result, err := exec.Exec("DELETE FROM \"authors_sources\" WHERE \"author_id\"=$1 AND \"source_id\"=$2", cut.AuthorID, cut.SourceID); err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete from authors_sources")
+		return 0, errors.Wrap(err, "mdbModels: unable to delete from authors_sources")
 	} else {
 		if rowsAff, err := result.RowsAffected(); err != nil {
-			return 0, errors.Wrap(err, "models: failed to get rows affected by delete for authors_sources")
+			return 0, errors.Wrap(err, "mdbModels: failed to get rows affected by delete for authors_sources")
 		} else {
 			return rowsAff, nil
 		}
@@ -519,64 +519,64 @@ const (
 func createTablesInfo() []TableInfo {
 	return []TableInfo{
 		// Types
-		TableInfo{T_CONTENT_TYPES, []string{"id"}, func() interface{} { return &[]*models.ContentType{} }, func(mods ...qm.QueryMod) Bindable { return models.ContentTypes(mods...) }},
-		TableInfo{T_CONTENT_ROLE_TYPES, []string{"id"}, func() interface{} { return &[]*models.ContentRoleType{} }, func(mods ...qm.QueryMod) Bindable { return models.ContentRoleTypes(mods...) }},
-		TableInfo{T_OPERATION_TYPES, []string{"id"}, func() interface{} { return &[]*models.OperationType{} }, func(mods ...qm.QueryMod) Bindable { return models.OperationTypes(mods...) }},
+		TableInfo{T_CONTENT_TYPES, []string{"id"}, func() interface{} { return &[]*mdbModels.ContentType{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.ContentTypes(mods...) }},
+		TableInfo{T_CONTENT_ROLE_TYPES, []string{"id"}, func() interface{} { return &[]*mdbModels.ContentRoleType{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.ContentRoleTypes(mods...) }},
+		TableInfo{T_OPERATION_TYPES, []string{"id"}, func() interface{} { return &[]*mdbModels.OperationType{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.OperationTypes(mods...) }},
 
 		// Authors
-		TableInfo{T_AUTHORS, []string{"id"}, func() interface{} { return &[]*models.Author{} }, func(mods ...qm.QueryMod) Bindable { return models.Authors(mods...) }},
-		TableInfo{T_AUTHOR_I18N, []string{"author_id", "language"}, func() interface{} { return &[]*models.AuthorI18n{} }, func(mods ...qm.QueryMod) Bindable { return models.AuthorI18ns(mods...) }},
+		TableInfo{T_AUTHORS, []string{"id"}, func() interface{} { return &[]*mdbModels.Author{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.Authors(mods...) }},
+		TableInfo{T_AUTHOR_I18N, []string{"author_id", "language"}, func() interface{} { return &[]*mdbModels.AuthorI18n{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.AuthorI18ns(mods...) }},
 
 		// Blogs
-		TableInfo{T_BLOGS, []string{"id"}, func() interface{} { return &[]*models.Blog{} }, func(mods ...qm.QueryMod) Bindable { return models.Blogs(mods...) }},
-		TableInfo{T_BLOG_POSTS, []string{"id"}, func() interface{} { return &[]*models.BlogPost{} }, func(mods ...qm.QueryMod) Bindable { return models.BlogPosts(mods...) }},
+		TableInfo{T_BLOGS, []string{"id"}, func() interface{} { return &[]*mdbModels.Blog{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.Blogs(mods...) }},
+		TableInfo{T_BLOG_POSTS, []string{"id"}, func() interface{} { return &[]*mdbModels.BlogPost{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.BlogPosts(mods...) }},
 
 		// Collections
-		TableInfo{T_COLLECTIONS, []string{"id"}, func() interface{} { return &[]*models.Collection{} }, func(mods ...qm.QueryMod) Bindable { return models.Collections(mods...) }},
-		TableInfo{T_COLLECTION_I18N, []string{"collection_id", "language"}, func() interface{} { return &[]*models.CollectionI18n{} }, func(mods ...qm.QueryMod) Bindable { return models.CollectionI18ns(mods...) }},
+		TableInfo{T_COLLECTIONS, []string{"id"}, func() interface{} { return &[]*mdbModels.Collection{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.Collections(mods...) }},
+		TableInfo{T_COLLECTION_I18N, []string{"collection_id", "language"}, func() interface{} { return &[]*mdbModels.CollectionI18n{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.CollectionI18ns(mods...) }},
 
 		// ContentUnits
-		TableInfo{T_CONTENT_UNITS, []string{"id"}, func() interface{} { return &[]*models.ContentUnit{} }, func(mods ...qm.QueryMod) Bindable { return models.ContentUnits(mods...) }},
-		TableInfo{T_CONTENT_UNIT_I18N, []string{"content_unit_id", "language"}, func() interface{} { return &[]*models.ContentUnitI18n{} }, func(mods ...qm.QueryMod) Bindable { return models.ContentUnitI18ns(mods...) }},
+		TableInfo{T_CONTENT_UNITS, []string{"id"}, func() interface{} { return &[]*mdbModels.ContentUnit{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.ContentUnits(mods...) }},
+		TableInfo{T_CONTENT_UNIT_I18N, []string{"content_unit_id", "language"}, func() interface{} { return &[]*mdbModels.ContentUnitI18n{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.ContentUnitI18ns(mods...) }},
 
 		// Users
-		TableInfo{T_USERS, []string{"id"}, func() interface{} { return &[]*models.User{} }, func(mods ...qm.QueryMod) Bindable { return models.Users(mods...) }},
+		TableInfo{T_USERS, []string{"id"}, func() interface{} { return &[]*mdbModels.User{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.Users(mods...) }},
 
 		// Files
-		TableInfo{T_FILES, []string{"id"}, func() interface{} { return &[]*models.File{} }, func(mods ...qm.QueryMod) Bindable { return models.Files(mods...) }},
+		TableInfo{T_FILES, []string{"id"}, func() interface{} { return &[]*mdbModels.File{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.Files(mods...) }},
 
 		// Operations
-		// TableInfo{T_OPERATIONS, []string{"id"}, func() interface{} { return &[]*models.Operation{} }, func(mods ...qm.QueryMod) Bindable { return models.Operations(mods...) }},
+		// TableInfo{T_OPERATIONS, []string{"id"}, func() interface{} { return &[]*mdbModels.Operation{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.Operations(mods...) }},
 
 		// Storages
-		// TableInfo{T_STORAGES, []string{"id"}, func() interface{} { return &[]*models.Storage{} }, func(mods ...qm.QueryMod) Bindable { return models.Storages(mods...) }},
+		// TableInfo{T_STORAGES, []string{"id"}, func() interface{} { return &[]*mdbModels.Storage{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.Storages(mods...) }},
 
 		// Publishers
-		TableInfo{T_PUBLISHERS, []string{"id"}, func() interface{} { return &[]*models.Publisher{} }, func(mods ...qm.QueryMod) Bindable { return models.Publishers(mods...) }},
-		TableInfo{T_PUBLISHER_I18N, []string{"publisher_id", "language"}, func() interface{} { return &[]*models.PublisherI18n{} }, func(mods ...qm.QueryMod) Bindable { return models.PublisherI18ns(mods...) }},
+		TableInfo{T_PUBLISHERS, []string{"id"}, func() interface{} { return &[]*mdbModels.Publisher{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.Publishers(mods...) }},
+		TableInfo{T_PUBLISHER_I18N, []string{"publisher_id", "language"}, func() interface{} { return &[]*mdbModels.PublisherI18n{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.PublisherI18ns(mods...) }},
 
 		// Persons
-		TableInfo{T_PERSONS, []string{"id"}, func() interface{} { return &[]*models.Person{} }, func(mods ...qm.QueryMod) Bindable { return models.Persons(mods...) }},
-		TableInfo{T_PERSON_I18N, []string{"person_id", "language"}, func() interface{} { return &[]*models.PersonI18n{} }, func(mods ...qm.QueryMod) Bindable { return models.PersonI18ns(mods...) }},
+		TableInfo{T_PERSONS, []string{"id"}, func() interface{} { return &[]*mdbModels.Person{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.Persons(mods...) }},
+		TableInfo{T_PERSON_I18N, []string{"person_id", "language"}, func() interface{} { return &[]*mdbModels.PersonI18n{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.PersonI18ns(mods...) }},
 
 		// Sources
-		TableInfo{T_SOURCES, []string{"id"}, func() interface{} { return &[]*models.Source{} }, func(mods ...qm.QueryMod) Bindable { return models.Sources(mods...) }},
-		TableInfo{T_SOURCE_I18N, []string{"source_id", "language"}, func() interface{} { return &[]*models.SourceI18n{} }, func(mods ...qm.QueryMod) Bindable { return models.SourceI18ns(mods...) }},
-		TableInfo{T_SOURCE_TYPES, []string{"id"}, func() interface{} { return &[]*models.SourceType{} }, func(mods ...qm.QueryMod) Bindable { return models.SourceTypes(mods...) }},
+		TableInfo{T_SOURCES, []string{"id"}, func() interface{} { return &[]*mdbModels.Source{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.Sources(mods...) }},
+		TableInfo{T_SOURCE_I18N, []string{"source_id", "language"}, func() interface{} { return &[]*mdbModels.SourceI18n{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.SourceI18ns(mods...) }},
+		TableInfo{T_SOURCE_TYPES, []string{"id"}, func() interface{} { return &[]*mdbModels.SourceType{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.SourceTypes(mods...) }},
 
 		// Tags
-		TableInfo{T_TAGS, []string{"id"}, func() interface{} { return &[]*models.Tag{} }, func(mods ...qm.QueryMod) Bindable { return models.Tags(mods...) }},
-		TableInfo{T_TAG_I18N, []string{"tag_id", "language"}, func() interface{} { return &[]*models.TagI18n{} }, func(mods ...qm.QueryMod) Bindable { return models.TagI18ns(mods...) }},
+		TableInfo{T_TAGS, []string{"id"}, func() interface{} { return &[]*mdbModels.Tag{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.Tags(mods...) }},
+		TableInfo{T_TAG_I18N, []string{"tag_id", "language"}, func() interface{} { return &[]*mdbModels.TagI18n{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.TagI18ns(mods...) }},
 
 		// Twitter
-		TableInfo{T_TWITTER_USERS, []string{"id"}, func() interface{} { return &[]*models.TwitterUser{} }, func(mods ...qm.QueryMod) Bindable { return models.TwitterUsers(mods...) }},
-		TableInfo{T_TWITTER_TWEETS, []string{"id"}, func() interface{} { return &[]*models.TwitterTweet{} }, func(mods ...qm.QueryMod) Bindable { return models.TwitterTweets(mods...) }},
+		TableInfo{T_TWITTER_USERS, []string{"id"}, func() interface{} { return &[]*mdbModels.TwitterUser{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.TwitterUsers(mods...) }},
+		TableInfo{T_TWITTER_TWEETS, []string{"id"}, func() interface{} { return &[]*mdbModels.TwitterTweet{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.TwitterTweets(mods...) }},
 
 		// Content Unit Relations
-		TableInfo{T_COLLECTIONS_CONTENT_UNITS, []string{"collection_id", "content_unit_id"}, func() interface{} { return &[]*models.CollectionsContentUnit{} }, func(mods ...qm.QueryMod) Bindable { return models.CollectionsContentUnits(mods...) }},
-		TableInfo{T_CONTENT_UNIT_DERIVATIONS, []string{"source_id", "derived_id"}, func() interface{} { return &[]*models.ContentUnitDerivation{} }, func(mods ...qm.QueryMod) Bindable { return models.ContentUnitDerivations(mods...) }},
+		TableInfo{T_COLLECTIONS_CONTENT_UNITS, []string{"collection_id", "content_unit_id"}, func() interface{} { return &[]*mdbModels.CollectionsContentUnit{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.CollectionsContentUnits(mods...) }},
+		TableInfo{T_CONTENT_UNIT_DERIVATIONS, []string{"source_id", "derived_id"}, func() interface{} { return &[]*mdbModels.ContentUnitDerivation{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.ContentUnitDerivations(mods...) }},
 		TableInfo{T_CONTENT_UNITS_TAGS, []string{"content_unit_id", "tag_id"}, func() interface{} { return &[]*ContentUnitTag{} }, RelationQuery("content_units_tags", "content_unit_id", "tag_id")},
-		TableInfo{T_CONTENT_UNITS_PERSONS, []string{"content_unit_id", "person_id"}, func() interface{} { return &[]*models.ContentUnitsPerson{} }, func(mods ...qm.QueryMod) Bindable { return models.ContentUnitsPersons(mods...) }},
+		TableInfo{T_CONTENT_UNITS_PERSONS, []string{"content_unit_id", "person_id"}, func() interface{} { return &[]*mdbModels.ContentUnitsPerson{} }, func(mods ...qm.QueryMod) Bindable { return mdbModels.ContentUnitsPersons(mods...) }},
 		TableInfo{T_CONTENT_UNITS_SOURCES, []string{"content_unit_id", "source_id"}, func() interface{} { return &[]*ContentUnitSource{} }, RelationQuery("content_units_sources", "content_unit_id", "source_id")},
 		TableInfo{T_CONTENT_UNITS_PUBLISHERS, []string{"content_unit_id", "publisher_id"}, func() interface{} { return &[]*ContentUnitPublisher{} }, RelationQuery("content_units_publishers", "content_unit_id", "publisher_id")},
 
@@ -591,7 +591,7 @@ func createTablesInfo() []TableInfo {
 
 func syncLocalMdb(tables []TableInfo, local *sql.DB, remote *sql.DB) error {
 	// Hack to correctly sync content types as the migration is broken.
-	if count, err := models.ContentTypes().DeleteAll(local); err != nil {
+	if count, err := mdbModels.ContentTypes().DeleteAll(local); err != nil {
 		return err
 	} else {
 		log.Infof("Cleaning (%d) content types, due to bad migrations for content types.", count)
@@ -715,7 +715,7 @@ func addContentUnitScopeSingleSide(contentUnitIds []int64, scope map[string]*Sco
 	}
 
 	if withFiles {
-		if files, err := models.Files(qm.Select("id"), qm.WhereIn("content_unit_id in ?", utils.ToInterfaceSlice(contentUnitIds)...)).All(exec); err != nil {
+		if files, err := mdbModels.Files(qm.Select("id"), qm.WhereIn("content_unit_id in ?", utils.ToInterfaceSlice(contentUnitIds)...)).All(exec); err != nil {
 			return err
 		} else {
 			fileIds := []int64(nil)
@@ -739,7 +739,7 @@ func addFileScopeParentsOnly(fileIds []int64, scope map[string]*ScopeIds, exec *
 	fileIdsMap := make(map[int64]bool)
 	for len(children) > 0 {
 		log.Debugf("Children: %+v", children)
-		if files, err := models.Files(qm.Select("id, parent_id"), qm.WhereIn("id in ?", utils.ToInterfaceSlice(children)...)).All(exec); err != nil {
+		if files, err := mdbModels.Files(qm.Select("id, parent_id"), qm.WhereIn("id in ?", utils.ToInterfaceSlice(children)...)).All(exec); err != nil {
 			return nil, err
 		} else {
 			for _, file := range files {
@@ -799,7 +799,7 @@ func addFileScopeSingleSide(fileIds []int64, scope map[string]*ScopeIds, exec *s
 	}
 
 	/*fileOps := []FileOperation(nil)
-	if err := models.NewQuery(qm.Select("operation_id"), qm.From(T_FILES_OPERATIONS), qm.WhereIn("file_id in ?", utils.ToInterfaceSlice(withParents)...)).Bind(context.TODO(), exec, &fileOps); err != nil {
+	if err := mdbModels.NewQuery(qm.Select("operation_id"), qm.From(T_FILES_OPERATIONS), qm.WhereIn("file_id in ?", utils.ToInterfaceSlice(withParents)...)).Bind(context.TODO(), exec, &fileOps); err != nil {
 		return nil, nil, err
 	}
 	for _, fileOp := range fileOps {
@@ -811,7 +811,7 @@ func addFileScopeSingleSide(fileIds []int64, scope map[string]*ScopeIds, exec *s
 	}
 
 	units := make(map[int64]bool)
-	if files, err := models.Files(qm.Select("content_unit_id"), qm.WhereIn("id in ?", utils.ToInterfaceSlice(withParents)...)).All(exec); err != nil {
+	if files, err := mdbModels.Files(qm.Select("content_unit_id"), qm.WhereIn("id in ?", utils.ToInterfaceSlice(withParents)...)).All(exec); err != nil {
 		return withParents, nil, errors.Wrap(err, "Faile fetching local files")
 	} else {
 		for _, file := range files {
@@ -826,14 +826,14 @@ func addFileScopeSingleSide(fileIds []int64, scope map[string]*ScopeIds, exec *s
 }
 
 func addBlogScope(blogId, wpId int64, scope map[string]*ScopeIds, local, remote *sql.DB) error {
-	if blogPosts, err := models.BlogPosts(qm.Select("id"), qm.Where("blog_id = ?", blogId), qm.And("wp_id = ?", wpId)).All(local); err != nil {
+	if blogPosts, err := mdbModels.BlogPosts(qm.Select("id"), qm.Where("blog_id = ?", blogId), qm.And("wp_id = ?", wpId)).All(local); err != nil {
 		return err
 	} else {
 		for _, blogPost := range blogPosts {
 			addScopeId(T_BLOG_POSTS, IdsTuple{blogPost.ID, 0, ""}, scope, SCOPE_LOCAL)
 		}
 	}
-	if blogPosts, err := models.BlogPosts(qm.Select("id"), qm.Where("blog_id = ?", blogId), qm.And("wp_id = ?", wpId)).All(remote); err != nil {
+	if blogPosts, err := mdbModels.BlogPosts(qm.Select("id"), qm.Where("blog_id = ?", blogId), qm.And("wp_id = ?", wpId)).All(remote); err != nil {
 		return err
 	} else {
 		for _, blogPost := range blogPosts {

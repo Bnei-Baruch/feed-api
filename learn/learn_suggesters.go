@@ -147,19 +147,20 @@ func (s *LearnSuggester) refreshExamples() (Examples, Examples, string, error) {
 		return Examples{}, Examples{}, s.lastReadId, err
 	}
 
-	var lastCreatedAt *time.Time = nil
+	lastCreatedAt := time.UnixMilli(0).UTC()
 	if len(selected) > 0 {
 		s.lastReadId = selected[len(selected)-1].ID
-		lastCreatedAt = &selected[len(selected)-1].CreatedAt
+		lastCreatedAt = selected[len(selected)-1].CreatedAt
 	}
 	newSelected := make(map[string]*models.Entry)
 	UpdateEntriesMap(selected, s.selected)
 	UpdateEntriesMap(selected, newSelected)
+	log.Infof("Selected: %d, New selected: %d", len(selected), len(newSelected))
 	if len(recommended) > 0 {
 		recommendedReadId := recommended[len(recommended)-1].ID
 		if strings.Compare(s.lastReadId, recommendedReadId) == -1 {
 			s.lastReadId = recommendedReadId
-			lastCreatedAt = &recommended[len(recommended)-1].CreatedAt
+			lastCreatedAt = recommended[len(recommended)-1].CreatedAt
 		}
 	}
 	UpdateEntriesMap(recommended, s.recommended)
@@ -207,8 +208,10 @@ func (s *LearnSuggester) refreshExamples() (Examples, Examples, string, error) {
 					uidsToLoad[selectedData.Uid] = true
 					rUid := recommendData.RequestData.Options.Recommend.Uid
 					// Add positive examples only from newSelected entries. Other selected entries are stored to calculate properly negative examples.
-					if _, ok := newSelected[selectedData.Uid]; ok {
-						positiveUidsPairs = append(positiveUidsPairs, RecommendUidsPair{Recommended: rUid, Selected: selectedData.Uid})
+					if clientEventId := selectEntry.ClientEventID.String; clientEventId != "" {
+						if _, ok := newSelected[clientEventId]; ok {
+							positiveUidsPairs = append(positiveUidsPairs, RecommendUidsPair{Recommended: rUid, Selected: selectedData.Uid})
+						}
 					}
 					uidsToLoad[rUid] = true
 					// recommendedToSelected[rUid] = append(recommendedToSelected[rUid], RecommendClientEventIDPair{recommendEntry.ClientEventID.String, selectEntry.ClientEventID.String})
@@ -223,9 +226,10 @@ func (s *LearnSuggester) refreshExamples() (Examples, Examples, string, error) {
 		}
 	}
 	log.Infof("Recommend selected: %d, recommended: %d, without flow id: %d, flow id not found: %d", len(s.selected), len(s.recommended), noClientFlowId, flowNotFound)
+	log.Infof("positiveUidsPairs: %d", len(positiveUidsPairs))
 
 	// Negative pairs from logs.
-	negativeUidsPairs, err := RecommendsMapToNegativeExamples(s.recommended, rToSUidsMap, *lastCreatedAt)
+	negativeUidsPairs, err := RecommendsMapToNegativeExamples(s.recommended, rToSUidsMap, lastCreatedAt)
 	if err != nil {
 		return Examples{}, Examples{}, s.lastReadId, err
 	}
@@ -257,8 +261,8 @@ func (s *LearnSuggester) refreshExamples() (Examples, Examples, string, error) {
 	x_pos, y_pos, x_neg, y_neg, err := PrepareExamples(positiveItemPairs, negativeItemPairs)
 
 	// Clear old selected/recommended entries.
-	RemoveOldEntries(*lastCreatedAt, s.selected)
-	RemoveOldEntries(*lastCreatedAt, s.recommended)
+	RemoveOldEntries(lastCreatedAt, s.selected)
+	RemoveOldEntries(lastCreatedAt, s.recommended)
 
 	return Examples{x_pos, y_pos}, Examples{x_neg, y_neg}, s.lastReadId, err
 }
@@ -278,10 +282,12 @@ func (s *LearnSuggester) Refresh() error {
 	if err != nil {
 		return err
 	}
-	log.Infof("Positive examples: %d, negative examples: %d, prevReadId: %s lastReadId: %s", posExamples.Len(), negExamples.Len(), s.lastReadId, lastReadId)
+	log.Infof("New Positive examples: %d, negative examples: %d, prevReadId: %s lastReadId: %s", posExamples.Len(), negExamples.Len(), s.lastReadId, lastReadId)
+	log.Infof("New Positive %+v %+v Negative %+v %+v", posExamples.Features, posExamples.Labels, negExamples.Features, negExamples.Labels)
 	s.lastReadId = lastReadId
 	s.posExamples.Append(posExamples)
 	s.negExamples.Append(negExamples)
+	log.Infof("Suggester Positive %+v %+v Negative %+v %+v", s.posExamples.Features, s.posExamples.Labels, s.negExamples.Features, s.negExamples.Labels)
 
 	if len(*s.posExamples.Features) < MIN_RETRAIN_POSITIVES {
 		log.Info("Too few positive examples, skipping for now.")
