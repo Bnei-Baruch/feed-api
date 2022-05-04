@@ -21,6 +21,7 @@ import (
 )
 
 const (
+	// Don't constrain mime type for articles, e.g., text content.
 	LANGUAGES_CONTENT_UNITS_SQL = `
 		select
 			f.language,
@@ -30,7 +31,7 @@ const (
 			files as f
 		where
 			f.content_unit_id = cu.id and
-			f.mime_type in ('video/mp4', 'audio/mpeg')
+			(cu.type_id = %d or f.mime_type in ('video/mp4', 'audio/mpeg'))
 		group by
 			f.language;`
 
@@ -106,6 +107,7 @@ const (
 		group by
 			cu.uid;`
 
+	// For lessons claculate "is preparation" field.
 	CONTENT_UNITS_INFO_SQL = `
 		select
 			cu.type_id,
@@ -304,7 +306,7 @@ func CollectionsPrefilter(datas map[string]interface{}) map[string]bool {
 
 func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *common.Connection, chroniclesUrl string) *DataModels {
 	mv := MakeMdbView(localMDB, remoteMDB)
-	lcuf := MakeMDBFilterModel(localMDB, "LanguagesContentUnitsFilter", time.Duration(time.Minute*10), LANGUAGES_CONTENT_UNITS_SQL, [][]string{[]string{"en"}, []string{"he"}, []string{"ru"}})
+	lcuf := MakeMDBFilterModel(localMDB, "LanguagesContentUnitsFilter", time.Duration(time.Minute*10), fmt.Sprintf(LANGUAGES_CONTENT_UNITS_SQL, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_ARTICLE].ID), [][]string{[]string{"en"}, []string{"he"}, []string{"ru"}})
 	tcuf := MakeMDBFilterModel(localMDB, "TagsContentUnitsFilter", time.Duration(time.Minute*10), TAGS_CONTENT_UNITS_SQL, nil)
 	scuf := MakeMDBFilterModel(localMDB, "SourcesContentUnitsFilter", time.Duration(time.Minute*10), SOURCES_CONTENT_UNITS_SQL, nil)
 	pcuf := MakeMDBFilterModel(localMDB, "PersonsContentUnitsFilter", time.Duration(time.Minute*10), PERSONS_CONTENT_UNITS_SQL, [][]string{[]string{RAV_PERSON_UID}})
