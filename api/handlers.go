@@ -127,9 +127,77 @@ const FEED_SUGGESTER_JSON_V2 = `
 }
 `
 
+const FEED_SUGGESTER_JSON_V3 = `
+{
+            "name": "SortSuggester",
+            "specs": [
+                {
+                    "name": "RoundRobinSuggester",
+                    "specs": [
+                        {
+                            "name": "CompletionSuggester",
+                            "specs": [
+                                {
+                                    "name": "LimitSuggester",
+                                    "specs": [
+                                        {
+                                            "name": "DataCollectionsSuggester",
+                                            "filters": [
+                                                {
+                                                    "filter_selector": 1,
+                                                    "args": [
+                                                        "DAILY_LESSON"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    "args": [
+                                        "1"
+                                    ]
+                                },
+                                {
+                                    "name": "SortSuggester",
+                                    "specs": [
+                                        {
+                                            "name": "DataCollectionsSuggester",
+                                            "filters": [
+                                                {
+                                                    "filter_selector": 1,
+                                                    "args": [
+                                                        "DAILY_LESSON"
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "name": "DataContentUnitsSuggester",
+                                            "filters": [
+                                                {
+                                                    "filter_selector": 0,
+                                                    "args": [
+                                                        "VIDEO_PROGRAM_CHAPTER",
+                                                        "MEAL",
+                                                        "FRIENDS_GATHERING",
+                                                        "ARTICLE"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+`
+
 var NAMESPACE_TO_SUGGESTER_JSON = map[string]string{
 	"kmedia-app-1":    FEED_SUGGESTER_JSON,
 	"kmedia-app-1.31": FEED_SUGGESTER_JSON_V2,
+	"kmedia-app-1.4":  FEED_SUGGESTER_JSON_V3,
 }
 
 // Premetheus handler.
