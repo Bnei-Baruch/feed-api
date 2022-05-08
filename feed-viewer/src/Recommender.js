@@ -7,6 +7,7 @@ import {
   Button,
   Grid,
   Input,
+  Radio,
   Segment,
   TextArea,
 } from 'semantic-ui-react';
@@ -31,6 +32,7 @@ const Recommender = (props) => {
   const [itemsByUid, setItemsByUid] = useState({});
   const [recommendError, setRecommendError] = useState('');
   const [specError, setSpecError] = useState('');
+  const [withBlogPosts, setWithBlogPosts] = useState(false);
 
   const url = new URL(window.location.toString());
   url.search = `?uid=${uid}&spec=${spec}`;
@@ -57,7 +59,7 @@ const Recommender = (props) => {
 
   const recommendClicked = () => {
     setRecommendError('');
-    const options = {recommend: {uid}, languages, skip_uids: skipUids};
+    const options = {recommend: {uid}, languages, skip_uids: skipUids, with_posts: withBlogPosts};
     if (specObj) {
       options.spec = specObj;
     }
@@ -67,6 +69,7 @@ const Recommender = (props) => {
       setItemsByUid(itemsByUid);
       setRecommendError('');
     }).catch((error) => {
+      console.log(error);
       setRecommendError(String(error));
     });
   };
@@ -86,6 +89,7 @@ const Recommender = (props) => {
                   <tr><td>Num Items:</td><td><Input placeholder='Num Items to Recommend' defaultValue={numItems} onChange={(event, data) => setNumItems(Number(data.value))} /></td></tr>
                   <tr><td>Languages:</td><td><Input placeholder='List of preffered languages' defaultValue={languages.join(',')} onChange={(event, data) => setLanguages(data.value.split(',').filter(language => !!language))} /></td></tr>
                   <tr><td>Skip Uids:</td><td><Input placeholder='List of uids' defaultValue={skipUids.join(',')} onChange={(event, data) => setSkipUids(data.value.split(',').map(uid => uid.trim()).filter(uid => !!uid))} /></td></tr>
+                  <tr><td>With Blog Posts</td><td><Radio toggle defaultChecked={withBlogPosts} onChange={(event, data) => { console.log(event, data); setWithBlogPosts(data.checked)}} /></td><td></td></tr>
                 </tbody>
               </table>
             </Segment>

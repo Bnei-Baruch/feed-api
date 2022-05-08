@@ -30,6 +30,7 @@ class FeedContainer extends Component {
       languages: new URLSearchParams(window.location.search).get('languages') || 'he,en',
       skipUids: new URLSearchParams(window.location.search).get('skip_uids') || '',
       feedOrMore: new URLSearchParams(window.location.search).get('feed_or_more') || 'feed',
+      withBlogPosts: !!(new URLSearchParams(window.location.search).get('with_blog_posts')),
     };
     this.moreHandler = this.moreHandler.bind(this);
     this.resetHandler = this.resetHandler.bind(this);
@@ -40,6 +41,7 @@ class FeedContainer extends Component {
     this.updateLanguages = this.updateLanguages.bind(this);
     this.updateSkipUids = this.updateSkipUids.bind(this);
     this.updateFeedOrMore = this.updateFeedOrMore.bind(this);
+    this.updateWithBlogPosts = this.updateWithBlogPosts.bind(this);
   }
 
   componentDidMount() {
@@ -101,6 +103,11 @@ class FeedContainer extends Component {
     this.setState({feedOrMore}, () => this.updateUrl());
   }
 
+  updateWithBlogPosts(withBlogPosts) {
+    console.log(withBlogPosts);
+    this.setState({withBlogPosts}, () => this.updateUrl());
+  }
+
   updateUrl() {
     const {
       debugTimestamp,
@@ -109,6 +116,7 @@ class FeedContainer extends Component {
       numItems,
       skipUids,
       spec,
+      withBlogPosts,
     } = this.state;
     const params = [];
     if (spec) {
@@ -128,6 +136,9 @@ class FeedContainer extends Component {
     }
     if (feedOrMore) {
       params.push(`feed_or_more=${feedOrMore}`);
+    }
+    if (withBlogPosts) {
+      params.push('with_blog_posts');
     }
     const url = new URL(window.location.toString());
     url.search = `?${params.join('&')}`;
@@ -150,6 +161,7 @@ class FeedContainer extends Component {
         options,
         skipUids,
         spec,
+        withBlogPosts,
       } = this.state;
 
       const parseSpec = (spec) => {
@@ -181,6 +193,7 @@ class FeedContainer extends Component {
       } else {
         delete options.skip_uids;
       }
+      options.with_posts = withBlogPosts;
 
       const feedOrMoreFunc = feedOrMore === 'feed' ? feedFunc : more;
       
@@ -203,6 +216,7 @@ class FeedContainer extends Component {
       options, 
       skipUids,
       spec, 
+      withBlogPosts,
     } = this.state;
     return (
       <Feed
@@ -215,6 +229,7 @@ class FeedContainer extends Component {
         subscribeCollections={subscribeCollections}*/
         error={error}
         spec={spec}
+        withBlogPosts={withBlogPosts}
         updateSpec={this.updateSpec}
         debugTimestamp={debugTimestamp}
         updateDebugTimestamp={this.updateDebugTimestamp}
@@ -226,6 +241,7 @@ class FeedContainer extends Component {
         updateSkipUids={this.updateSkipUids}
         feedOrMore={feedOrMore}
         updateFeedOrMore={this.updateFeedOrMore}
+        updateWithBlogPosts={this.updateWithBlogPosts}
       />
     );
   }

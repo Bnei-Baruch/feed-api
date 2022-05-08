@@ -1,6 +1,7 @@
 import {
 	CONTENT_UNIT_TYPES_SET,
-	COLLECTION_TYPES_SET
+	COLLECTION_TYPES_SET,
+  CT_BLOG_POST,
 } from './helpers/consts'
 
 const MORE_ITEMS = 10;
@@ -16,6 +17,30 @@ export const paramsToUrl = (params) => {
     return pairs;
   }, []).join('&')
 };
+
+export const fetchBlogPosts = (contentItems) => {
+  const blogPosts = contentItems.filter((contentItem) => contentItem.content_type === CT_BLOG_POST);
+  console.log('fetchBlogPosts', contentItems, blogPosts);
+  if (blogPosts.length === 0) {
+    return Promise.resolve({posts: [], total: 0});
+  }
+  const params = {
+    'page_size': blogPosts.length,
+  };
+  const ids = blogPosts.map((contentUnit) => `id=${contentUnit.uid}`).join('&')
+  return fetch(`https://kabbalahmedia.info/backend/posts?${ids}&${paramsToUrl(params)}`)
+    .then((results) => results.json()).then((json) => {
+      if (json.posts.length !== blogPosts.length) {
+        return Promise.reject(`Expected number of posts ${blogPosts.length} got ${json.posts.length}`);
+      };
+      blogPosts.forEach((blogPost, index) => {
+        json.posts[index].uid = blogPost.uid;
+        json.posts[index].id = blogPost.uid;
+        json.posts[index].content_type = 'POST';
+      });
+      return json;
+    });
+}
 
 export const fetchContentUnits = (contentItems) => {
   const contentUnits = contentItems.filter((contentItem) => CONTENT_UNIT_TYPES_SET.has(contentItem.content_type));
@@ -99,6 +124,13 @@ export const moreOrReccomend = (feed, itemsByUid, options, handler, numItems) =>
         console.log('data', data);
         data.content_units.forEach((content_unit) => {
           itemsByUid[content_unit.id] = content_unit;
+        });
+      }),
+      // Fetch blog posts.
+      fetchBlogPosts(fetchItems).then((data) => {
+        console.log('blogs posts data', data);
+        data.posts.forEach((post) => {
+          itemsByUid[post.uid] = post;
         });
       }),
     ];

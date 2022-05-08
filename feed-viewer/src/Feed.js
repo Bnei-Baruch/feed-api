@@ -4,10 +4,8 @@ import PropTypes from 'prop-types';
 import {
   Button,
   // Checkbox,
-  Container,
   // Dimmer,
   Grid,
-  Icon,
   Input,
   // Loader,
   Radio,
@@ -16,9 +14,9 @@ import {
 } from 'semantic-ui-react'
 
 import SpecTree from './SpecTree.js'
+import Item from './Item.js'
 
 import './Feed.css';
-import { CT_DAILY_LESSON, CT_VIDEO_PROGRAM } from './helpers/consts';
 import { canonicalLink } from './helpers/links';
 
 class Feed extends PureComponent {
@@ -56,64 +54,6 @@ class Feed extends PureComponent {
 		  </a>
 		);
 	};
-
-	renderItem(item) {
-		console.log(item);
-		const {id: mdbUid} = item;
-		const toLink = canonicalLink(item || { id: mdbUid, content_type: item.content_type }, "he");
-		if ([CT_DAILY_LESSON, CT_VIDEO_PROGRAM].includes(item.content_type)) {
-			return (
-				<Segment key={item.id}>
-				  <Container>
-					<Container as="h3">
-					  <a
-						className="search__link"
-						href={toLink}
-						target="_blank"
-                        rel="noopener noreferrer"
-					  >
-						{ item.content_type === CT_DAILY_LESSON ?
-							<span>שיעור בוקר {item.film_date}</span> :
-							<span>תוכנית {item.name}, פרק אחרון ב-{item.content_units[0].film_date}</span> }
-					  </a>
-					</Container>
-
-					{
-					false &&
-					<Container className="content">
-					  <span>{item.content_units.length}{' '}פרקים</span>
-					</Container>
-					}
-					<div className="clear" />
-				  </Container>
-
-				  <Container className="content clear margin-top-8">
-					{item.content_units.slice(0, 5).map(this.renderCU)}
-
-					<a
-					  href={toLink}
-					  target="_blank"
-                      rel="noopener noreferrer"
-					  style={{'whiteSpace': 'nowrap'}}
-					>
-					  <Icon name="tasks" size="small" />
-					  &nbsp;
-					  {`הראה את כל ${item.content_units.length} החלקים`}
-					</a>
-				  </Container>
-			    </Segment>
-			);
-		} else {
-			return (
-				<Segment key={item.id}>
-				  <Container>
-					<h3>{item.film_date}</h3>
-					- {item.name} - {item.id} - {item.content_type}
-				  </Container>
-				</Segment>
-			);
-		}
-	}
 
   /*
   nextCollectionState(contentType, mid, options) {
@@ -238,6 +178,7 @@ class Feed extends PureComponent {
       reset,
       skipUids,
       spec,
+      withBlogPosts,
       // subscribeCollections,
       updateDebugTimestamp,
       updateFeedOrMore,
@@ -245,6 +186,7 @@ class Feed extends PureComponent {
       updateNumItems,
       updateSkipUids,
       updateSpec,
+      updateWithBlogPosts,
     } = this.props;
 
     console.log('items', items);
@@ -277,6 +219,7 @@ class Feed extends PureComponent {
                     <tr><td>Num Items:</td><td colSpan="2"><Input placeholder='Num Items to Recommend' defaultValue={numItems} onChange={(event, data) => updateNumItems(data.value)} /></td></tr>
                     <tr><td>Languages:</td><td colSpan="2"><Input placeholder='List of preffered languages' defaultValue={languages} onChange={(event, data) => updateLanguages(data.value)} /></td></tr>
                     <tr><td>Skip Uids:</td><td colSpan="2"><Input placeholder='List of uids' defaultValue={skipUids} onChange={(event, data) => updateSkipUids(data.value)} /></td></tr>
+                    <tr><td>With Blog Posts</td><td><Radio toggle defaultChecked={withBlogPosts} onChange={(event, data) => { console.log(event, data); updateWithBlogPosts(data.checked)}} /></td><td></td></tr>
                   </tbody>
                 </table>
               </Segment>
@@ -372,7 +315,7 @@ class Feed extends PureComponent {
 					</Grid.Column>
 					<Grid.Column>
 						<Segment style={{overflow: 'auto', maxHeight: '80vh'}}>
-							{items.map((item) => this.renderItem(item))}
+							{items.map((item) => <Item item={item} />)}
 						</Segment>
 						<Segment>
 							<Button onClick={more}>More</Button>

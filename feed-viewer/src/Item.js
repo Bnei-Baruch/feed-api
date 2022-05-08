@@ -32,6 +32,8 @@ const Item = (props) => {
 		);
 	};
 
+  console.log('ASDF', contentType);
+
   if ([CT_DAILY_LESSON, CT_VIDEO_PROGRAM].includes(contentType)) {
     return (
       <Segment key={mdbUid}>
@@ -70,6 +72,16 @@ const Item = (props) => {
         </a>
         </Container>
         </Segment>
+    );
+  } else if (contentType === 'POST') {
+    const {id, blog, title, created_at} = props.item || {};
+    return (
+      <Segment key={id}>
+        <Container>
+        <h3>{created_at}</h3>
+        - {blog} - {title} - {contentType} - {suggester}
+        </Container>
+      </Segment>
     );
   } else {
     return (

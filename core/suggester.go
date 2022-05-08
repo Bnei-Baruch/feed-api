@@ -109,6 +109,8 @@ type MoreOptions struct {
 
 	WatchingNowMin *int64 `json:"watching_now_min,omitempty" form:"watching_now_min,omitempty"`
 	PopularMin     *int64 `json:"popular_min,omitempty" form:"popular_min,omitempty"`
+
+	WithPosts bool `json:"with_posts,omitempty" form:"with_posts,omitempty"`
 }
 
 type MoreRequest struct {

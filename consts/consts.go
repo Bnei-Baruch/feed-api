@@ -121,3 +121,10 @@ var I18N_LANG_ORDER = map[string][]string{
 	LANG_CZECH:      {LANG_CZECH, LANG_ENGLISH},
 	LANG_AMHARIC:    {LANG_AMHARIC, LANG_ENGLISH},
 }
+
+var BLOGS_LANG = map[string]string{
+	"laitman-ru":    "ru",
+	"laitman-com":   "en",
+	"laitman-es":    "es",
+	"laitman-co-il": "he",
+}

@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/volatiletech/sqlboiler/v4/queries"
 
+	"github.com/Bnei-Baruch/feed-api/consts"
 	"github.com/Bnei-Baruch/feed-api/core"
 	"github.com/Bnei-Baruch/feed-api/data_models"
 	"github.com/Bnei-Baruch/feed-api/databases/mdb"
@@ -140,9 +141,59 @@ func (s *DataContentUnitsSuggester) initialUids(request core.MoreRequest) map[st
 		persons_start := time.Now()
 		utils.IntersectMaps(uids, dm.PersonsContentUnitsFilter.FilterValues([]string{data_models.RAV_PERSON_UID}))
 		utils.Profile("DataContentUnitsSuggester.More.Persons", time.Now().Sub(persons_start))
+
+		if request.Options.WithPosts {
+			// Add blog posts.
+			blog_start := time.Now()
+			blogPosts := utils.CopyStringMap(dm.BlogPostsInfo.Prefiltered())
+			utils.Profile("DataContentUnitsSuggester.More.BlogPrefiltered", time.Now().Sub(blog_start))
+
+			// Filter blogs by languages.
+			blog_language := time.Now()
+			utils.FilterMap(blogPosts, func(blogPostId string) bool {
+				blogId := dm.BlogPostsInfo.Data(blogPostId).(*data_models.BlogPostInfo).BlogId
+				if blog, ok := mdb.BLOGS_REGISTRY.ByID[blogId]; !ok {
+					return false
+				} else {
+					lang, ok := consts.BLOGS_LANG[blog.Name]
+					return ok && utils.StringInSlice(lang, request.Options.Languages)
+				}
+			})
+			utils.Profile("DataContentUnitsSuggester.More.BlogLanguage", time.Now().Sub(blog_language))
+
+			blog_union := time.Now()
+			utils.UnionMaps(uids, blogPosts)
+			utils.Profile("DataContentUnitsSuggester.More.BlogUnion", time.Now().Sub(blog_union))
+		}
+
 		s.suggesterContext.Cache[CONTENT_UNITS_UIDS_KEY] = uids
 	}
 	return utils.CopyStringMap(s.suggesterContext.Cache[CONTENT_UNITS_UIDS_KEY].(map[string]bool))
+}
+
+func (s *DataContentUnitsSuggester) ContentUnitType(uid string) int64 {
+	dm := s.suggesterContext.DataModels
+	if data := dm.ContentUnitsInfo.Data(uid); data != nil {
+		return data.(*data_models.ContentUnitInfo).TypeId
+	}
+	return mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_BLOG_POST].ID
+}
+
+func (s *DataContentUnitsSuggester) ContentUnitInfo(uid string) *data_models.ContentUnitInfo {
+	dm := s.suggesterContext.DataModels
+	if data := dm.ContentUnitsInfo.Data(uid); data != nil {
+		return data.(*data_models.ContentUnitInfo)
+	}
+	bpi := dm.BlogPostsInfo.Data(uid).(*data_models.BlogPostInfo)
+	return &data_models.ContentUnitInfo{
+		mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_BLOG_POST].ID,
+		data_models.BlogPostKey(bpi),
+		bpi.PostedAt,
+		bpi.PostedAt,
+		true,
+		false,
+		0,
+	}
 }
 
 func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.ContentItem, error) {
@@ -178,7 +229,7 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 				suggesterNameParts = append(suggesterNameParts, ";UnitContentTypes:[", strings.Join(filter.Args, ","), "]")
 				int64Args := core.ContentTypesToInt64Ids(filter.Args)
 				utils.FilterMap(uids, func(uid string) bool {
-					return utils.Int64InSlice(dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo).TypeId, int64Args)
+					return utils.Int64InSlice(s.ContentUnitType(uid), int64Args)
 				})
 			case core.CollectionContentTypes:
 				suggesterNameParts = append(suggesterNameParts, ";CollectionContentTypes:[", strings.Join(filter.Args, ","), "]")
@@ -253,7 +304,7 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 				} else {
 					age := time.Now().Add(time.Duration(-ageSeconds) * time.Second)
 					utils.FilterMap(uids, func(uid string) bool {
-						return age.Before(dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo).Date)
+						return age.Before(s.ContentUnitInfo(uid).Date)
 					})
 				}
 			default:
@@ -267,7 +318,7 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 			log.Debugf("From: %+v", from)
 			l := len(uids)
 			utils.FilterMap(uids, func(uid string) bool {
-				return from.After(dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo).Date)
+				return from.After(s.ContentUnitInfo(uid).Date)
 			})
 			log.Debugf("Debug timestamp from %d => %d", l, len(uids))
 		}
@@ -276,8 +327,8 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 		uidsSlice := utils.SliceFromMap(uids)
 		log.Debugf("uidsSlice: %d", len(uidsSlice))
 		sortLastPrev := func(i, j int) bool {
-			icu := dm.ContentUnitsInfo.Data(uidsSlice[i]).(*data_models.ContentUnitInfo)
-			jcu := dm.ContentUnitsInfo.Data(uidsSlice[j]).(*data_models.ContentUnitInfo)
+			icu := s.ContentUnitInfo(uidsSlice[i])
+			jcu := s.ContentUnitInfo(uidsSlice[j])
 			if icu.Date.Equal(jcu.Date) {
 				if icu.CreatedAt.Equal(jcu.CreatedAt) {
 					return false
@@ -293,12 +344,12 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 		case core.Next:
 			suggesterNameParts = append(suggesterNameParts, ";Next")
 			uidsSlice = utils.Filter(uidsSlice, func(uid string) bool {
-				info := dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo)
+				info := s.ContentUnitInfo(uid)
 				return recommendInfo.Date.Before(info.Date) || (recommendInfo.Date.Equal(info.Date) && recommendInfo.CreatedAt.Before(info.CreatedAt))
 			})
 			sort.SliceStable(uidsSlice, func(i, j int) bool {
-				icu := dm.ContentUnitsInfo.Data(uidsSlice[i]).(*data_models.ContentUnitInfo)
-				jcu := dm.ContentUnitsInfo.Data(uidsSlice[j]).(*data_models.ContentUnitInfo)
+				icu := s.ContentUnitInfo(uidsSlice[i])
+				jcu := s.ContentUnitInfo(uidsSlice[j])
 				if icu.Date.Equal(jcu.Date) {
 					if icu.CreatedAt.Equal(jcu.CreatedAt) {
 						return false
@@ -310,7 +361,7 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 		case core.Prev:
 			suggesterNameParts = append(suggesterNameParts, ";Prev")
 			uidsSlice = utils.Filter(uidsSlice, func(uid string) bool {
-				info := dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo)
+				info := s.ContentUnitInfo(uid)
 				return recommendInfo.Date.After(info.Date) || (recommendInfo.Date.Equal(info.Date) && recommendInfo.CreatedAt.After(info.CreatedAt))
 			})
 			sort.SliceStable(uidsSlice, sortLastPrev)
@@ -336,7 +387,7 @@ func (s *DataContentUnitsSuggester) More(request core.MoreRequest) ([]core.Conte
 			return ret, nil
 		}
 		for _, uid := range uidsSlice {
-			cuInfo := dm.ContentUnitsInfo.Data(uid).(*data_models.ContentUnitInfo)
+			cuInfo := s.ContentUnitInfo(uid)
 			contentType := mdb.CONTENT_TYPE_REGISTRY.ByID[cuInfo.TypeId].Name
 			ret = append(ret, core.ContentItem{UID: uid, Date: cuInfo.Date, CreatedAt: cuInfo.CreatedAt, ContentType: contentType, Suggester: strings.Join(suggesterNameParts, "")})
 			if len(ret) >= request.MoreItems {

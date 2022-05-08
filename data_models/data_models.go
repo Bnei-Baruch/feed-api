@@ -131,6 +131,16 @@ const (
 		from
 			collections as c;`
 
+	BLOG_POST_INFO_SQL = `
+    select
+      bp.wp_id,
+      bp.blog_id,
+      bp.posted_at
+		from
+			blog_posts as bp
+	  where
+		  bp.filtered = false;`
+
 	CONTENT_UNITS_WATCH_DURATION_SQL = `
 		select 
 			a.data->>'unit_uid' as event_unit_uid,
@@ -194,6 +204,26 @@ func ScanCollectionInfo(rows *sql.Rows, datas map[string]interface{}) error {
 	} else {
 		c.SourceUid = sourceUid.String
 		datas[c.Uid] = &c
+		return nil
+	}
+}
+
+type BlogPostInfo struct {
+	PostId   int64
+	BlogId   int64
+	PostedAt time.Time
+}
+
+func BlogPostKey(bpi *BlogPostInfo) string {
+	return fmt.Sprintf("%d-%d", bpi.BlogId, bpi.PostId)
+}
+
+func ScanBlogPostInfo(rows *sql.Rows, datas map[string]interface{}) error {
+	bpi := BlogPostInfo{}
+	if err := rows.Scan(&bpi.PostId, &bpi.BlogId, &bpi.PostedAt); err != nil {
+		return err
+	} else {
+		datas[BlogPostKey(&bpi)] = &bpi
 		return nil
 	}
 }
@@ -269,8 +299,8 @@ type DataModels struct {
 
 	ContentUnitsInfo *MDBDataModel
 	//ContentUnitsPopularity *MDBDataModel
-
 	CollectionsInfo *MDBDataModel
+	BlogPostsInfo   *MDBDataModel
 
 	ChroniclesWindowModel    *ChroniclesWindowModel
 	SqlInsertContentUnits    *SqlRefreshModel
@@ -304,6 +334,14 @@ func CollectionsPrefilter(datas map[string]interface{}) map[string]bool {
 	return ret
 }
 
+func BlogPostsPrefilter(datas map[string]interface{}) map[string]bool {
+	ret := make(map[string]bool, len(datas))
+	for bpId := range datas {
+		ret[bpId] = true
+	}
+	return ret
+}
+
 func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *common.Connection, chroniclesUrl string) *DataModels {
 	mv := MakeMdbView(localMDB, remoteMDB)
 	lcuf := MakeMDBFilterModel(localMDB, "LanguagesContentUnitsFilter", time.Duration(time.Minute*10), fmt.Sprintf(LANGUAGES_CONTENT_UNITS_SQL, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_ARTICLE].ID), [][]string{[]string{"en"}, []string{"he"}, []string{"ru"}})
@@ -314,6 +352,7 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 	cucf := MakeMDBFilterModel(localMDB, "ContentUnitsCollectionsFilter", time.Duration(time.Minute*10), CONTENT_UNITS_COLLECTIONS_SQL, nil)
 	cui := MakeMDBDataModel(localMDB, "ContentUnitsInfo", time.Duration(time.Minute*10), fmt.Sprintf(CONTENT_UNITS_INFO_SQL, mdb.CONTENT_TYPE_REGISTRY.ByName[consts.CT_LESSON_PART].ID), ScanContentUnitInfo, ContentUnitsPrefilter)
 	ci := MakeMDBDataModel(localMDB, "CollectionsInfo", time.Duration(time.Minute*10), COLLECTIONS_INFO_SQL, ScanCollectionInfo, CollectionsPrefilter)
+	bpi := MakeMDBDataModel(localMDB, "BlogPostsInfo", time.Duration(time.Minute*10), BLOG_POST_INFO_SQL, ScanBlogPostInfo, BlogPostsPrefilter)
 	cwm := MakeChroniclesWindowModel(cDb, chroniclesUrl)
 	sqlInsertContentUnits := MakeSqlRefreshModel([]string{INSERT_CONTENT_UNITS}, modelsDb)
 	sqlInsertEventsByDayUser := MakeSqlRefreshModel([]string{INSERT_EVENTS_BY_MINUTES, INSERT_DOWNLOAD_BY_MINUTES, INSERT_PAGE_ENTER_BY_MINUTES, INSERT_CONTENT_UNITS_2018_2021_MEASURES, INSERT_CONTENT_UNITS_MEASURES}, modelsDb)
@@ -329,6 +368,7 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 		cucf,
 		cui,
 		ci,
+		bpi,
 		MakeChainModels([]RefreshModel{cwm, sqlInsertEventsByDayUser}),
 	}
 
@@ -345,6 +385,7 @@ func MakeDataModels(localMDB *sql.DB, remoteMDB *sql.DB, cDb *sql.DB, modelsDb *
 		ContentUnitsCollectionsFilter: cucf,
 		ContentUnitsInfo:              cui,
 		CollectionsInfo:               ci,
+		BlogPostsInfo:                 bpi,
 		ChroniclesWindowModel:         cwm,
 		SqlInsertContentUnits:         sqlInsertContentUnits,
 		SqlInsertEventsByDayUser:      sqlInsertEventsByDayUser,
@@ -534,6 +575,13 @@ func (model *MDBDataModel) Refresh() error {
 		model.prefiltered = model.prefilter(model.Datas)
 	}
 	return nil
+}
+
+func (model *MDBDataModel) HasData(key string) bool {
+	model.datasMutex.RLock()
+	defer model.datasMutex.RUnlock()
+	_, ok := model.Datas[key]
+	return ok
 }
 
 func (model *MDBDataModel) Data(key string) interface{} {
