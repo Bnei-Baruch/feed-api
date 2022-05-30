@@ -142,13 +142,7 @@ type ChroniclesWindowModel struct {
 	refreshCount int64
 	totalCount   int64
 
-	dailyActiveUsers   *ActiveUsers
-	weeklyActiveUsers  *ActiveUsers
-	monthlyActiveUsers *ActiveUsers
-
-	anonymousDailyActiveUsers   *ActiveUsers
-	anonymousWeeklyActiveUsers  *ActiveUsers
-	anonymousMonthlyActiveUsers *ActiveUsers
+	activeUsers map[string]*ActiveUsers
 }
 
 func (m *ChroniclesWindowModel) LastReadId() string {
@@ -178,14 +172,7 @@ func MakeChroniclesWindowModel(localChroniclesDb *sql.DB, chroniclesUrl string) 
 		"",
 		0,
 		0,
-		// Keycloak
-		MakeActiveUsers(24 * time.Hour),
-		MakeActiveUsers(7 * 24 * time.Hour),
-		MakeActiveUsers(30 * 7 * 24 * time.Hour),
-		// Anonymouse.
-		MakeActiveUsers(24 * time.Hour),
-		MakeActiveUsers(7 * 24 * time.Hour),
-		MakeActiveUsers(30 * 7 * 24 * time.Hour),
+		make(map[string]*ActiveUsers),
 	}
 }
 
@@ -247,6 +234,15 @@ type SearchSelectedData struct {
 	Rank *int64 `json: "rank,omitempty"`
 }
 
+func (m *ChroniclesWindowModel) AddActiveUser(duration time.Duration, durationStr string, userType string, namespace string, userId string) {
+	key := fmt.Sprintf("%s-%s-%s", durationStr, userType, namespace)
+	if _, ok := m.activeUsers[key]; !ok {
+		m.activeUsers[key] = MakeActiveUsers(duration)
+	}
+	m.activeUsers[key].Add(userId)
+	instrumentation.Stats.ActiveUsersVec.WithLabelValues(durationStr, userType, namespace).Set(float64(m.activeUsers[key].Count()))
+}
+
 func (m *ChroniclesWindowModel) Refresh() error {
 	log.Debugf("Scanning entries...")
 	if entries, err := m.ScanChroniclesEntries(); err != nil {
@@ -271,21 +267,13 @@ func (m *ChroniclesWindowModel) Refresh() error {
 		for _, entry := range entries {
 			// Update active users.
 			if strings.HasPrefix(entry.UserID, "client:") {
-				m.anonymousDailyActiveUsers.Add(entry.UserID)
-				m.anonymousWeeklyActiveUsers.Add(entry.UserID)
-				m.anonymousMonthlyActiveUsers.Add(entry.UserID)
-
-				instrumentation.Stats.ActiveUsersVec.WithLabelValues("1d", "anonymous").Set(float64(m.anonymousDailyActiveUsers.Count()))
-				instrumentation.Stats.ActiveUsersVec.WithLabelValues("1w", "anonymous").Set(float64(m.anonymousWeeklyActiveUsers.Count()))
-				instrumentation.Stats.ActiveUsersVec.WithLabelValues("1m", "anonymous").Set(float64(m.anonymousMonthlyActiveUsers.Count()))
+				m.AddActiveUser(24*time.Hour, "1d", "anonymous", entry.Namespace, entry.UserID)
+				m.AddActiveUser(7*24*time.Hour, "1w", "anonymous", entry.Namespace, entry.UserID)
+				m.AddActiveUser(30*7*24*time.Hour, "1m", "anonymous", entry.Namespace, entry.UserID)
 			} else {
-				m.dailyActiveUsers.Add(entry.UserID)
-				m.weeklyActiveUsers.Add(entry.UserID)
-				m.monthlyActiveUsers.Add(entry.UserID)
-
-				instrumentation.Stats.ActiveUsersVec.WithLabelValues("1d", "keycloak").Set(float64(m.dailyActiveUsers.Count()))
-				instrumentation.Stats.ActiveUsersVec.WithLabelValues("1w", "keycloak").Set(float64(m.weeklyActiveUsers.Count()))
-				instrumentation.Stats.ActiveUsersVec.WithLabelValues("1m", "keycloak").Set(float64(m.monthlyActiveUsers.Count()))
+				m.AddActiveUser(24*time.Hour, "1d", "keycloak", entry.Namespace, entry.UserID)
+				m.AddActiveUser(7*24*time.Hour, "1w", "keycloak", entry.Namespace, entry.UserID)
+				m.AddActiveUser(30*7*24*time.Hour, "1m", "keycloak", entry.Namespace, entry.UserID)
 			}
 
 			instrumentation.Stats.EntriesCounterVec.WithLabelValues(entry.ClientEventType).Inc()

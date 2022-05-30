@@ -111,7 +111,7 @@ func (c *Collectors) Init() {
 		Subsystem: "chronicles",
 		Name:      "active_users",
 		Help:      "Counts number of active users.",
-	}, []string{"duration", "user_type"})
+	}, []string{"duration", "user_type", "namespace"})
 
 	prometheus.MustRegister(c.RequestDurationHistogram)
 	prometheus.MustRegister(c.RecommendCounter)
