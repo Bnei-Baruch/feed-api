@@ -199,82 +199,72 @@ const FEED_SUGGESTER_JSON_V4_WITH_SINGLE_BLOG_POST = `
 	"name": "SortSuggester",
 	"specs": [
 		{
-			"name": "SortSuggester",
+			"name": "CompletionSuggester",
 			"specs": [
 				{
-					"name": "RoundRobinSuggester",
+					"name": "LimitSuggester",
 					"specs": [
 						{
-							"name": "CompletionSuggester",
+							"name": "DataCollectionsSuggester",
+							"filters": [
+								{
+									"filter_selector": 1,
+									"args": [
+										"DAILY_LESSON"
+									]
+								}
+							]
+						}
+					],
+					"args": [
+						"1"
+					]
+				},
+				{
+					"name": "SortSuggester",
+					"specs": [
+						{
+							"name": "DataCollectionsSuggester",
+							"filters": [
+								{
+									"filter_selector": 1,
+									"args": [
+										"DAILY_LESSON"
+									]
+								}
+							]
+						},
+						{
+							"name": "DataContentUnitsSuggester",
+							"filters": [
+								{
+									"filter_selector": 0,
+									"args": [
+										"VIDEO_PROGRAM_CHAPTER",
+										"MEAL",
+										"FRIENDS_GATHERING",
+										"ARTICLE"
+									]
+								}
+							]
+						},
+						{
+							"name": "LimitSuggester",
 							"specs": [
 								{
-									"name": "LimitSuggester",
-									"specs": [
+									"name": "DataContentUnitsSuggester",
+									"filters": [
 										{
-											"name": "DataCollectionsSuggester",
-											"filters": [
-												{
-													"filter_selector": 1,
-													"args": [
-														"DAILY_LESSON"
-													]
-												}
-											]
-										}
-									],
-									"args": [
-										"1"
-									]
-								},
-								{
-									"name": "SortSuggester",
-									"specs": [
-										{
-											"name": "DataCollectionsSuggester",
-											"filters": [
-												{
-													"filter_selector": 1,
-													"args": [
-														"DAILY_LESSON"
-													]
-												}
-											]
-										},
-										{
-											"name": "DataContentUnitsSuggester",
-											"filters": [
-												{
-													"filter_selector": 0,
-													"args": [
-														"VIDEO_PROGRAM_CHAPTER",
-														"MEAL",
-														"FRIENDS_GATHERING",
-														"ARTICLE"
-													]
-												}
-											]
-										},
-										{
-											"name": "LimitSuggester",
-											"specs": [
-												{
-													"name": "DataContentUnitsSuggester",
-													"filters": [
-														{
-															"filter_selector": 0,
-															"args": [
-																"BLOG_POST"
-															]
-														}
-													]
-												}
-											],
+											"filter_selector": 0,
 											"args": [
-												"1"
+												"BLOG_POST"
 											]
 										}
 									]
 								}
+							],
+							"args": [
+								"1"
 							]
 						}
 					]
