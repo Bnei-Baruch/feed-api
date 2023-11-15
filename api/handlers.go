@@ -194,10 +194,154 @@ const FEED_SUGGESTER_JSON_V3 = `
         }
 `
 
+const FEED_SUGGESTER_JSON_V4 = `
+{
+	"name": "RoundRobinSuggester",
+	"specs": [
+		{
+			"name": "SortSuggester",
+			"specs": [
+				{
+					"name": "CompletionSuggester",
+					"specs": [
+						{
+							"name": "LimitSuggester",
+							"specs": [
+								{
+									"name": "DataCollectionsSuggester",
+									"filters": [
+										{
+											"filter_selector": 1,
+											"args": [
+												"DAILY_LESSON"
+											]
+										}
+									]
+								}
+							],
+							"args": [
+								"1"
+							]
+						},
+						{
+							"name": "SortSuggester",
+							"specs": [
+								{
+									"name": "DataCollectionsSuggester",
+									"filters": [
+										{
+											"filter_selector": 1,
+											"args": [
+												"DAILY_LESSON"
+											]
+										}
+									]
+								},
+								{
+									"name": "DataContentUnitsSuggester",
+									"filters": [
+										{
+											"filter_selector": 0,
+											"args": [
+												"VIDEO_PROGRAM_CHAPTER",
+												"MEAL",
+												"FRIENDS_GATHERING",
+												"ARTICLE"
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+						{
+			"name": "SortSuggester",
+			"specs": [
+				{
+					"name": "CompletionSuggester",
+					"specs": [
+						{
+							"name": "LimitSuggester",
+							"specs": [
+								{
+									"name": "DataCollectionsSuggester",
+									"filters": [
+										{
+											"filter_selector": 1,
+											"args": [
+												"DAILY_LESSON"
+											]
+										}
+									]
+								}
+							],
+							"args": [
+								"1"
+							]
+						},
+						{
+							"name": "SortSuggester",
+							"specs": [
+								{
+									"name": "DataCollectionsSuggester",
+									"filters": [
+										{
+											"filter_selector": 1,
+											"args": [
+												"DAILY_LESSON"
+											]
+										}
+									]
+								},
+								{
+									"name": "DataContentUnitsSuggester",
+									"filters": [
+										{
+											"filter_selector": 0,
+											"args": [
+												"VIDEO_PROGRAM_CHAPTER",
+												"MEAL",
+												"FRIENDS_GATHERING",
+												"ARTICLE"
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "DataContentUnitsSuggester",
+			"filters": [
+				{
+					"filter_selector": 0,
+					"args": [
+						"BLOG_POST"
+					]
+				},
+				{
+					"filter_selector": 10,
+					"args": [
+						"2592000"
+					]
+				}
+			]
+		}
+	]
+}
+`
+
 var NAMESPACE_TO_SUGGESTER_JSON = map[string]string{
 	"kmedia-app-1":    FEED_SUGGESTER_JSON,
 	"kmedia-app-1.31": FEED_SUGGESTER_JSON_V2,
 	"kmedia-app-1.4":  FEED_SUGGESTER_JSON_V3,
+	"kmedia-app-1.84": FEED_SUGGESTER_JSON_V4,
 }
 
 // Premetheus handler.
