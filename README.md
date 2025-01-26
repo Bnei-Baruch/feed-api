@@ -14,3 +14,16 @@ Migration tool
 ```
 curl -L https://github.com/golang-migrate/migrate/releases/download/v4.12.2/migrate.linux-amd64.tar.gz | tar xvz
 ```
+
+For MDB
+
+```
+cd databases/mdb
+curl -L https://github.com/elwinar/rambler/releases/download/v5.4.0/rambler-linux-amd64 --output ./rambler
+```
+
+Make sure migrations/ramber.json is correct. If needed copy rambler.sample.json to ramber.sample and update.
+
+```
+./rambler -c migrations/rambler.json apply -a
+```
