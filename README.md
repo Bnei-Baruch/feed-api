@@ -27,3 +27,4 @@ Make sure migrations/ramber.json is correct. If needed copy rambler.sample.json 
 ```
 ./rambler -c migrations/rambler.json apply -a
 ```
+
