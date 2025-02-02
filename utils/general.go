@@ -57,8 +57,10 @@ func PrintProfile(reset bool) {
 			break
 		}
 	}
-	logf("===== Profile =====")
 	keys := StringKeys(PROFILE)
+  if len(keys) > 0 {
+    logf("===== Profile =====")
+  }
 	sort.Strings(keys)
 	for _, k := range keys {
 		logf("%s: %+v", k, PROFILE[k])
@@ -66,7 +68,9 @@ func PrintProfile(reset bool) {
 	if reset {
 		PROFILE = make(map[string]*ProfileData)
 	}
-	logf("===== End Profile =====")
+  if len(keys) > 0 {
+    logf("===== End Profile =====")
+  }
 }
 
 // panic if err != nil

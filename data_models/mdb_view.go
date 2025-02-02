@@ -262,7 +262,7 @@ func InsertToTable(info TableInfo, ids []IdsTuple, local *sql.DB, remote *sql.DB
 		if rows, err := fetchRows(info, chunk, remote); err != nil {
 			return 0, err
 		} else {
-			log.Debugf("Fetched %d rows. Chunk %d of total rows %d.", len(rows), i, len(ids))
+			log.Infof("Fetched %d rows. Chunk %d of total rows %d.", len(rows), i, len(ids))
 			chunkInserted := int64(0)
 			for _, row := range rows {
 				if err := row.Insert(local, boil.Infer()); err != nil {
@@ -969,7 +969,7 @@ func (m *MdbView) Refresh() error {
 	//		utils.Profile("Refresh", time.Now().Sub(start))
 	//	}()
 	datas := events.ReadAndClearEvents()
-	log.Debugf("New events to handle: %+v", datas)
+	log.Infof("New events to handle: %+v", datas)
 	if scope, err := eventsScope(datas, m.local, m.remote); err != nil {
 		return errors.Wrap(err, "Error generating scope from events")
 	} else {
@@ -989,11 +989,11 @@ func IdsToString(ids []IdsTuple) string {
 }
 
 func PrintScope(scope map[string]*ScopeIds) {
-	log.Debug("Scope:")
+	log.Info("Scope:")
 	for table, info := range scope {
-		log.Debugf("[%s]:", table)
-		log.Debugf("  Local: %s", IdsToString(info.local))
-		log.Debugf("  Remote: %s", IdsToString(info.remote))
+		log.Infof("[%s]:", table)
+		log.Infof("  Local: %s", IdsToString(info.local))
+		log.Infof("  Remote: %s", IdsToString(info.remote))
 	}
 }
 
@@ -1005,7 +1005,7 @@ func applyScope(scope map[string]*ScopeIds, tables []TableInfo, local *sql.DB, r
 	// defer utils.PrintProfile(true)
 	PrintScope(scope)
 	// First delete in reverse order.
-	log.Debugf("Deleting...")
+	log.Infof("Deleting...")
 	for i := len(tables) - 1; i >= 0; i-- {
 		info := tables[i]
 		if scopeIds, ok := scope[info.Name]; ok && len(scopeIds.local) > 0 {
@@ -1013,17 +1013,17 @@ func applyScope(scope map[string]*ScopeIds, tables []TableInfo, local *sql.DB, r
 			if deleted, err := DeleteFromTable(info, scopeIds.local, local); err != nil {
 				log.Warnf("Error deleting from table %s: %+v", info.Name, err)
 			} else {
-				log.Debugf("Deleted %d from %s", deleted, info.Name)
+				log.Infof("Deleted %d from %s", deleted, info.Name)
 			}
 		}
 	}
-	log.Debugf("Inserting...")
+	log.Infof("Inserting...")
 	for _, info := range tables {
 		if scopeIds, ok := scope[info.Name]; ok {
 			if inserted, err := InsertToTable(info, scopeIds.remote, local, remote); err != nil {
 				return err
 			} else {
-				log.Debugf("Inserted %d to %s", inserted, info.Name)
+				log.Infof("Inserted %d to %s", inserted, info.Name)
 			}
 		}
 	}

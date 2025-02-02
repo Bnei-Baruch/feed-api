@@ -92,6 +92,6 @@ func msgHandler(msg *stan.Msg) {
 		msg.Ack()
 	}
 
-	// log.Infof("Adding %+v", d)
+	log.Infof("Events Adding %+v", d)
 	AddEvent(d)
 }
