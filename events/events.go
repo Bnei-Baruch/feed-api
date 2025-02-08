@@ -1,11 +1,13 @@
 package events
 
 import (
+	"context"
 	"encoding/json"
-	"runtime/debug"
 	"sync"
+	"time"
 
-	"github.com/nats-io/stan.go"
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
@@ -14,84 +16,104 @@ import (
 
 var (
 	eventsMutex sync.Mutex
-	events      []Data
+	events      []Event
 	DebugMode   bool
 )
 
-func ReadAndClearEvents() []Data {
+func ReadAndClearEvents() []Event {
 	eventsMutex.Lock()
 	defer eventsMutex.Unlock()
 
-	ret := make([]Data, len(events))
+	ret := make([]Event, len(events))
 	copy(ret, events)
-	events = []Data(nil)
+	events = []Event(nil)
 
 	return ret
 }
 
-func AddEvent(d Data) {
+func AddEvent(e Event) {
 	eventsMutex.Lock()
 	defer eventsMutex.Unlock()
 
-	events = append(events, d)
+	events = append(events, e)
 }
 
-// Returns shut down function.
-func RunListener() func() {
-	var err error
-
-	log.Info("Initialize connection to nats")
-	natsURL := viper.GetString("nats.url")
-	natsClientID := viper.GetString("nats.client-id")
-	natsClusterID := viper.GetString("nats.cluster-id")
-	natsSubject := viper.GetString("nats.subject")
-	sc, err := stan.Connect(natsClusterID, natsClientID, stan.NatsURL(natsURL))
-	utils.Must(err)
-
-	DebugMode = viper.GetString("nats.mode") == "debug"
-
-	log.Info("Subscribing to nats subject")
-	var startOpt stan.SubscriptionOption
-	if viper.GetBool("nats.durable") == true {
-		startOpt = stan.DurableName(viper.GetString("nats.durable-name"))
-	} else {
-		startOpt = stan.DeliverAllAvailable()
-	}
-	_, err = sc.Subscribe(natsSubject, msgHandler, startOpt, stan.SetManualAckMode())
-	utils.Must(err)
-
-	return func() { sc.Close() }
-}
-
-// Data struct for unmarshaling data from nats
-type Data struct {
+// Event data struct for unmarshaling data from nats
+type Event struct {
 	ID                  string                 `json:"id"`
 	Type                string                 `json:"type"`
 	ReplicationLocation string                 `json:"rloc"`
 	Payload             map[string]interface{} `json:"payload"`
 }
 
-// msgHandler checks message type and calls "eventHandler"
-func msgHandler(msg *stan.Msg) {
-	// don't panic !
-	defer func() {
-		if rval := recover(); rval != nil {
-			log.Errorf("msgHandler panic: %v while handling %v", rval, msg)
-			debug.PrintStack()
-		}
-	}()
+// Nats
+type EventListener struct {
+	nc         *nats.Conn
+	js         jetstream.JetStream
+	consumer   jetstream.Consumer
+	consumeCtx jetstream.ConsumeContext
+}
 
-	var d Data
-	err := json.Unmarshal(msg.Data, &d)
+// Returns shut down function.
+func RunListener() func() {
+	el := new(EventListener)
+
+	DebugMode = viper.GetString("nats.mode") == "debug"
+	natsURL := viper.GetString("nats.url")
+	log.Infof("Initialize connection to nats debug=%t %s", DebugMode, natsURL)
+
+	var err error
+	el.nc, err = nats.Connect(natsURL)
 	if err != nil {
-		log.Errorf("json.Unmarshal error: %s\n", err)
+		log.Errorf("nats.Connect: %w", err)
+		utils.Must(err)
 	}
 
-	// Acknowledge the message
+	el.js, err = jetstream.New(el.nc)
+	if err != nil {
+		log.Errorf("jetstream.New: %w", err)
+		utils.Must(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	el.consumer, err = el.js.CreateOrUpdateConsumer(ctx, "MDB", jetstream.ConsumerConfig{
+		Name:        "Feed-API",
+		Durable:     "Feed-API",
+		Description: "Events listener of MDB",
+	})
+	if err != nil {
+		log.Errorf("jetstream.CreateOrUpdateConsumer: %w", err)
+		utils.Must(err)
+	}
+
+	el.consumeCtx, err = el.consumer.Consume(el.handleMessage)
+	if err != nil {
+		log.Errorf("jetstream consumer.Consume: %w", err)
+		utils.Must(err)
+	}
+
+	return func() { el.Close() }
+}
+
+func (el *EventListener) Close() {
+	el.consumeCtx.Stop()
+	el.nc.Close()
+}
+
+func (el *EventListener) handleMessage(msg jetstream.Msg) {
+	log.Debugf("EventListener.handleMessage: %+v", msg.Data())
+
+	var event Event
+	if err := json.Unmarshal(msg.Data(), &event); err != nil {
+		log.Errorf("EventListener.handleMessage json.Unmarshal: %w", err)
+	}
+
+	log.Debugf("EventListener.handleMessage event: %+v", event)
+	AddEvent(event)
+
 	if !DebugMode {
 		msg.Ack()
 	}
-
-	log.Infof("Events Adding %+v", d)
-	AddEvent(d)
 }
