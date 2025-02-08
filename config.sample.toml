@@ -18,9 +18,4 @@ sqls_path="./databases/data_models/flow/"
 
 [nats]
 url="nats://10.0.0.1:1234"
-client-id="feed-api-dev"
-cluster-id="test-cluster"
-subject="mdb"
-durable=true
-durable-name="archive-backend-events"
 mode="debug"
