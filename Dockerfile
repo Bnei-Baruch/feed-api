@@ -1,7 +1,7 @@
 ARG work_dir=/go/src/github.com/Bnei-Baruch/feed-api
 ARG build_number=dev
 
-FROM golang:1.17-alpine3.15 as build
+FROM golang:1.22-alpine as build
 
 LABEL maintainer="edoshor@gmail.com"
 
