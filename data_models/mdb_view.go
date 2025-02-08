@@ -848,7 +848,7 @@ type ScopeIds struct {
 	remote []IdsTuple
 }
 
-func eventsScope(datas []events.Data, local, remote *sql.DB) (map[string]*ScopeIds, error) {
+func eventsScope(events []events.Event, local, remote *sql.DB) (map[string]*ScopeIds, error) {
 	//	start := time.Now()
 	//	defer func() {
 	//		utils.Profile("eventsScope", time.Now().Sub(start))
@@ -856,7 +856,7 @@ func eventsScope(datas []events.Data, local, remote *sql.DB) (map[string]*ScopeI
 	scope := make(map[string]*ScopeIds)
 	contentUnitIds := []int64(nil)
 	fileIds := []int64(nil)
-	for _, data := range datas {
+	for _, data := range events {
 		switch data.Type {
 		case E_BLOG_POST_CREATE, E_BLOG_POST_UPDATE, E_BLOG_POST_DELETE:
 			if wpId, err := readIdFromEvent("wpId", data.Payload); err != nil {
@@ -968,9 +968,9 @@ func (m *MdbView) Refresh() error {
 	//	defer func() {
 	//		utils.Profile("Refresh", time.Now().Sub(start))
 	//	}()
-	datas := events.ReadAndClearEvents()
-	log.Infof("New events to handle: %+v", datas)
-	if scope, err := eventsScope(datas, m.local, m.remote); err != nil {
+	events := events.ReadAndClearEvents()
+	log.Infof("New events to handle: %+v", events)
+	if scope, err := eventsScope(events, m.local, m.remote); err != nil {
 		return errors.Wrap(err, "Error generating scope from events")
 	} else {
 		if err := applyScope(scope, m.tables, m.local, m.remote); err != nil {
