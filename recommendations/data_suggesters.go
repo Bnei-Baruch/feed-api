@@ -138,9 +138,11 @@ func (s *DataContentUnitsSuggester) initialUids(request core.MoreRequest) map[st
 		utils.IntersectMaps(uids, dm.LanguagesContentUnitsFilter.FilterValues(request.Options.Languages))
 		utils.Profile("DataContentUnitsSuggester.More.Language", time.Now().Sub(language_start))
 
-		persons_start := time.Now()
-		utils.IntersectMaps(uids, dm.PersonsContentUnitsFilter.FilterValues([]string{data_models.RAV_PERSON_UID}))
-		utils.Profile("DataContentUnitsSuggester.More.Persons", time.Now().Sub(persons_start))
+		// We don't want to filter only Rav units, as many are without Rav, such as FRIENDS_GATHERING and other
+		// are lessons when friends teach.
+		// persons_start := time.Now()
+		// utils.IntersectMaps(uids, dm.PersonsContentUnitsFilter.FilterValues([]string{data_models.RAV_PERSON_UID}))
+		// utils.Profile("DataContentUnitsSuggester.More.Persons", time.Now().Sub(persons_start))
 
 		if request.Options.WithPosts {
 			// Add blog posts.

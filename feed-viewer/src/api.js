@@ -90,6 +90,8 @@ export const recommend = (feed, itemsByUid, options, num_items = RECOMMEND_ITEMS
 export const moreOrReccomend = (feed, itemsByUid, options, handler, numItems) => {
   console.log('moreOrReccomend', handler, JSON.stringify({more_items: numItems, current_feed: feed, options}));
   return fetch(`https://feed-api.bbdev1.kbb1.com/backend/${handler}`, {
+  // Uncomment for prod debugging.
+  // return fetch(`https://kabbalahmedia.info/feed_api/${handler}`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({more_items: numItems, current_feed: feed, options}),
