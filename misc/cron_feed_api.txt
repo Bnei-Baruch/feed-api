@@ -1,0 +1,2 @@
+# Sanity check that feed returns morning lesson. Everyday at 6AM
+0 6 * * * root docker compose -f <INSTALL_DIR>/docker-compose.yml exec -T feed_api ./feed_daily_sanity.sh
