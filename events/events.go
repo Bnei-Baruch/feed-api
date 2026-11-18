@@ -22,12 +22,12 @@ var (
 
 // ReadAndClearEvents also reports whether we reconnected to nats since the last call,
 // events from the time we were disconnected may be lost.
-func ReadAndClearEvents() (ret []Data, resync bool) {
+func ReadAndClearEvents() ([]Data, bool) {
 	eventsMutex.Lock()
 	defer eventsMutex.Unlock()
 
-	ret, events, resync, resyncNeeded = events, nil, resyncNeeded, false
-	return
+	defer func() { events, resyncNeeded = nil, false }()
+	return events, resyncNeeded
 }
 
 func AddEvent(d Data) {
