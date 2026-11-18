@@ -20,26 +20,14 @@ var (
 	DebugMode    bool
 )
 
-// TakeResync reports whether we reconnected to nats since the last call,
+// ReadAndClearEvents also reports whether we reconnected to nats since the last call,
 // events from the time we were disconnected may be lost.
-func TakeResync() bool {
+func ReadAndClearEvents() (ret []Data, resync bool) {
 	eventsMutex.Lock()
 	defer eventsMutex.Unlock()
 
-	ret := resyncNeeded
-	resyncNeeded = false
-	return ret
-}
-
-func ReadAndClearEvents() []Data {
-	eventsMutex.Lock()
-	defer eventsMutex.Unlock()
-
-	ret := make([]Data, len(events))
-	copy(ret, events)
-	events = []Data(nil)
-
-	return ret
+	ret, events, resync, resyncNeeded = events, nil, resyncNeeded, false
+	return
 }
 
 func AddEvent(d Data) {
@@ -67,22 +55,21 @@ func RunListener() func() {
 
 	var scMutex sync.Mutex
 	var sc stan.Conn
+	closed := false
 	var connect func() error
 	connect = func() error {
 		conn, err := stan.Connect(natsClusterID, natsClientID, stan.NatsURL(natsURL),
 			stan.Pings(10, 6), // Connection is lost after ~1 minute without nats.
 			stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
 				log.Errorf("Nats connection lost: %v. Reconnecting.", reason)
-				go func() {
-					for err := connect(); err != nil; err = connect() {
-						log.Errorf("Nats reconnect failed: %v", err)
-						time.Sleep(10 * time.Second)
-					}
-					log.Info("Nats reconnected.")
-					eventsMutex.Lock()
-					resyncNeeded = true
-					eventsMutex.Unlock()
-				}()
+				for err := connect(); err != nil; err = connect() {
+					log.Errorf("Nats reconnect failed: %v", err)
+					time.Sleep(10 * time.Second)
+				}
+				log.Info("Nats reconnected.")
+				eventsMutex.Lock()
+				resyncNeeded = true
+				eventsMutex.Unlock()
 			}))
 		if err != nil {
 			return err
@@ -93,8 +80,12 @@ func RunListener() func() {
 			return err
 		}
 		scMutex.Lock()
+		defer scMutex.Unlock()
+		if closed {
+			conn.Close()
+			return nil
+		}
 		sc = conn
-		scMutex.Unlock()
 		return nil
 	}
 	utils.Must(connect())
@@ -102,6 +93,7 @@ func RunListener() func() {
 	return func() {
 		scMutex.Lock()
 		defer scMutex.Unlock()
+		closed = true
 		sc.Close()
 	}
 }

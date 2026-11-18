@@ -4,10 +4,12 @@ package events
 
 import (
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/nats-io/stan.go"
+	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/spf13/viper"
 )
 
@@ -19,6 +21,7 @@ func TestReconnectAfterNatsRestart(t *testing.T) {
 	viper.Set("nats.subject", "mdb2")
 	viper.Set("nats.durable", true)
 	viper.Set("nats.durable-name", "feed-api-events")
+	hook := test.NewGlobal()
 	shutdown := RunListener()
 	defer shutdown()
 
@@ -32,21 +35,23 @@ func TestReconnectAfterNatsRestart(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	waitFor := func(id string, d time.Duration) {
+	resync := false
+	received := func(id string, d time.Duration) bool {
 		for end := time.Now().Add(d); time.Now().Before(end); time.Sleep(200 * time.Millisecond) {
-			for _, e := range ReadAndClearEvents() {
+			datas, r := ReadAndClearEvents()
+			resync = resync || r
+			for _, e := range datas {
 				if e.ID == id {
-					return
+					return true
 				}
 			}
 		}
-		t.Fatalf("event %s not received", id)
+		return false
 	}
 
 	publish("before")
-	waitFor("before", 5*time.Second)
-	if TakeResync() {
-		t.Fatal("resync set before any reconnect")
+	if !received("before", 5*time.Second) || resync {
+		t.Fatalf("before restart: event not received or resync=%v", resync)
 	}
 
 	if out, err := exec.Command("docker", "restart", "stan-auto-test").CombinedOutput(); err != nil {
@@ -63,14 +68,18 @@ func TestReconnectAfterNatsRestart(t *testing.T) {
 			pc.Publish("mdb2", []byte(`{"id":"`+id+`","type":"test"}`))
 			pc.Close()
 		}
-		got := false
-		for end := time.Now().Add(5 * time.Second); time.Now().Before(end) && !got; time.Sleep(200 * time.Millisecond) {
-			for _, e := range ReadAndClearEvents() {
-				got = got || e.ID == id
+		if received(id, 5*time.Second) {
+			// Resync is flagged just after resubscribing, give it a moment.
+			received("", time.Second)
+			lost := false
+			for _, e := range hook.AllEntries() {
+				lost = lost || strings.HasPrefix(e.Message, "Nats connection lost")
 			}
-		}
-		if got {
-			t.Logf("delivery resumed after %s, resync=%v", time.Since(start).Round(time.Second), TakeResync())
+			// File store keeps the client registered, so no connection loss and no resync.
+			if resync != lost {
+				t.Fatalf("resync=%v but connection lost=%v", resync, lost)
+			}
+			t.Logf("delivery resumed after %s, connection lost=resync=%v", time.Since(start).Round(time.Second), resync)
 			return
 		}
 	}

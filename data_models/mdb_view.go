@@ -968,13 +968,13 @@ func (m *MdbView) Refresh() error {
 	//	defer func() {
 	//		utils.Profile("Refresh", time.Now().Sub(start))
 	//	}()
-	if events.TakeResync() {
+	datas, resync := events.ReadAndClearEvents()
+	if resync && !events.DebugMode {
 		log.Info("Reconnected to nats, syncing local mdb.")
 		if err := syncLocalMdb(m.tables, m.local, m.remote); err != nil {
 			return errors.Wrap(err, "Error syncing local mdb after nats reconnect")
 		}
 	}
-	datas := events.ReadAndClearEvents()
 	log.Infof("New events to handle: %+v", datas)
 	if scope, err := eventsScope(datas, m.local, m.remote); err != nil {
 		return errors.Wrap(err, "Error generating scope from events")
