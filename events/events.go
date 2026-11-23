@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"runtime/debug"
 	"sync"
+	"time"
 
 	"github.com/nats-io/stan.go"
 	log "github.com/sirupsen/logrus"
@@ -13,20 +14,20 @@ import (
 )
 
 var (
-	eventsMutex sync.Mutex
-	events      []Data
-	DebugMode   bool
+	eventsMutex  sync.Mutex
+	events       []Data
+	resyncNeeded bool
+	DebugMode    bool
 )
 
-func ReadAndClearEvents() []Data {
+// ReadAndClearEvents also reports whether we reconnected to nats since the last call,
+// events from the time we were disconnected may be lost.
+func ReadAndClearEvents() ([]Data, bool) {
 	eventsMutex.Lock()
 	defer eventsMutex.Unlock()
 
-	ret := make([]Data, len(events))
-	copy(ret, events)
-	events = []Data(nil)
-
-	return ret
+	defer func() { events, resyncNeeded = nil, false }()
+	return events, resyncNeeded
 }
 
 func AddEvent(d Data) {
@@ -38,29 +39,63 @@ func AddEvent(d Data) {
 
 // Returns shut down function.
 func RunListener() func() {
-	var err error
-
 	log.Info("Initialize connection to nats")
 	natsURL := viper.GetString("nats.url")
 	natsClientID := viper.GetString("nats.client-id")
 	natsClusterID := viper.GetString("nats.cluster-id")
 	natsSubject := viper.GetString("nats.subject")
-	sc, err := stan.Connect(natsClusterID, natsClientID, stan.NatsURL(natsURL))
-	utils.Must(err)
-
 	DebugMode = viper.GetString("nats.mode") == "debug"
 
-	log.Info("Subscribing to nats subject")
 	var startOpt stan.SubscriptionOption
 	if viper.GetBool("nats.durable") == true {
 		startOpt = stan.DurableName(viper.GetString("nats.durable-name"))
 	} else {
 		startOpt = stan.DeliverAllAvailable()
 	}
-	_, err = sc.Subscribe(natsSubject, msgHandler, startOpt, stan.SetManualAckMode())
-	utils.Must(err)
 
-	return func() { sc.Close() }
+	var scMutex sync.Mutex
+	var sc stan.Conn
+	closed := false
+	var connect func() error
+	connect = func() error {
+		conn, err := stan.Connect(natsClusterID, natsClientID, stan.NatsURL(natsURL),
+			stan.Pings(10, 6), // Connection is lost after ~1 minute without nats.
+			stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
+				log.Errorf("Nats connection lost: %v. Reconnecting.", reason)
+				for err := connect(); err != nil; err = connect() {
+					log.Errorf("Nats reconnect failed: %v", err)
+					time.Sleep(10 * time.Second)
+				}
+				log.Info("Nats reconnected.")
+				eventsMutex.Lock()
+				resyncNeeded = true
+				eventsMutex.Unlock()
+			}))
+		if err != nil {
+			return err
+		}
+		log.Info("Subscribing to nats subject")
+		if _, err = conn.Subscribe(natsSubject, msgHandler, startOpt, stan.SetManualAckMode()); err != nil {
+			conn.Close()
+			return err
+		}
+		scMutex.Lock()
+		defer scMutex.Unlock()
+		if closed {
+			conn.Close()
+			return nil
+		}
+		sc = conn
+		return nil
+	}
+	utils.Must(connect())
+
+	return func() {
+		scMutex.Lock()
+		defer scMutex.Unlock()
+		closed = true
+		sc.Close()
+	}
 }
 
 // Data struct for unmarshaling data from nats
