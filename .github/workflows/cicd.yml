@@ -19,6 +19,15 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres: # Tests build temporary databases from the migrations here.
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,6 +41,7 @@ jobs:
         env:
           GOOS: linux
           CGO_ENABLED: 0
+          FEED_TEST_PG_URL: postgres://postgres:test@localhost:5432/postgres?sslmode=disable
         run: |
           mv config.sample.toml config.toml
           set -o pipefail
